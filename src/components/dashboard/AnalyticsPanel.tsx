@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 import { useState } from 'react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import api from '@/lib/api';
@@ -86,9 +86,9 @@ export default function AnalyticsPanel({ visits, setVisits, dateFrom, dateTo, se
           <div className="space-y-6">
             <div className="grid grid-cols-3 gap-4">
               {[
-                { label: 'Total Visitor', value: visits.total, icon: '' },
-                { label: 'Hari Ini', value: visits.today, icon: '' },
-                { label: '7 Hari Terakhir', value: visits.week, icon: '' },
+                { label: 'Total Visitor', value: visits.total, icon: '◉' },
+                { label: 'Hari Ini', value: visits.today, icon: '◷' },
+                { label: '7 Hari Terakhir', value: visits.week, icon: '▥' },
               ].map((s, i) => (
                 <div key={i} className="bg-[#0f0f2a] border border-purple-900/30 rounded-2xl p-6 text-center">
                   <div className="text-3xl mb-2">{s.icon}</div>
@@ -115,3 +115,4 @@ export default function AnalyticsPanel({ visits, setVisits, dateFrom, dateTo, se
     </div>
   );
 }
+

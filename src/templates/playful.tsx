@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 import { useRef } from 'react';
 import { motion, useInView } from 'framer-motion';
 import TechBadge from '@/components/TechIcon';
@@ -192,7 +192,7 @@ export default function PlayfulTemplate({ data, theme, isPreview }: { data: any;
             <Float><div className="text-center mb-14"><motion.span className="text-xs uppercase tracking-[0.3em] font-bold" style={{ color: `${ac}80` }}>Services</motion.span><motion.h2 className="text-4xl sm:text-5xl font-black mt-2" style={{ color: textColor }}>What I Do</motion.h2></div>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">{services.map((svc: any) => (
               <motion.div key={svc.id} whileHover={{ y: -8, rotate: 1 }} className="p-8 rounded-[2rem] border-2 text-center" style={{ borderColor: `${ac}20`, backgroundColor: `${ac}06` }}>
-                <motion.div whileHover={{ scale: 1.2, rotate: 10 }} className="text-5xl mb-5">{svc.icon || ''}</motion.div>
+                <motion.div whileHover={{ scale: 1.2, rotate: 10 }} className="text-5xl mb-5">{svc.icon || '✦'}</motion.div>
                 <h3 className="text-lg font-black mb-2" style={{ color: textColor }}>{svc.title}</h3>
                 <p className="text-sm" style={{ color: subColor }}>{svc.description}</p>
               </motion.div>
@@ -312,4 +312,5 @@ export default function PlayfulTemplate({ data, theme, isPreview }: { data: any;
     </div>
   );
 }
+
 

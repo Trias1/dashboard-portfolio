@@ -264,7 +264,7 @@ export default function MinimalTemplate({ data, theme, isPreview }: { data: any,
                     whileHover={{ borderColor: ac, y: -4 }}>
                     <motion.div className="text-3xl mb-3"
                       whileHover={{ scale: 1.2, rotate: 10 }}
-                      transition={{ type: 'spring' }}>{svc.icon || ''}</motion.div>
+                      transition={{ type: 'spring' }}>{svc.icon || '✦'}</motion.div>
                     <h3 className="font-bold mb-1 text-sm" style={{ color: textColor }}>{svc.title}</h3>
                     <p className="text-xs text-justify" style={{ color: subColor }}>{svc.description}</p>
                   </motion.div>
@@ -509,4 +509,5 @@ export default function MinimalTemplate({ data, theme, isPreview }: { data: any,
       </div>
   );
 }
+
 

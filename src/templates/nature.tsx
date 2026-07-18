@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 import { useRef } from 'react';
 import { motion, useInView } from 'framer-motion';
 import TechBadge from '@/components/TechIcon';
@@ -271,7 +271,7 @@ export default function NatureTemplate({ data, theme, isPreview }: { data: any; 
                 {services.map((svc: any) => (
                   <Section key={svc.id}>
                     <OrganicCard className="p-8 text-center">
-                      <div className="text-4xl mb-5">{svc.icon || ''}</div>
+                      <div className="text-4xl mb-5">{svc.icon || '✦'}</div>
                       <h3 className="text-lg font-bold mb-2" style={{ color: textColor }}>{svc.title}</h3>
                       <p className="text-sm" style={{ color: subColor }}>{svc.description}</p>
                     </OrganicCard>
@@ -457,3 +457,4 @@ export default function NatureTemplate({ data, theme, isPreview }: { data: any; 
     </div>
   );
 }
+

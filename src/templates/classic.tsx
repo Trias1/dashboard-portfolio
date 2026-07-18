@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 import { useRef } from 'react';
 import { motion, useInView } from 'framer-motion';
 import TechBadge from '@/components/TechIcon';
@@ -233,7 +233,7 @@ export default function ClassicTemplate({ data, theme, isPreview }: { data: any;
                 {services.map((svc: any) => (
                   <Section key={svc.id}>
                     <Card className="p-6 text-center">
-                      <div className="text-3xl mb-4">{svc.icon || ''}</div>
+                      <div className="text-3xl mb-4">{svc.icon || '✦'}</div>
                       <h3 className="text-lg font-bold mb-2" style={{ color: textColor }}>{svc.title}</h3>
                       <p className="text-sm" style={{ color: subColor }}>{svc.description}</p>
                     </Card>
@@ -433,3 +433,4 @@ export default function ClassicTemplate({ data, theme, isPreview }: { data: any;
     </div>
   );
 }
+

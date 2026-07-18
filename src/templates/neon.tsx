@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 import { useRef, useEffect, useState } from 'react';
 import { motion, useInView } from 'framer-motion';
 import TechBadge from '@/components/TechIcon';
@@ -263,7 +263,7 @@ export default function NeonTemplate({ data, theme, isPreview }: { data: any; th
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {services.map((svc: any) => (
                   <NeonBorder key={svc.id} ac={ac} className="p-6 text-center">
-                    <div className="text-3xl mb-4">{svc.icon || ''}</div>
+                    <div className="text-3xl mb-4">{svc.icon || '✦'}</div>
                     <h3 className="text-base font-bold mb-2 uppercase tracking-wide" style={{ color: textColor }}>{svc.title}</h3>
                     <p className="text-xs font-mono" style={{ color: subColor }}>{svc.description}</p>
                   </NeonBorder>
@@ -450,3 +450,4 @@ export default function NeonTemplate({ data, theme, isPreview }: { data: any; th
     </div>
   );
 }
+

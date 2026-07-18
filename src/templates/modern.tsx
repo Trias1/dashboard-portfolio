@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 import { useState, useRef, useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { motion, useInView, useScroll, useTransform } from 'framer-motion';
@@ -270,7 +270,7 @@ export default function ModernTemplate({ data, theme: initialTheme, isPreview }:
                   {services.map((svc: any) => (
                     <motion.div key={svc.id} variants={fadeUp} whileHover={{ y: -8 }}
                       className={`p-6 rounded-2xl border text-center ${cardBg}`}>
-                      <motion.div className="text-4xl mb-4" whileHover={{ scale: 1.2, rotate: 10 }}>{svc.icon || ''}</motion.div>
+                      <motion.div className="text-4xl mb-4" whileHover={{ scale: 1.2, rotate: 10 }}>{svc.icon || '✦'}</motion.div>
                       <h3 className={`text-lg font-bold mb-2 ${textColor}`}>{svc.title}</h3>
                       <p className={`text-sm text-justify ${subTextColor}`}>{svc.description}</p>
                     </motion.div>
@@ -481,3 +481,4 @@ export default function ModernTemplate({ data, theme: initialTheme, isPreview }:
       </div>
   );
 }
+

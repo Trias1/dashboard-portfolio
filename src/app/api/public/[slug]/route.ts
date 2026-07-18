@@ -1,4 +1,4 @@
-import { NextRequest } from 'next/server';
+﻿import { NextRequest } from 'next/server';
 import { getSupabaseAdmin } from '@/lib/supabase/admin';
 import { errorResponse, successResponse } from '@/lib/utils';
 
@@ -42,8 +42,8 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
           { title: 'Portfolio Builder', description: 'No-code portfolio generator with multiple templates.', tech_stack: 'React, Node.js, Supabase', demo_url: '#', github_url: '#' },
         ],
         services: [
-          { title: 'Web App Development', description: 'Custom full-stack applications from idea to launch.', icon: '' },
-          { title: 'UI Engineering', description: 'Responsive, accessible, and delightful interfaces.', icon: '' },
+          { title: 'Web App Development', description: 'Custom full-stack applications from idea to launch.', icon: '✦' },
+          { title: 'UI Engineering', description: 'Responsive, accessible, and delightful interfaces.', icon: '✦' },
         ],
         contact: { email: 'alex@example.com', phone: '+1 555 0100', location: 'Remote' },
         skills: [
@@ -183,3 +183,4 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     });
   } catch (err: any) { return errorResponse(err.message); }
 }
+

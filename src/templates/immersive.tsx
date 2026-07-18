@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 import { useRef } from 'react';
 import { motion, useInView, useScroll, useTransform } from 'framer-motion';
 import TechBadge from '@/components/TechIcon';
@@ -199,7 +199,7 @@ export default function ImmersiveTemplate({ data, theme, isPreview }: { data: an
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 {services.map((svc: any) => (
                   <motion.div key={svc.id} whileHover={{ y: -8 }} className="p-8 rounded-2xl backdrop-blur-sm border text-center" style={{ borderColor: `${ac}15`, backgroundColor: `${ac}06` }}>
-                    <div className="text-4xl mb-5">{svc.icon || ''}</div>
+                    <div className="text-4xl mb-5">{svc.icon || '✦'}</div>
                     <h3 className="text-lg font-bold mb-2" style={{ color: textColor }}>{svc.title}</h3>
                     <p className="text-sm font-light" style={{ color: subColor }}>{svc.description}</p>
                   </motion.div>
@@ -334,3 +334,4 @@ export default function ImmersiveTemplate({ data, theme, isPreview }: { data: an
     </div>
   );
 }
+

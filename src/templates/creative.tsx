@@ -224,7 +224,7 @@ export default function CreativeTemplate({ data, theme, isPreview }: { data: any
                   {services.map((svc: any) => (
                     <div key={svc.id} className="p-5 rounded-2xl border text-center"
                       style={{ backgroundColor: cardBg, borderColor: `${ac}20` }}>
-                      <div className="text-3xl mb-3">{svc.icon || ''}</div>
+                      <div className="text-3xl mb-3">{svc.icon || '✦'}</div>
                       <h3 className="font-bold text-sm mb-1" style={{ color: textColor }}>{svc.title}</h3>
                       <p className="text-xs text-justify" style={{ color: subColor }}>{svc.description}</p>
                     </div>
@@ -443,4 +443,5 @@ export default function CreativeTemplate({ data, theme, isPreview }: { data: any
       </div>
   );
 }
+
 

@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 import { useRef } from 'react';
 import { motion, useInView } from 'framer-motion';
 import TechBadge from '@/components/TechIcon';
@@ -148,7 +148,7 @@ export default function AgencyTemplate({ data, theme, isPreview }: { data: any; 
                       whileHover={{ y: -8, boxShadow: `0 30px 60px ${ac}20` }}
                       className="p-8 rounded-2xl bg-white border-2" style={{ borderColor: `${ac}10` }}>
                       <div className="w-14 h-14 rounded-xl flex items-center justify-center text-2xl mb-5 text-white" style={{ backgroundColor: ac }}>
-                        {svc.icon || ''}
+                        {svc.icon || '✦'}
                       </div>
                       <h3 className="text-xl font-black mb-3">{svc.title}</h3>
                       <p className="text-sm leading-relaxed" style={{ color: subColor }}>{svc.description}</p>
@@ -370,3 +370,4 @@ export default function AgencyTemplate({ data, theme, isPreview }: { data: any; 
     </div>
   );
 }
+

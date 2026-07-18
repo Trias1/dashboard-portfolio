@@ -38,11 +38,11 @@ export default function DeveloperTemplate({ data, theme, isPreview }: { data: an
         </div>
         <nav className="p-4 space-y-1">
           {[
-            { label: 'about', icon: '' },
-            { label: 'experience', icon: '' },
-            { label: 'projects', icon: '' },
-            { label: 'skills', icon: '' },
-            { label: 'contact', icon: '' },
+            { label: 'about', icon: '◉' },
+            { label: 'experience', icon: '▣' },
+            { label: 'projects', icon: '▤' },
+            { label: 'skills', icon: '◆' },
+            { label: 'contact', icon: '✉' },
           ].map(s => (
             <motion.a key={s.label} href={`#${s.label}`} whileHover={{ x: 5, color: ac }}
               className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-mono transition-colors" style={{ color: subColor }}>
@@ -234,7 +234,7 @@ export default function DeveloperTemplate({ data, theme, isPreview }: { data: an
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     {services.map((svc: any) => (
                       <motion.div key={svc.id} whileHover={{ y: -4 }} className="rounded-xl border p-6" style={{ borderColor: `${ac}15`, backgroundColor: panelBg }}>
-                        <p className="text-2xl mb-3">{svc.icon || ''}</p>
+                        <p className="text-2xl mb-3">{svc.icon || '✦'}</p>
                         <h3 className="font-mono font-black text-sm mb-2" style={{ color: textColor }}>{'>'} {svc.title}</h3>
                         <p className="font-mono text-xs" style={{ color: subColor }}>{svc.description}</p>
                       </motion.div>
@@ -393,4 +393,6 @@ export default function DeveloperTemplate({ data, theme, isPreview }: { data: an
     </div>
   );
 }
+
+
 

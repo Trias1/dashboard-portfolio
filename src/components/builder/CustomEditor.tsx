@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 import React, { useState } from 'react';
 
 interface Props {
@@ -59,7 +59,7 @@ export default function CustomEditor({ editForm, setEditForm }: Props) {
               </div>
             ))}
             <button onClick={() => {
-              const cards = [...(editForm.content?.cards || []), {title: '', desc: '', icon: ''}];
+              const cards = [...(editForm.content?.cards || []), {title: '', desc: '', icon: '✦'}];
               setEditForm({...editForm, content: {...editForm.content, cards}});
             }} className="w-full border border-purple-900/30 text-purple-400 hover:text-white py-2 rounded-lg transition text-sm">
               + Add Card
@@ -122,3 +122,4 @@ export default function CustomEditor({ editForm, setEditForm }: Props) {
     </div>
   );
 }
+

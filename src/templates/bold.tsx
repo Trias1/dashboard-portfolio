@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 import { useRef, useEffect, useState } from 'react';
 import { motion, useInView, useScroll, useTransform } from 'framer-motion';
 import { themes } from '@/lib/sections';
@@ -377,7 +377,7 @@ export default function BoldTemplate({ data, theme: initialTheme, isPreview }: {
                     <motion.div className="text-4xl mb-5 inline-block" whileHover={{ scale: 1.2, rotate: 10 }}>
                       <span className="inline-flex items-center justify-center w-16 h-16 rounded-xl"
                         style={{ backgroundColor: `${ac}15` }}>
-                        {svc.icon || ''}
+                        {svc.icon || '✦'}
                       </span>
                     </motion.div>
                     <h3 className="text-lg font-bold mb-3" style={{ color: textColor }}>{svc.title}</h3>
@@ -619,3 +619,4 @@ export default function BoldTemplate({ data, theme: initialTheme, isPreview }: {
     </div>
   );
 }
+

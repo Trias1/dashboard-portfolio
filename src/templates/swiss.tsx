@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 import { useRef } from 'react';
 import { motion, useInView } from 'framer-motion';
 import TechBadge from '@/components/TechIcon';
@@ -195,7 +195,7 @@ export default function SwissTemplate({ data, theme, isPreview }: { data: any; t
               <div className="border-t-4 pt-6 mb-14" style={{ borderColor: dark }}><span className="text-xs font-black tracking-[0.3em] uppercase" style={{ color: ac }}>Services</span><h2 className="text-4xl sm:text-6xl font-black tracking-[-0.03em] mt-1" style={{ color: dark }}>Services</h2></div>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">{services.map((svc: any) => (
                 <motion.div key={svc.id} whileHover={{ y: -4 }} className="p-6 border-t-4" style={{ borderColor: ac, backgroundColor: '#fff' }}>
-                  <p className="text-2xl mb-3">{svc.icon || ''}</p>
+                  <p className="text-2xl mb-3">{svc.icon || '✦'}</p>
                   <h3 className="text-base font-black uppercase tracking-wider mb-2" style={{ color: dark }}>{svc.title}</h3>
                   <p className="text-sm" style={{ color: subColor }}>{svc.description}</p>
                 </motion.div>
@@ -332,3 +332,4 @@ export default function SwissTemplate({ data, theme, isPreview }: { data: any; t
     </div>
   );
 }
+

@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 import { useRef } from 'react';
 import { motion, useInView } from 'framer-motion';
 import TechBadge from '@/components/TechIcon';
@@ -236,7 +236,7 @@ export default function GlassTemplate({ data, theme, isPreview }: { data: any; t
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {services.map((svc: any) => (
                   <GlassCard key={svc.id} className="p-8 text-center">
-                    <div className="text-4xl mb-5 opacity-70">{svc.icon || ''}</div>
+                    <div className="text-4xl mb-5 opacity-70">{svc.icon || '✦'}</div>
                     <h3 className="text-lg font-semibold mb-2" style={{ color: textColor }}>{svc.title}</h3>
                     <p className="text-sm font-light" style={{ color: subColor }}>{svc.description}</p>
                   </GlassCard>
@@ -436,3 +436,4 @@ export default function GlassTemplate({ data, theme, isPreview }: { data: any; t
     </div>
   );
 }
+

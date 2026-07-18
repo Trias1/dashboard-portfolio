@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 import { useState } from 'react';
 import CVUpload from '@/components/builder/CVUpload';
 import api from '@/lib/api';
@@ -26,8 +26,8 @@ export default function CVPanel({ portfolio, setSections, loadPreview }: Props) 
             : updated.find(sec => sec.type === s);
           if (exists) return;
           const section = s.startsWith('custom:')
-            ? { id: `custom-${Date.now()}-${Math.random().toString(36).slice(2,6)}`, type: 'custom' as any, label: s.replace('custom:', ''), icon: '', enabled: true, deletable: true }
-            : { id: `${s}-${Date.now()}`, type: s as any, label: s.charAt(0).toUpperCase() + s.slice(1), icon: '', enabled: true, deletable: true };
+            ? { id: `custom-${Date.now()}-${Math.random().toString(36).slice(2,6)}`, type: 'custom' as any, label: s.replace('custom:', ''), icon: '✦', enabled: true, deletable: true }
+            : { id: `${s}-${Date.now()}`, type: s as any, label: s.charAt(0).toUpperCase() + s.slice(1), icon: '✦', enabled: true, deletable: true };
           const orderKey = s.startsWith('custom:')
             ? 'custom-' + s.replace('custom:', '').toLowerCase().replace(/\s+/g, '-')
             : s;
@@ -82,14 +82,14 @@ export default function CVPanel({ portfolio, setSections, loadPreview }: Props) 
           <h3 className="text-sm font-semibold text-gray-300 mb-3">Data yang akan masuk ke CV</h3>
           <div className="space-y-2 text-xs text-gray-400">
             {[
-              { label: 'Nama & Title', icon: '' },
-              { label: 'Bio/Summary', icon: '' },
-              { label: 'Pengalaman Kerja', icon: '' },
-              { label: 'Skills', icon: '' },
-              { label: 'Projects', icon: '' },
-              { label: 'Sertifikat', icon: '' },
-              { label: 'Info Kontak', icon: '' },
-              { label: 'Custom Sections', icon: '' },
+              { label: 'Nama & Title', icon: '✦' },
+              { label: 'Bio/Summary', icon: '◈' },
+              { label: 'Pengalaman Kerja', icon: '▣' },
+              { label: 'Skills', icon: '◆' },
+              { label: 'Projects', icon: '▤' },
+              { label: 'Sertifikat', icon: '◇' },
+              { label: 'Info Kontak', icon: '✉' },
+              { label: 'Custom Sections', icon: '＋' },
             ].map(item => (
               <div key={item.label} className="flex items-center gap-2">
                 <span>{item.icon}</span>
@@ -156,3 +156,5 @@ export default function CVPanel({ portfolio, setSections, loadPreview }: Props) 
     </div>
   );
 }
+
+

@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 import { useRef } from 'react';
 import { motion, useInView } from 'framer-motion';
 import TechBadge from '@/components/TechIcon';
@@ -259,7 +259,7 @@ export default function RetroTemplate({ data, theme, isPreview }: { data: any; t
                 {services.map((svc: any) => (
                   <Section key={svc.id}>
                     <RetroCard className="p-8 text-center">
-                      <div className="text-4xl mb-5 font-bold" style={{ color: ac }}>{svc.icon || ''}</div>
+                      <div className="text-4xl mb-5 font-bold" style={{ color: ac }}>{svc.icon || '✦'}</div>
                       <h3 className="font-bold uppercase tracking-wide mb-2" style={{ color: textColor }}>{svc.title}</h3>
                       <p className="text-xs" style={{ color: subColor }}>{svc.description}</p>
                     </RetroCard>
@@ -453,3 +453,4 @@ export default function RetroTemplate({ data, theme, isPreview }: { data: any; t
     </div>
   );
 }
+

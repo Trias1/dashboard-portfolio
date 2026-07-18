@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 import { useRef } from 'react';
 import { motion, useInView } from 'framer-motion';
 import TechBadge from '@/components/TechIcon';
@@ -206,7 +206,7 @@ export default function BoldPersonaTemplate({ data, theme, isPreview }: { data: 
               <div className="mb-16"><span className="text-xs font-black uppercase tracking-[0.4em]" style={{ color: ac }}>Services</span><h2 className="text-6xl sm:text-8xl font-black tracking-[-0.04em] mt-2">Services</h2></div>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">{services.map((svc: any) => (
                 <motion.div key={svc.id} whileHover={{ y: -8 }} className="p-8 border-l-4" style={{ borderColor: ac, backgroundColor: '#12121a' }}>
-                  <p className="text-4xl mb-5">{svc.icon || ''}</p>
+                  <p className="text-4xl mb-5">{svc.icon || '✦'}</p>
                   <h3 className="text-xl font-black uppercase tracking-wider mb-3" style={{ color: textColor }}>{svc.title}</h3>
                   <p className="text-sm" style={{ color: subColor }}>{svc.description}</p>
                 </motion.div>
@@ -344,3 +344,4 @@ export default function BoldPersonaTemplate({ data, theme, isPreview }: { data: 
     </div>
   );
 }
+

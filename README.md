@@ -94,3 +94,15 @@ Build the application first, then deploy it to a Node.js platform that supports 
 - Never commit `.env*` files, credentials, or private keys.
 - Use separate environment variables for development and production.
 - Keep service-role keys restricted to server-side code.
+
+## Vercel Logs Configuration
+
+The superadmin Server panel reads the latest Vercel runtime events server-side. Configure these variables in Vercel Project Settings; never commit their values:
+
+```env
+VERCEL_TOKEN=
+VERCEL_PROJECT_ID=
+VERCEL_TEAM_ID=
+```
+
+`VERCEL_TEAM_ID` is optional for personal projects and required when the Vercel project belongs to a team.

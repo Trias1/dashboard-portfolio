@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import { motion } from 'framer-motion';
@@ -68,8 +68,8 @@ function getDemoPortfolio(template = 'modern', theme = 'dark-space') {
       { title: 'Portfolio Builder', description: 'No-code portfolio generator with multiple templates.', tech_stack: 'React, Node.js, Supabase', demo_url: '#', github_url: '#' },
     ],
     services: [
-      { title: 'Web App Development', description: 'Custom full-stack applications from idea to launch.', icon: '' },
-      { title: 'UI Engineering', description: 'Responsive, accessible, and delightful interfaces.', icon: '' },
+      { title: 'Web App Development', description: 'Custom full-stack applications from idea to launch.', icon: '✦' },
+      { title: 'UI Engineering', description: 'Responsive, accessible, and delightful interfaces.', icon: '✦' },
     ],
     contact: { email: 'alex@example.com', phone: '+1 555 0100', location: 'Remote' },
     skills: [
@@ -180,5 +180,6 @@ export default function PublicPortfolioPage() {
   if (templateName === 'developer-tools') return <OrderSections sections_order={data?.portfolio?.sections_order}><DeveloperToolsTemplate data={data} theme={theme} isPreview={isPreview} />{widget}</OrderSections>;
   return <OrderSections sections_order={data?.portfolio?.sections_order}><ModernTemplate data={data} theme={theme} isPreview={isPreview} />{widget}</OrderSections>;
 }
+
 
 

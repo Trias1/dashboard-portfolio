@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 import api from '@/lib/api';
 
 interface Props {
@@ -26,7 +26,7 @@ export default function UsersPanel({ users, fetchUsers }: Props) {
                   <td className="p-4 text-white text-sm">{u.name}</td>
                   <td className="p-4 text-gray-400 text-sm">{u.email}</td>
                   <td className="p-4">
-                    <select value={u.role} onChange={async e => { await api.patch(`/api/users/${u.id}/role`, { role: e.target.value }); fetchUsers(); }}
+                    <select aria-label={`Role for ${u.name || u.email}`} value={u.role} onChange={async e => { await api.patch(`/api/users/${u.id}/role`, { role: e.target.value }); fetchUsers(); }}
                       className="bg-[#1a1a3a] border border-purple-900/30 rounded-lg px-2 py-1 text-white text-xs">
                       <option value="user">user</option>
                       <option value="admin">admin</option>
@@ -34,19 +34,24 @@ export default function UsersPanel({ users, fetchUsers }: Props) {
                     </select>
                   </td>
                   <td className="p-4">
-                    <button onClick={async () => { await api.patch(`/api/users/${u.id}/status`); fetchUsers(); }}
+                    <button type="button" aria-label={`Toggle status for ${u.name || u.email}`} onClick={async () => { await api.patch(`/api/users/${u.id}/status`); fetchUsers(); }}
                       className={`text-xs px-3 py-1 rounded-full ${u.is_active ? 'bg-green-600/30 text-green-300' : 'bg-red-600/30 text-red-300'}`}>
                       {u.is_active ? 'Active' : 'Inactive'}
                     </button>
                   </td>
                   <td className="p-4">
                     <span className={`text-xs px-3 py-1 rounded-full ${u.is_verified ? 'bg-blue-600/30 text-blue-300' : 'bg-gray-600/30 text-gray-400'}`}>
-                      {u.is_verified ? 'OK' : ''}
+                      {u.is_verified ? 'Verified' : 'Unverified'}
                     </span>
                   </td>
                   <td className="p-4">
-                    <button onClick={async () => { if (!confirm('Delete?')) return; await api.delete(`/api/users/${u.id}`); fetchUsers(); }}
-                      className="text-xs text-red-400 hover:text-red-300"></button>
+                    <button type="button" aria-label={`Delete ${u.name || u.email}`} onClick={async () => {
+                      if (!confirm(`Delete user ${u.name || u.email}?`)) return;
+                      await api.delete(`/api/users/${u.id}`);
+                      fetchUsers();
+                    }} className="rounded-lg border border-red-500/30 px-3 py-1 text-xs text-red-300 hover:bg-red-500/15 hover:text-red-200 transition">
+                      Delete
+                    </button>
                   </td>
                 </tr>
               ))}

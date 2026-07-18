@@ -145,6 +145,18 @@ function VisitorChart({ data }: { data: any[] }) {
   );
 }
 
+function MenuIcon({ name }: { name: string }) {
+  const paths: Record<string, string> = {
+    builder: 'M4 4h16v16H4z M8 8h8 M8 12h8 M8 16h5',
+    advisor: 'M12 3a6 6 0 0 0-3 11.2V17h6v-2.8A6 6 0 0 0 12 3z M9 21h6',
+    analytics: 'M4 19V5 M4 19h16 M8 16v-4 M12 16V8 M16 16v-7',
+    github: 'M12 3a9 9 0 0 0-3 17.5c.5.1.7-.2.7-.5v-1.8c-2.8.6-3.4-1.2-3.4-1.2-.5-1.2-1.1-1.5-1.1-1.5-.9-.6.1-.6.1-.6 1 0 1.5 1 1 1 .9 1.5 2.3 1.1 2.9.8.1-.7.4-1.1.7-1.4-2.2-.3-4.5-1.1-4.5-5A3.9 3.9 0 0 1 7 9.6a3.6 3.6 0 0 1 .1-2.8s.8-.3 2.9 1.1a10 10 0 0 1 5.3 0c2.1-1.4 2.9-1.1 2.9-1.1a3.6 3.6 0 0 1 .1 2.8 3.9 3.9 0 0 1 1 2.7c0 3.9-2.3 4.7-4.5 5 .4.3.7 1 .7 2v2.7c0 .3.2.6.7.5A9 9 0 0 0 12 3z',
+    cv: 'M6 3h9l3 3v15H6z M15 3v4h4 M9 12h6 M9 16h6',
+    server: 'M4 5h16v5H4z M4 14h16v5H4z M7 7h.01 M7 16h.01 M10 7h7 M10 16h7',
+    users: 'M16 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2 M10 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8z M20 21v-2a4 4 0 0 0-3-3.9 M16 3.1a4 4 0 0 1 0 7.8',
+  };
+  return <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4 flex-shrink-0"><path d={paths[name] || paths.builder} /></svg>;
+}
 function parseSectionsOrder(value: any): Section[] {
   if (Array.isArray(value)) return value;
   if (typeof value !== "string") return [];
@@ -227,7 +239,9 @@ export default function DashboardPage() {
     new Date().toISOString().slice(0, 10),
   );
   const [adminStats, setAdminStats] = useState<any>(null);
-  const [resources, setResources] = useState<any>(null);
+  const [vercelLogs, setVercelLogs] = useState<any[]>([]);
+  const [vercelLogsLoading, setVercelLogsLoading] = useState(false);
+  const [vercelLogsError, setVercelLogsError] = useState("");
 
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -363,7 +377,7 @@ export default function DashboardPage() {
     }
     if (activeMenu === "superadmin") {
       fetchAdminStats();
-      fetchResources();
+      fetchVercelLogs();
     }
   }, [activeMenu, user]);
 
@@ -412,15 +426,18 @@ export default function DashboardPage() {
     }
   };
 
-  const fetchResources = async () => {
+  const fetchVercelLogs = async () => {
+    setVercelLogsLoading(true);
+    setVercelLogsError("");
     try {
-      const res = await api.get("/api/admin/resources");
-      setResources(res.data);
-    } catch (err) {
-      console.error(err);
+      const res = await api.get("/api/admin/vercel-logs");
+      setVercelLogs(Array.isArray(res.data) ? res.data : []);
+    } catch (err: any) {
+      setVercelLogsError(err.response?.data?.message || "Unable to load Vercel logs");
+    } finally {
+      setVercelLogsLoading(false);
     }
   };
-
   const fetchUsers = async () => {
     try {
       const res = await api.get("/api/users");
@@ -2836,7 +2853,7 @@ export default function DashboardPage() {
                 className="text-xl text-gray-400 hover:text-white"
               >
                 {" "}
-                -{" "}
+                {" "}
               </button>
             </div>
             <form onSubmit={handleUpdateProfile} className="space-y-4">
@@ -2943,7 +2960,7 @@ export default function DashboardPage() {
                   htmlFor="profile-photo-upload"
                   className="cursor-pointer inline-flex items-center gap-2 px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white text-sm rounded-lg transition"
                 >
-                  "- {lang === "id" ? "Upload Foto" : "Upload Photo"}
+                  " {lang === "id" ? "Upload Foto" : "Upload Photo"}
                 </label>
                 <p className="text-xs text-gray-500 mt-1">
                   {lang === "id" ? "Atau masukkan URL:" : "Or paste URL below:"}
@@ -3013,21 +3030,21 @@ export default function DashboardPage() {
           {[
             ...(user?.role !== "superadmin"
               ? [
-                  { key: "builder", label: "Builder", icon: "" },
-                  { key: "advisor", label: "AI Advisor", icon: "" },
+                  { key: "builder", label: "Builder", icon: "builder" },
+                  { key: "advisor", label: "AI Advisor", icon: "advisor" },
                   {
                     key: "analytics",
                     label: lang === "id" ? "Statistik" : "Analytics",
-                    icon: "",
+                    icon: "analytics",
                   },
-                  { key: "github", label: "GitHub Import", icon: "" },
-                  { key: "cv", label: "CV Generator", icon: "" },
+                  { key: "github", label: "GitHub Import", icon: "github" },
+                  { key: "cv", label: "CV Generator", icon: "cv" },
                 ]
               : []),
             ...(user?.role === "superadmin"
               ? [
-                  { key: "superadmin", label: "Server", icon: "-" },
-                  { key: "users", label: t2("users"), icon: "U" },
+                  { key: "superadmin", label: "Server", icon: "server" },
+                  { key: "users", label: t2("users"), icon: "users" },
                 ]
               : []),
           ].map((item) => (
@@ -3036,7 +3053,7 @@ export default function DashboardPage() {
               onClick={() => setActiveMenu(item.key)}
               className={`w-full text-left px-2 py-2.5 rounded-lg transition text-sm font-medium flex items-center gap-2 ${activeMenu === item.key ? "bg-purple-600 text-white" : "text-gray-400 hover:bg-purple-900/20 hover:text-white"}`}
             >
-              <span>{item.icon}</span>
+              <MenuIcon name={item.icon} />
               {sidebarOpen && <span>{item.label}</span>}
             </button>
           ))}
@@ -3474,9 +3491,11 @@ export default function DashboardPage() {
         {activeMenu === "superadmin" && (
           <SuperadminPanel
             adminStats={adminStats}
-            resources={resources}
+            vercelLogs={vercelLogs}
+            vercelLogsLoading={vercelLogsLoading}
+            vercelLogsError={vercelLogsError}
             fetchAdminStats={fetchAdminStats}
-            fetchResources={fetchResources}
+            fetchVercelLogs={fetchVercelLogs}
           />
         )}
         {activeMenu === "users" && (
@@ -3495,3 +3514,6 @@ export default function DashboardPage() {
     </div>
   );
 }
+
+
+

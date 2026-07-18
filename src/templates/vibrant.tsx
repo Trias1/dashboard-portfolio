@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 import { useRef } from 'react';
 import { motion, useInView } from 'framer-motion';
 import TechBadge from '@/components/TechIcon';
@@ -272,7 +272,7 @@ export default function VibrantTemplate({ data, theme, isPreview }: { data: any;
                 {services.map((svc: any) => (
                   <BounceSection key={svc.id}>
                     <ColorCard ac={ac} className="p-8 text-center">
-                      <motion.div className="text-5xl mb-5" whileHover={{ scale: 1.2, rotate: 10 }}>{svc.icon || ''}</motion.div>
+                      <motion.div className="text-5xl mb-5" whileHover={{ scale: 1.2, rotate: 10 }}>{svc.icon || '✦'}</motion.div>
                       <h3 className="text-xl font-black mb-2" style={{ color: textColor }}>{svc.title}</h3>
                       <p className="text-sm" style={{ color: subColor }}>{svc.description}</p>
                     </ColorCard>
@@ -468,3 +468,4 @@ export default function VibrantTemplate({ data, theme, isPreview }: { data: any;
     </div>
   );
 }
+
