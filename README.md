@@ -1,4 +1,4 @@
-﻿# Dashboard Portfolio
+# Dashboard Portfolio
 
 A modern portfolio dashboard for creating, managing, and publishing professional portfolios quickly.
 
@@ -101,6 +101,7 @@ The superadmin Server panel reads the latest Vercel runtime events server-side. 
 
 ```env
 VERCEL_TOKEN=
+VERCEL_TOKEN_PROD=
 VERCEL_PROJECT_ID=
 VERCEL_TEAM_ID=
 ```

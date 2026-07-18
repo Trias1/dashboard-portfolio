@@ -69,12 +69,7 @@ export async function GET(request: NextRequest) {
     const refreshToken = await signRefreshToken({ id: user.id });
     await setAuthCookies(accessToken, refreshToken);
 
-    const userParam = encodeURIComponent(JSON.stringify({ id: user.id, name: user.name, email: user.email, role: user.role }));
-
-    if (from === 'clipper') {
-      return Response.redirect(new URL(`/auth/callback?token=${accessToken}&user=${userParam}`, BASE_URL));
-    }
-    return Response.redirect(new URL(`/auth/callback?token=${accessToken}&user=${userParam}`, BASE_URL));
+    return Response.redirect(new URL(user.role === 'admin' || user.role === 'superadmin' ? '/dashboard' : '/', BASE_URL));
   } catch (err: any) {
     console.error('Google OAuth error:', err);
     return Response.redirect(new URL('/login?error=oauth_failed', BASE_URL));

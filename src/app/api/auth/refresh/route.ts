@@ -15,11 +15,11 @@ export async function POST(_request: NextRequest) {
 
     const { data: user } = await getSupabaseAdmin()
       .from('users')
-      .select('id, name, email, role')
+      .select('id, name, email, role, is_active, is_verified')
       .eq('id', decoded.id)
       .maybeSingle();
 
-    if (!user) return errorResponse('User not found', 401);
+    if (!user || !user.is_active || !user.is_verified) return errorResponse('Session is no longer valid', 401);
 
     const accessToken = await signAccessToken({ id: user.id, email: user.email, role: user.role });
     const refreshToken = await signRefreshToken({ id: user.id });

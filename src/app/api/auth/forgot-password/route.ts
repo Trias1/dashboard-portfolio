@@ -3,9 +3,13 @@ import crypto from 'crypto';
 import { getSupabaseAdmin } from '@/lib/supabase/admin';
 import { sendResetPassword } from '@/lib/mailer';
 import { errorResponse, successResponse } from '@/lib/utils';
+import { checkRateLimit, getClientId } from '@/lib/rate-limit';
 
 export async function POST(request: NextRequest) {
   try {
+    const rl = await checkRateLimit(getClientId(request), 'auth');
+    if (!rl.allowed) return errorResponse('Too many requests', 429);
+
     const { email } = await request.json();
     if (!email) return errorResponse('Email required', 400);
 

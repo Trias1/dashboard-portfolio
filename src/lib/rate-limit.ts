@@ -22,7 +22,7 @@ export async function checkRateLimit(identifier: string, type: RateLimitType = '
     if (currentCount >= max) return { allowed: false, remaining: 0, resetIn: WINDOW_MS };
     await getSupabaseAdmin().from('rate_limits').insert({ identifier, type, created_at: new Date().toISOString() });
     return { allowed: true, remaining: max - currentCount - 1, resetIn: WINDOW_MS };
-  } catch { return { allowed: true, remaining: 99, resetIn: 0 }; }
+  } catch { return { allowed: false, remaining: 0, resetIn: WINDOW_MS }; }
 }
 
 export function getClientId(request: Request): string {

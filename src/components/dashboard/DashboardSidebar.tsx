@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 interface DashboardSidebarProps {
   role?: string;
@@ -18,6 +18,7 @@ const paths: Record<string, string> = {
     "M12 3a9 9 0 0 0-3 17.5c.5.1.7-.2.7-.5v-1.8c-2.8.6-3.4-1.2-3.4-1.2-.5-1.2-1.1-1.5-1.1-1.5-.9-.6.1-.6.1-.6 1 0 1.5 1 1 1 .9 1.5 2.3 1.1 2.9.8.1-.7.4-1.1.7-1.4-2.2-.3-4.5-1.1-4.5-5A3.9 3.9 0 0 1 7 9.6a3.6 3.6 0 0 1 .1-2.8s.8-.3 2.9 1.1a10 10 0 0 1 5.3 0c2.1-1.4 2.9-1.1 2.9-1.1a3.6 3.6 0 0 1 .1 2.8 3.9 3.9 0 0 1 1 2.7c0 3.9-2.3 4.7 0 5 .4.3.7 1 .7 2v2.7c0 .3.2.6.7.5A9 9 0 0 0 12 3z",
   cv: "M6 3h9l3 3v15H6z M15 3v4h4 M9 12h6 M9 16h6",
   server: "M4 5h16v5H4z M4 14h16v5H4z M7 7h.01 M7 16h.01 M10 7h7 M10 16h7",
+  overview: "M4 19V5 M4 19h16 M8 16v-4 M12 16V8 M16 16v-7",
   users:
     "M16 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2 M10 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8z M20 21v-2a4 4 0 0 0-3-3.9 M16 3.1a4 4 0 0 1 0 7.8",
 };
@@ -51,6 +52,7 @@ export default function DashboardSidebar({
   const items =
     role === "superadmin"
       ? [
+          { key: "overview", label: "Overview", icon: "overview" },
           { key: "superadmin", label: "Server", icon: "server" },
           { key: "users", label: usersLabel, icon: "users" },
         ]

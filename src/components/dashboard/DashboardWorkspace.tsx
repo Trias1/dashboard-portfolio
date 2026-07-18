@@ -42,6 +42,7 @@ import DeleteSectionModal from "@/components/builder/DeleteSectionModal";
 import AnalyticsPanel from "@/components/dashboard/AnalyticsPanel";
 import GitHubPanel from "@/components/dashboard/GitHubPanel";
 import SuperadminPanel from "@/components/dashboard/SuperadminPanel";
+import AdminOverviewPanel from "@/components/dashboard/AdminOverviewPanel";
 import UsersPanel from "@/components/dashboard/UsersPanel";
 import CVPanel from "@/components/dashboard/CVPanel";
 import AdvisorWidget from "@/components/AdvisorWidget";
@@ -128,6 +129,13 @@ export default function DashboardPage() {
     }),
   );
 
+  useEffect(() => {
+    if (!user) return;
+    const beat = () => api.post('/api/auth/heartbeat').catch(() => undefined);
+    beat();
+    const timer = window.setInterval(beat, 120000);
+    return () => window.clearInterval(timer);
+  }, [user]);
   useEffect(() => {
     const stored = localStorage.getItem("user"); // role only
     if (!stored) {
@@ -254,7 +262,7 @@ export default function DashboardPage() {
       setGithubPreview(null);
       setGithubMsg("");
     }
-    if (activeMenu === "superadmin") {
+    if (activeMenu === "overview" || activeMenu === "superadmin") {
       fetchAdminStats();
       fetchVercelLogs();
     }
@@ -918,7 +926,8 @@ export default function DashboardPage() {
             loadPreview={loadPreview}
           />
         )}
-        {activeMenu === "superadmin" && (
+        {activeMenu === "overview" && <AdminOverviewPanel stats={adminStats} onRefresh={fetchAdminStats} />}
+          {activeMenu === "superadmin" && (
           <SuperadminPanel
             adminStats={adminStats}
             vercelLogs={vercelLogs}

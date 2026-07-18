@@ -1,4 +1,4 @@
-﻿import { NextRequest } from 'next/server';
+import { NextRequest } from 'next/server';
 import { requireSuperAdmin } from '@/lib/auth';
 import { errorResponse, successResponse } from '@/lib/utils';
 
@@ -18,7 +18,7 @@ function getLevel(event: any) {
 export async function GET(request: NextRequest) {
   try {
     await requireSuperAdmin(request);
-    const token = process.env.VERCEL_TOKEN;
+    const token = process.env.VERCEL_TOKEN_PROD || process.env.VERCEL_TOKEN;
     const projectId = process.env.VERCEL_PROJECT_ID;
     const teamId = process.env.VERCEL_TEAM_ID;
 
