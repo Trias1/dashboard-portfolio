@@ -1,35 +1,35 @@
 ﻿# Dashboard Portfolio
 
-Dashboard portfolio modern untuk membuat, mengelola, dan mempublikasikan portfolio secara cepat.
+A modern portfolio dashboard for creating, managing, and publishing professional portfolios quickly.
 
-## Fitur
+## Features
 
-- Builder portfolio dengan drag-and-drop
-- Beberapa template portfolio responsif
-- Tema warna yang dapat disesuaikan
-- AI Advisor untuk membantu mengisi konten
-- Import profil GitHub
-- Analytics pengunjung
-- Manajemen pengguna dan role admin
-- Export portfolio ke PDF
+- Drag-and-drop portfolio builder
+- Multiple responsive portfolio templates
+- Customizable color themes
+- AI Advisor for content assistance
+- GitHub profile import
+- Visitor analytics
+- User and role management
+- Portfolio PDF export
 
 ## Tech Stack
 
 - Next.js 16 App Router
-- React 19 dan TypeScript
+- React 19 and TypeScript
 - Tailwind CSS v4
 - Supabase
 - Framer Motion
 - React Hook Form
 - Recharts
 
-## Prasyarat
+## Prerequisites
 
-- Node.js 18 atau lebih baru
+- Node.js 18 or newer
 - npm
-- Akses ke service yang digunakan aplikasi, seperti Supabase dan API backend terkait
+- Access to the services used by the application, such as Supabase and related backend APIs
 
-## Instalasi
+## Installation
 
 ```bash
 git clone https://github.com/Trias1/dashboard-portfolio.git
@@ -37,60 +37,60 @@ cd dashboard-portfolio
 npm install
 ```
 
-## Konfigurasi Environment
+## Environment Configuration
 
-Buat file `.env.local` di root project berdasarkan variable yang dibutuhkan aplikasi. File environment lokal tidak boleh di-commit ke repository.
+Create a `.env.local` file in the project root using the environment variables required by the application. Local environment files must not be committed to the repository.
 
-Gunakan secret dari dashboard service masing-masing untuk variable seperti database, autentikasi, email, storage, dan integrasi AI. Jangan menaruh token, password, private key, atau service-role key langsung di source code.
+Use secrets from each service dashboard for variables related to the database, authentication, email, storage, and AI integrations. Never put tokens, passwords, private keys, or service-role keys directly in the source code.
 
-## Menjalankan Lokal
+## Run Locally
 
 ```bash
 npm run dev
 ```
 
-Buka `http://localhost:3000` di browser.
+Open `http://localhost:3000` in your browser.
 
-## Build Production
+## Production Build
 
 ```bash
 npm run build
 npm start
 ```
 
-Pemeriksaan lint tersedia melalui:
+Linting is available with:
 
 ```bash
 npm run lint
 ```
 
-## Struktur Utama
+## Main Structure
 
 ```text
 src/
-├── app/          # Halaman, layout, dan API route
-├── components/   # Komponen UI bersama
-├── lib/          # Helper dan integrasi service
-└── templates/    # Template portfolio
-supabase/         # Konfigurasi dan script database
-public/           # Asset statis
+├── app/          # Pages, layouts, and API routes
+├── components/   # Shared UI components
+├── lib/          # Helpers and service integrations
+└── templates/    # Portfolio templates
+supabase/         # Database configuration and migration scripts
+public/           # Static assets
 ```
 
-## Template Portfolio
+## Portfolio Templates
 
-| Template | Gaya |
+| Template | Style |
 | --- | --- |
-| Modern | Dark elegant dengan animasi |
-| Creative | Sidebar editorial dengan kartu rounded |
-| Minimal | Tipografi bersih dan fokus pada konten |
-| Bold | Gradient, neon glow, dan glassmorphism |
+| Modern | Dark and elegant with smooth animations |
+| Creative | Editorial sidebar layout with rounded cards |
+| Minimal | Clean typography focused on content |
+| Bold | Gradients, neon glow, and glassmorphism |
 
 ## Deployment
 
-Build aplikasi terlebih dahulu, lalu deploy ke platform Node.js yang mendukung Next.js. Pastikan semua environment variable production dikonfigurasi melalui secret manager platform deployment, bukan melalui repository.
+Build the application first, then deploy it to a Node.js platform that supports Next.js. Configure all production environment variables through the deployment platform's secret manager instead of committing them to the repository.
 
-## Catatan Keamanan
+## Security Notes
 
-- Jangan commit file `.env*`, credential, atau private key.
-- Gunakan environment variable berbeda untuk development dan production.
-- Batasi akses service-role key hanya di server.
+- Never commit `.env*` files, credentials, or private keys.
+- Use separate environment variables for development and production.
+- Keep service-role keys restricted to server-side code.
