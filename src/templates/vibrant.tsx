@@ -146,7 +146,7 @@ export default function VibrantTemplate({ data, theme, isPreview }: { data: any;
                     <div className="space-y-4 flex-1">
                       <motion.h3 className="text-3xl font-black" style={{ color: textColor }} whileHover={{ x: 5 }}>{about.name}</motion.h3>
                       <p className="text-lg font-bold" style={{ color: ac }}>{about.title}</p>
-                      <p className="text-base leading-relaxed" style={{ color: subColor }}>{about.bio}</p>
+                      <p className="text-base leading-relaxed text-justify whitespace-pre-line" style={{ color: subColor }}>{about.bio}</p>
                     </div>
                   </div>
                 </ColorCard>
@@ -233,7 +233,7 @@ export default function VibrantTemplate({ data, theme, isPreview }: { data: any;
                         </div>
                       )}
                       <h3 className="text-xl font-black mb-2" style={{ color: textColor }}>{proj.title}</h3>
-                      <p className="text-sm mb-4 leading-relaxed" style={{ color: subColor }}>{proj.description}</p>
+                      <p className="text-sm mb-4 leading-relaxed text-justify" style={{ color: subColor }}>{proj.description}</p>
                       {proj.tech_stack && (
                         <div className="flex flex-wrap gap-1.5 mb-4">
                           {proj.tech_stack.split(',').map((t: string) => (
@@ -274,7 +274,7 @@ export default function VibrantTemplate({ data, theme, isPreview }: { data: any;
                     <ColorCard ac={ac} className="p-8 text-center">
                       <motion.div className="text-5xl mb-5" whileHover={{ scale: 1.2, rotate: 10 }}>{svc.icon || '✦'}</motion.div>
                       <h3 className="text-xl font-black mb-2" style={{ color: textColor }}>{svc.title}</h3>
-                      <p className="text-sm" style={{ color: subColor }}>{svc.description}</p>
+                      <p className="text-sm text-justify" style={{ color: subColor }}>{svc.description}</p>
                     </ColorCard>
                   </BounceSection>
                 ))}
@@ -293,7 +293,7 @@ export default function VibrantTemplate({ data, theme, isPreview }: { data: any;
                   <BounceSection key={t.id}>
                     <ColorCard ac={ac} className="p-6">
                       <p className="text-5xl leading-none mb-3 font-black" style={{ color: `${ac}40` }}>"</p>
-                      <p className="text-sm italic mb-4 leading-relaxed" style={{ color: subColor }}>{t.message}</p>
+                      <p className="text-sm italic mb-4 leading-relaxed text-justify" style={{ color: subColor }}>{t.message}</p>
                       <div className="flex items-center gap-3">
                         {t.photo_url && <img src={t.photo_url} alt={t.name} className="w-10 h-10 rounded-2xl object-cover" />}
                         <div>
@@ -348,7 +348,7 @@ export default function VibrantTemplate({ data, theme, isPreview }: { data: any;
           <section key={sec.id} id={`custom-${(sec.title || sec.original_type || '').toLowerCase().replace(/\s+/g, '-')}`} className="py-20 md:py-28 px-4">
             <div className="max-w-5xl mx-auto">
               <SectionTitle title={sec.title} ac={ac} />
-              {sec.type === 'text' && <BounceSection><ColorCard ac={ac} className="p-8"><p className="text-base leading-relaxed text-center" style={{ color: subColor }}>{sec.content?.body}</p></ColorCard></BounceSection>}
+              {sec.type === 'text' && <BounceSection><ColorCard ac={ac} className="p-8"><p className="text-base leading-relaxed text-center text-justify" style={{ color: subColor }}>{sec.content?.body}</p></ColorCard></BounceSection>}
               {sec.type === 'list' && (
                 <ul className="space-y-3 max-w-2xl mx-auto">
                   {(sec.content?.items || []).map((item: string, i: number) => (
@@ -418,7 +418,8 @@ export default function VibrantTemplate({ data, theme, isPreview }: { data: any;
         ))}
 
         {/* Contact */}
-        <section id="contact" className="py-20 md:py-28 px-4">
+        {data.portfolio?.sections_order?.find((section: any) => section.type === 'contact')?.enabled !== false && (
+          <section id="contact" className="py-20 md:py-28 px-4">
           <div className="max-w-3xl mx-auto text-center">
             <SectionTitle title="Let's Talk" subtitle="Contact" ac={ac} />
             <motion.p className="text-lg font-medium mb-8" style={{ color: subColor }}
@@ -455,7 +456,9 @@ export default function VibrantTemplate({ data, theme, isPreview }: { data: any;
               <ContactForm slug={portfolio.slug} accentColor={ac} textColor={textColor} subColor={subColor} />
             </ColorCard>
           </div>
-        </section>
+          </section>
+        )}
+
       </div>
 
       <footer className="relative z-10 py-8 text-center border-t-2" style={{ borderColor: `${ac}30` }}>

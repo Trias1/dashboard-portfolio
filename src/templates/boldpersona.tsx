@@ -59,7 +59,7 @@ export default function BoldPersonaTemplate({ data, theme, isPreview }: { data: 
               {hero?.greeting && <span className="inline-block text-xs font-bold uppercase tracking-[0.4em] mb-8" style={{ color: ac }}>{hero.greeting}</span>}
             </motion.div>
             <motion.h1 initial={{ opacity: 0, y: 60 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1, type: 'spring', stiffness: 100 }}
-              className="text-7xl sm:text-9xl md:text-[10rem] lg:text-[12rem] font-black leading-[0.85] tracking-[-0.05em] mb-4">
+              className="text-5xl sm:text-7xl lg:text-8xl font-black leading-[0.85] tracking-[-0.05em] mb-4">
               {hero?.headline?.split(' ').map((w: string, i: number) => (
                 <motion.span key={i} className="block" whileHover={{ x: i % 2 === 0 ? 10 : -10, color: ac }}
                   transition={{ type: 'spring' }}>
@@ -103,7 +103,7 @@ export default function BoldPersonaTemplate({ data, theme, isPreview }: { data: 
               <PopIn>
                 <div className="mb-16">
                   <span className="text-xs font-black uppercase tracking-[0.4em]" style={{ color: ac }}>Selected Work</span>
-                  <h2 className="text-6xl sm:text-8xl font-black tracking-[-0.04em] mt-2" style={{ color: textColor }}>Projects</h2>
+                  <h2 className="text-5xl sm:text-7xl lg:text-8xl font-black tracking-[-0.04em] mt-2" style={{ color: textColor }}>Projects</h2>
                 </div>
               </PopIn>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
@@ -114,7 +114,7 @@ export default function BoldPersonaTemplate({ data, theme, isPreview }: { data: 
                     {proj.image_url && <div className="overflow-hidden"><motion.img whileHover={{ scale: 1.08 }} src={proj.image_url} alt={proj.title} className="w-full h-72 object-cover opacity-80 group-hover:opacity-100 transition-opacity" /></div>}
                     <div className="p-8">
                       <h3 className="text-2xl sm:text-3xl font-black mb-2" style={{ color: textColor }}>{proj.title}</h3>
-                      <p className="text-sm mb-4" style={{ color: subColor }}>{proj.description}</p>
+                      <p className="text-sm mb-4 text-justify" style={{ color: subColor }}>{proj.description}</p>
                       {proj.tech_stack && <div className="flex flex-wrap gap-2 mb-5">{proj.tech_stack.split(',').map((t: string) => <TechBadge key={t} name={t.trim()} accentColor={ac} size="md" variant="pill" />)}</div>}
                       <div className="flex gap-4">
                         {proj.demo_url && <motion.a href={proj.demo_url} target="_blank" whileHover={{ x: 5 }}
@@ -140,7 +140,7 @@ export default function BoldPersonaTemplate({ data, theme, isPreview }: { data: 
                     <span className="text-xs font-black uppercase tracking-[0.4em]" style={{ color: ac }}>About</span>
                     <h2 className="text-5xl sm:text-7xl font-black tracking-[-0.04em] mt-2 mb-6" style={{ color: textColor }}>{about.name}</h2>
                     <p className="text-lg font-bold mb-4" style={{ color: ac }}>{about.title}</p>
-                    <p className="text-base leading-relaxed" style={{ color: subColor }}>{about.bio}</p>
+                    <p className="text-base leading-relaxed text-justify whitespace-pre-line" style={{ color: subColor }}>{about.bio}</p>
                   </div>
                   {about.photo_url && <motion.div whileHover={{ scale: 1.03 }} className="relative shrink-0">
                     <div className="absolute -top-6 -right-6 w-56 h-56 border-2" style={{ borderColor: ac }} />
@@ -154,12 +154,12 @@ export default function BoldPersonaTemplate({ data, theme, isPreview }: { data: 
 
         {/* Experience */}
         {experience?.length > 0 && (
-          <section className="py-32 px-6 md:px-20">
+          <section id="experience" className="py-32 px-6 md:px-20">
             <div className="max-w-5xl mx-auto">
               <PopIn>
                 <div className="mb-16">
                   <span className="text-xs font-black uppercase tracking-[0.4em]" style={{ color: ac }}>Timeline</span>
-                  <h2 className="text-6xl sm:text-8xl font-black tracking-[-0.04em] mt-2">Experience</h2>
+                  <h2 className="text-5xl sm:text-7xl lg:text-8xl font-black tracking-[-0.04em] mt-2">Experience</h2>
                 </div>
               </PopIn>
               <div className="space-y-8">
@@ -179,12 +179,12 @@ export default function BoldPersonaTemplate({ data, theme, isPreview }: { data: 
 
         {/* Skills */}
         {skills?.length > 0 && (
-          <section className="py-32 px-6 md:px-20" style={{ backgroundColor: '#12121a' }}>
+          <section id="skills" className="py-32 px-6 md:px-20" style={{ backgroundColor: '#12121a' }}>
             <div className="max-w-5xl mx-auto">
               <PopIn>
                 <div className="mb-16">
                   <span className="text-xs font-black uppercase tracking-[0.4em]" style={{ color: ac }}>Expertise</span>
-                  <h2 className="text-6xl sm:text-8xl font-black tracking-[-0.04em] mt-2">Skills</h2>
+                  <h2 className="text-5xl sm:text-7xl lg:text-8xl font-black tracking-[-0.04em] mt-2">Skills</h2>
                 </div>
               </PopIn>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -201,14 +201,14 @@ export default function BoldPersonaTemplate({ data, theme, isPreview }: { data: 
 
         {/* Services */}
         {services?.length > 0 && (
-          <section className="py-32 px-6 md:px-20">
+          <section id="services" className="py-32 px-6 md:px-20">
             <div className="max-w-6xl mx-auto"><PopIn>
-              <div className="mb-16"><span className="text-xs font-black uppercase tracking-[0.4em]" style={{ color: ac }}>Services</span><h2 className="text-6xl sm:text-8xl font-black tracking-[-0.04em] mt-2">Services</h2></div>
+              <div className="mb-16"><span className="text-xs font-black uppercase tracking-[0.4em]" style={{ color: ac }}>Services</span><h2 className="text-5xl sm:text-7xl lg:text-8xl font-black tracking-[-0.04em] mt-2">Services</h2></div>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">{services.map((svc: any) => (
                 <motion.div key={svc.id} whileHover={{ y: -8 }} className="p-8 border-l-4" style={{ borderColor: ac, backgroundColor: '#12121a' }}>
                   <p className="text-4xl mb-5">{svc.icon || '✦'}</p>
                   <h3 className="text-xl font-black uppercase tracking-wider mb-3" style={{ color: textColor }}>{svc.title}</h3>
-                  <p className="text-sm" style={{ color: subColor }}>{svc.description}</p>
+                  <p className="text-sm text-justify" style={{ color: subColor }}>{svc.description}</p>
                 </motion.div>
               ))}</div>
             </PopIn></div>
@@ -217,13 +217,13 @@ export default function BoldPersonaTemplate({ data, theme, isPreview }: { data: 
 
         {/* Testimonials */}
         {testimonials?.length > 0 && (
-          <section className="py-32 px-6 md:px-20" style={{ backgroundColor: '#12121a' }}>
+          <section id="testimonials" className="py-32 px-6 md:px-20" style={{ backgroundColor: '#12121a' }}>
             <div className="max-w-4xl mx-auto"><PopIn>
-              <div className="mb-16"><span className="text-xs font-black uppercase tracking-[0.4em]" style={{ color: ac }}>Testimonials</span><h2 className="text-6xl sm:text-8xl font-black tracking-[-0.04em] mt-2">Kind Words</h2></div>
+              <div className="mb-16"><span className="text-xs font-black uppercase tracking-[0.4em]" style={{ color: ac }}>Testimonials</span><h2 className="text-5xl sm:text-7xl lg:text-8xl font-black tracking-[-0.04em] mt-2">Kind Words</h2></div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">{testimonials.map((t: any) => (
                 <div key={t.id} className="p-8" style={{ backgroundColor: '#0a0a0f' }}>
                   <p className="text-6xl font-black leading-none mb-4" style={{ color: ac }}>"</p>
-                  <p className="text-sm italic leading-relaxed mb-6" style={{ color: subColor }}>{t.message}</p>
+                  <p className="text-sm italic leading-relaxed mb-6 text-justify" style={{ color: subColor }}>{t.message}</p>
                   <div className="flex items-center gap-4">
                     {t.photo_url && <img src={t.photo_url} alt={t.name} className="w-12 h-12 rounded-full object-cover border-2" style={{ borderColor: ac }} />}
                     <div><p className="text-base font-black uppercase tracking-wider" style={{ color: textColor }}>{t.name}</p><p className="text-xs font-bold uppercase tracking-wider" style={{ color: ac }}>{t.position}</p></div>
@@ -235,9 +235,9 @@ export default function BoldPersonaTemplate({ data, theme, isPreview }: { data: 
         )}
 
         {gallery?.length > 0 && (
-          <section className="py-32 px-6 md:px-20">
+          <section id="gallery" className="py-32 px-6 md:px-20">
             <div className="max-w-6xl mx-auto"><PopIn>
-              <div className="mb-16"><span className="text-xs font-black uppercase tracking-[0.4em]" style={{ color: ac }}>Credentials</span><h2 className="text-6xl sm:text-8xl font-black tracking-[-0.04em] mt-2">Certificates</h2></div>
+              <div className="mb-16"><span className="text-xs font-black uppercase tracking-[0.4em]" style={{ color: ac }}>Credentials</span><h2 className="text-5xl sm:text-7xl lg:text-8xl font-black tracking-[-0.04em] mt-2">Certificates</h2></div>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">{gallery.map((cert: any) => (
                 <div key={cert.id} className="p-6" style={{ backgroundColor: '#12121a' }}>
                   {(cert.image_url || cert.file_url) && (
@@ -261,7 +261,7 @@ export default function BoldPersonaTemplate({ data, theme, isPreview }: { data: 
         {custom?.length > 0 && custom.map((sec: any) => (
           <section key={sec.id} id={`custom-${(sec.title || sec.original_type || '').toLowerCase().replace(/\s+/g, '-')}`} className="py-32 px-6 md:px-20" style={{ backgroundColor: '#12121a' }}>
             <div className="max-w-5xl mx-auto"><PopIn>
-              <h2 className="text-6xl sm:text-8xl font-black tracking-[-0.04em] mb-10">{sec.title}</h2>
+              <h2 className="text-5xl sm:text-7xl lg:text-8xl font-black tracking-[-0.04em] mb-10">{sec.title}</h2>
               {sec.type === 'text' && <p className="text-base leading-relaxed" style={{ color: subColor }}>{sec.content?.body}</p>}
               {sec.type === 'list' && <div className="space-y-4">{(sec.content?.items || []).map((item: string, i: number) => <div key={i} className="flex gap-4 text-base" style={{ color: subColor }}><span className="w-2 h-2 mt-2 rounded-full shrink-0" style={{ backgroundColor: ac }} />{item}</div>)}</div>}
               {sec.type === 'links' && <div className="flex flex-wrap gap-4">{(sec.content?.links || []).map((link: any, i: number) => <motion.a key={i} href={link.url} target="_blank" whileHover={{ x: 5 }} className="text-sm font-black uppercase tracking-widest px-8 py-4" style={{ backgroundColor: ac, color: '#0a0a0f' }}>{link.label}</motion.a>)}</div>}
@@ -317,7 +317,7 @@ export default function BoldPersonaTemplate({ data, theme, isPreview }: { data: 
             <PopIn>
               <div className="mb-16">
                 <span className="text-xs font-black uppercase tracking-[0.4em]" style={{ color: ac }}>Connect</span>
-                <h2 className="text-6xl sm:text-8xl font-black tracking-[-0.04em] mt-2">Let's Talk</h2>
+                <h2 className="text-5xl sm:text-7xl lg:text-8xl font-black tracking-[-0.04em] mt-2">Let's Talk</h2>
               </div>
               <div className="flex gap-6 mb-12 flex-wrap">
                 {(contact?.email || about?.email) && <motion.a href={`mailto:${contact?.email || about?.email}`} whileHover={{ scale: 1.05, letterSpacing: '0.1em' }}

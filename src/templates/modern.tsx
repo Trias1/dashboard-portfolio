@@ -155,7 +155,7 @@ export default function ModernTemplate({ data, theme: initialTheme, isPreview }:
                   <div>
                     <motion.h3 variants={fadeUp} className={`text-2xl font-bold mb-2 ${textColor}`}>{about.name}</motion.h3>
                     <motion.p variants={fadeUp} className="text-lg mb-4" style={{ color: accentColor }}>{about.title}</motion.p>
-                    <motion.p variants={fadeUp} className={`${subTextColor} text-justify`}>{about.bio}</motion.p>
+                    <motion.p variants={fadeUp} className={`${subTextColor} text-justify whitespace-pre-line`}>{about.bio}</motion.p>
                   </div>
                 </div>
               </AnimatedSection>
@@ -431,7 +431,8 @@ export default function ModernTemplate({ data, theme: initialTheme, isPreview }:
         )}
 
         {/* Contact */}
-        <section id="contact" className="py-16 md:py-24 px-4">
+        {isVisible('contact') && (
+          <section id="contact" className="py-16 md:py-24 px-4">
           <AnimatedSection>
             <div className="max-w-2xl mx-auto text-center">
               <motion.h2 variants={fadeUp} className={`text-4xl font-bold mb-4 ${textColor}`}>
@@ -471,7 +472,8 @@ export default function ModernTemplate({ data, theme: initialTheme, isPreview }:
               </motion.div>
             </div>
           </AnimatedSection>
-        </section>
+          </section>
+        )}
       </div>
 
       <footer className="py-8 text-center border-t" style={{ borderColor: `${accentColor}20` }}>

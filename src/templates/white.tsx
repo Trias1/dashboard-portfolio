@@ -91,7 +91,7 @@ export default function WhiteTemplate({ data, theme, isPreview }: { data: any; t
                     <span className="text-xs font-semibold uppercase tracking-[0.25em]" style={{ color: ac }}>About</span>
                     <h2 className="text-3xl sm:text-4xl font-light mt-1 mb-4" style={{ color: '#111' }}>{about.name}</h2>
                     <p className="text-sm font-medium uppercase tracking-wider mb-4" style={{ color: ac }}>{about.title}</p>
-                    <p className="text-base leading-relaxed" style={{ color: '#888' }}>{about.bio}</p>
+                    <p className="text-base leading-relaxed text-justify text-justify whitespace-pre-line" style={{ color: '#888' }}>{about.bio}</p>
                   </div>
                 </div>
               </FadeIn>
@@ -114,7 +114,7 @@ export default function WhiteTemplate({ data, theme, isPreview }: { data: any; t
                       whileHover={{ y: -8 }} className="group">
                       {proj.image_url && <div className="overflow-hidden mb-5"><motion.img whileHover={{ scale: 1.05 }} src={proj.image_url} alt={proj.title} className="w-full h-56 object-cover" /></div>}
                       <h3 className="text-xl font-light mb-2" style={{ color: '#111' }}>{proj.title}</h3>
-                      <p className="text-sm mb-4" style={{ color: '#888' }}>{proj.description}</p>
+                      <p className="text-sm mb-4 text-justify" style={{ color: '#888' }}>{proj.description}</p>
                       {proj.tech_stack && <div className="flex flex-wrap gap-1.5 mb-4">{proj.tech_stack.split(',').map((t: string) => <TechBadge key={t} name={t.trim()} accentColor={ac} size="sm" variant="pill" />)}</div>}
                       <div className="flex gap-3">
                         {proj.demo_url && <motion.a href={proj.demo_url} target="_blank" whileHover={{ x: 3 }} className="text-xs font-semibold uppercase tracking-[0.15em]" style={{ color: ac }}>Live to </motion.a>}
@@ -130,7 +130,7 @@ export default function WhiteTemplate({ data, theme, isPreview }: { data: any; t
 
         {/* Experience */}
         {experience?.length > 0 && (
-          <section className="py-24 px-6 md:px-16 bg-gray-50">
+          <section id="experience" className="py-24 px-6 md:px-16 bg-gray-50">
             <div className="max-w-4xl mx-auto">
               <FadeIn>
                 <div className="mb-14">
@@ -158,7 +158,7 @@ export default function WhiteTemplate({ data, theme, isPreview }: { data: any; t
 
         {/* Skills */}
         {skills?.length > 0 && (
-          <section className="py-24 px-6 md:px-16 bg-white">
+          <section id="skills" className="py-24 px-6 md:px-16 bg-white">
             <div className="max-w-5xl mx-auto">
               <FadeIn>
                 <div className="mb-14">
@@ -180,14 +180,14 @@ export default function WhiteTemplate({ data, theme, isPreview }: { data: any; t
 
         {/* Services & Testimonials */}
         {services?.length > 0 && (
-          <section className="py-24 px-6 md:px-16 bg-gray-50">
+          <section id="services" className="py-24 px-6 md:px-16 bg-gray-50">
             <div className="max-w-5xl mx-auto"><FadeIn>
               <div className="mb-14"><span className="text-xs font-semibold uppercase tracking-[0.25em]" style={{ color: ac }}>Services</span><h2 className="text-3xl sm:text-4xl font-light mt-1" style={{ color: '#111' }}>What I Do</h2></div>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">{services.map((svc: any) => (
                 <motion.div key={svc.id} whileHover={{ y: -4 }}>
                   <p className="text-3xl mb-4">{svc.icon || 'o'}</p>
                   <h3 className="text-lg font-light mb-2" style={{ color: '#111' }}>{svc.title}</h3>
-                  <p className="text-sm" style={{ color: '#888' }}>{svc.description}</p>
+                  <p className="text-sm text-justify" style={{ color: '#888' }}>{svc.description}</p>
                 </motion.div>
               ))}</div>
             </FadeIn></div>
@@ -195,7 +195,7 @@ export default function WhiteTemplate({ data, theme, isPreview }: { data: any; t
         )}
 
         {testimonials?.length > 0 && (
-          <section className="py-24 px-6 md:px-16 bg-white">
+          <section id="testimonials" className="py-24 px-6 md:px-16 bg-white">
             <div className="max-w-4xl mx-auto"><FadeIn>
               <div className="mb-14"><span className="text-xs font-semibold uppercase tracking-[0.25em]" style={{ color: ac }}>Kind Words</span><h2 className="text-3xl sm:text-4xl font-light mt-1" style={{ color: '#111' }}>Testimonials</h2></div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-8">{testimonials.map((t: any) => (
@@ -213,7 +213,7 @@ export default function WhiteTemplate({ data, theme, isPreview }: { data: any; t
         )}
 
         {gallery?.length > 0 && (
-          <section className="py-24 px-6 md:px-16 bg-gray-50">
+          <section id="gallery" className="py-24 px-6 md:px-16 bg-gray-50">
             <div className="max-w-6xl mx-auto"><FadeIn>
               <div className="mb-14"><span className="text-xs font-semibold uppercase tracking-[0.25em]" style={{ color: ac }}>Credentials</span><h2 className="text-3xl sm:text-4xl font-light mt-1" style={{ color: '#111' }}>Certificates</h2></div>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">{gallery.map((cert: any) => (

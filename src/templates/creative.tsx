@@ -389,7 +389,8 @@ export default function CreativeTemplate({ data, theme, isPreview }: { data: any
           )}
 
           {/* Contact */}
-          <section id="contact">
+          {data.portfolio?.sections_order?.find((section: any) => section.type === 'contact')?.enabled !== false && (
+            <section id="contact">
             <Section>
               <div className="p-8 rounded-2xl border text-center"
                 style={{ backgroundColor: `${ac}08`, borderColor: `${ac}30` }}>
@@ -431,7 +432,8 @@ export default function CreativeTemplate({ data, theme, isPreview }: { data: any
                 </div>
               </div>
             </Section>
-          </section>
+            </section>
+          )}
 
         </div>
 

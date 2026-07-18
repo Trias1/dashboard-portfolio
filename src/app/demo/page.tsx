@@ -21,14 +21,6 @@ const demoTemplates = [
   { id: 'white', label: 'White Template', desc: 'Clean light' },
   { id: 'agency', label: 'Agency', desc: 'Agency vibe' },
   { id: 'boldpersona', label: 'BoldPersona', desc: 'Bold branding' },
-  { id: 'education-platform', label: 'Education Platform', desc: 'Clay learning' },
-  { id: 'fintech-crypto', label: 'Fintech Crypto', desc: 'Secure crypto' },
-  { id: 'payment-gateway', label: 'Payment Gateway', desc: 'Gateway landing' },
-  { id: 'defi-yield', label: 'DeFi Yield', desc: 'Yield farming' },
-  { id: 'creative-agency', label: 'Creative Agency', desc: 'Brutalist' },
-  { id: 'gaming-platform', label: 'Gaming Platform', desc: 'Neon platform' },
-  { id: 'nft-cyberpunk', label: 'NFT Cyberpunk', desc: 'Cyberpunk market' },
-  { id: 'developer-tools', label: 'Developer Tools', desc: 'Tooling docs' },
 ];
 
 const demoThemes = [
@@ -66,7 +58,7 @@ export default function DemoPage() {
           {/* Template picker */}
           <div className="flex flex-wrap items-center gap-1 p-1 rounded-2xl border" style={{ borderColor: '#a855f730' }}>
             {demoTemplates.map(t => (
-              <button key={t.id} onClick={() => setTemplate(t.id)}
+              <button type="button" key={t.id} onClick={() => setTemplate(t.id)}
                 className="py-1 px-2 rounded-full text-xs font-medium transition whitespace-nowrap"
                 style={{
                   backgroundColor: template === t.id ? '#a855f7' : 'transparent',
@@ -80,7 +72,7 @@ export default function DemoPage() {
           {/* Theme picker */}
           <div className="flex items-center gap-2 flex-shrink-0">
             {demoThemes.map(th => (
-              <button key={th.id} onClick={() => setTheme(th)}
+              <button type="button" key={th.id} onClick={() => setTheme(th)}
                 title={th.label}
                 className="h-8 rounded-full border-2 px-3 text-[11px] font-semibold transition-all"
                 style={{

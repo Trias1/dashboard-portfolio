@@ -33,6 +33,12 @@ const subColor = '#9090a8';
 export default function ImmersiveTemplate({ data, theme, isPreview }: { data: any; theme: any; isPreview?: boolean }) {
   const { portfolio, hero, about, experience, projects, services, skills, testimonials, contact, gallery, custom } = data;
   const ac = theme.accent;
+  const customOrder = (portfolio.sections_order || []).filter((section: any) => section.type === 'custom').map((section: any) => section.label?.toLowerCase().replace(/\s+/g, '-'));
+  const orderedCustom = [...(custom || [])].sort((a: any, b: any) => {
+    const aIndex = customOrder.indexOf((a.title || a.original_type || '').toLowerCase().replace(/\s+/g, '-'));
+    const bIndex = customOrder.indexOf((b.title || b.original_type || '').toLowerCase().replace(/\s+/g, '-'));
+    return (aIndex < 0 ? 999 : aIndex) - (bIndex < 0 ? 999 : bIndex);
+  });
 
   return (
     <div className="relative min-h-screen" style={{ backgroundColor: '#08080f' }}>
@@ -84,7 +90,7 @@ export default function ImmersiveTemplate({ data, theme, isPreview }: { data: an
       <div className="relative z-10">
         {/* About */}
         {about?.name && (
-          <ParallaxSection speed={0.15} className="py-28 px-4">
+          <ParallaxSection speed={0.15} className="py-28 px-4" id="about">
             <div className="max-w-5xl mx-auto">
               <SectionTitle title="About" subtitle="Who I Am" ac={ac} />
               <motion.div initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}
@@ -98,7 +104,7 @@ export default function ImmersiveTemplate({ data, theme, isPreview }: { data: an
                 <div className="space-y-4">
                   <h3 className="text-3xl font-bold" style={{ color: textColor }}>{about.name}</h3>
                   <p className="text-lg font-light" style={{ color: ac }}>{about.title}</p>
-                  <p className="text-base leading-relaxed font-light" style={{ color: subColor }}>{about.bio}</p>
+                  <p className="text-base leading-relaxed text-justify font-light whitespace-pre-line" style={{ color: subColor }}>{about.bio}</p>
                 </div>
               </motion.div>
             </div>
@@ -107,7 +113,7 @@ export default function ImmersiveTemplate({ data, theme, isPreview }: { data: an
 
         {/* Skills */}
         {skills?.length > 0 && (
-          <ParallaxSection speed={-0.1} className="py-28 px-4">
+          <ParallaxSection speed={-0.1} className="py-28 px-4" id="skills">
             <div className="max-w-5xl mx-auto">
               <SectionTitle title="Skills" subtitle="Expertise" ac={ac} />
               <div className="space-y-8">
@@ -131,7 +137,7 @@ export default function ImmersiveTemplate({ data, theme, isPreview }: { data: an
 
         {/* Experience */}
         {experience?.length > 0 && (
-          <ParallaxSection speed={0.1} className="py-28 px-4">
+          <ParallaxSection speed={0.1} className="py-28 px-4" id="experience">
             <div className="max-w-4xl mx-auto">
               <SectionTitle title="Experience" subtitle="Timeline" ac={ac} />
               <div className="space-y-8">
@@ -167,7 +173,7 @@ export default function ImmersiveTemplate({ data, theme, isPreview }: { data: an
 
         {/* Projects */}
         {projects?.length > 0 && (
-          <ParallaxSection speed={-0.15} className="py-28 px-4">
+          <ParallaxSection speed={-0.15} className="py-28 px-4" id="projects">
             <div className="max-w-6xl mx-auto">
               <SectionTitle title="Projects" subtitle="Featured" ac={ac} />
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -193,7 +199,7 @@ export default function ImmersiveTemplate({ data, theme, isPreview }: { data: an
 
         {/* Services */}
         {services?.length > 0 && (
-          <ParallaxSection speed={0.1} className="py-28 px-4">
+          <ParallaxSection speed={0.1} className="py-28 px-4" id="services">
             <div className="max-w-5xl mx-auto">
               <SectionTitle title="Services" subtitle="What I Do" ac={ac} />
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -201,7 +207,7 @@ export default function ImmersiveTemplate({ data, theme, isPreview }: { data: an
                   <motion.div key={svc.id} whileHover={{ y: -8 }} className="p-8 rounded-2xl backdrop-blur-sm border text-center" style={{ borderColor: `${ac}15`, backgroundColor: `${ac}06` }}>
                     <div className="text-4xl mb-5">{svc.icon || '✦'}</div>
                     <h3 className="text-lg font-bold mb-2" style={{ color: textColor }}>{svc.title}</h3>
-                    <p className="text-sm font-light" style={{ color: subColor }}>{svc.description}</p>
+                    <p className="text-sm font-light text-justify" style={{ color: subColor }}>{svc.description}</p>
                   </motion.div>
                 ))}
               </div>
@@ -211,7 +217,7 @@ export default function ImmersiveTemplate({ data, theme, isPreview }: { data: an
 
         {/* Testimonials */}
         {testimonials?.length > 0 && (
-          <ParallaxSection speed={-0.1} className="py-28 px-4">
+          <ParallaxSection speed={-0.1} className="py-28 px-4" id="testimonials">
             <div className="max-w-4xl mx-auto">
               <SectionTitle title="Testimonials" subtitle="Kind Words" ac={ac} />
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -232,7 +238,7 @@ export default function ImmersiveTemplate({ data, theme, isPreview }: { data: an
 
         {/* Certificate */}
         {gallery?.length > 0 && (
-          <ParallaxSection speed={0.1} className="py-28 px-4">
+          <ParallaxSection speed={0.1} className="py-28 px-4" id="gallery">
             <div className="max-w-6xl mx-auto">
               <SectionTitle title="Certificates" subtitle="Credentials" ac={ac} />
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -258,11 +264,11 @@ export default function ImmersiveTemplate({ data, theme, isPreview }: { data: an
         )}
 
         {/* Custom Sections */}
-        {custom?.length > 0 && custom.map((sec: any) => (
+        {orderedCustom.length > 0 && orderedCustom.map((sec: any) => (
           <ParallaxSection key={sec.id} id={`custom-${(sec.title || sec.original_type || '').toLowerCase().replace(/\s+/g, '-')}`} speed={0.1} className="py-28 px-4">
             <div className="max-w-5xl mx-auto">
               <SectionTitle title={sec.title} ac={ac} />
-              {sec.type === 'text' && <p className="text-lg text-center font-light max-w-3xl mx-auto" style={{ color: subColor }}>{sec.content?.body}</p>}
+              {sec.type === 'text' && <p className="text-lg text-center text-justify font-light max-w-3xl mx-auto" style={{ color: subColor }}>{sec.content?.body}</p>}
               {sec.type === 'list' && <ul className="space-y-3 max-w-2xl mx-auto">{(sec.content?.items || []).map((item: string, i: number) => <motion.li key={i} initial={{ opacity: 0, x: -20 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }} className="flex gap-3 text-sm font-light" style={{ color: subColor }}><span className="w-1.5 h-1.5 rounded-full mt-1.5 shrink-0" style={{ backgroundColor: ac }} />{item}</motion.li>)}</ul>}
               {sec.type === 'links' && <div className="flex flex-wrap gap-4 justify-center">{(sec.content?.links || []).map((link: any, i: number) => <motion.a key={i} href={link.url} target="_blank" whileHover={{ scale: 1.05 }} className="px-8 py-3.5 rounded-full font-medium backdrop-blur-sm border" style={{ borderColor: ac, color: ac }}>{link.label}</motion.a>)}</div>}
               {!['text','list','cards','links'].includes(sec.type) && sec.content && (
@@ -312,7 +318,7 @@ export default function ImmersiveTemplate({ data, theme, isPreview }: { data: an
         ))}
 
         {/* Contact */}
-        <ParallaxSection speed={-0.1} className="py-28 px-4">
+        <ParallaxSection speed={-0.1} className="py-28 px-4" id="contact">
           <div className="max-w-3xl mx-auto text-center">
             <SectionTitle title="Contact" subtitle="Get In Touch" ac={ac} />
             <p className="text-base font-light mb-8" style={{ color: subColor }}>Let's create something amazing together.</p>

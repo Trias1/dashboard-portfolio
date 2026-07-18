@@ -207,7 +207,7 @@ export default function BoldTemplate({ data, theme: initialTheme, isPreview }: {
                   <motion.p initial={{ opacity: 0, x: -20 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }}
                     transition={{ delay: 0.1 }} className="text-lg" style={{ color: ac }}>{about.title}</motion.p>
                   <motion.p initial={{ opacity: 0 }} whileInView={{ opacity: 1 }} viewport={{ once: true }}
-                    transition={{ delay: 0.2 }} className="text-base leading-relaxed text-justify" style={{ color: subColor }}>
+                    transition={{ delay: 0.2 }} className="text-base leading-relaxed text-justify whitespace-pre-line" style={{ color: subColor }}>
                     {about.bio}
                   </motion.p>
                 </div>
@@ -558,7 +558,8 @@ export default function BoldTemplate({ data, theme: initialTheme, isPreview }: {
         )}
 
         {/* Contact */}
-        <section id="contact" className="py-20 md:py-32 px-4">
+        {data.portfolio?.sections_order?.find((section: any) => section.type === 'contact')?.enabled !== false && (
+          <section id="contact" className="py-20 md:py-32 px-4">
           <div className="max-w-3xl mx-auto text-center">
             <motion.div initial={{ opacity: 0 }} whileInView={{ opacity: 1 }} viewport={{ once: true }}>
               <motion.span className="text-xs uppercase tracking-[0.3em] font-medium" style={{ color: `${ac}80` }}>Contact</motion.span>
@@ -605,7 +606,8 @@ export default function BoldTemplate({ data, theme: initialTheme, isPreview }: {
               </motion.div>
             </motion.div>
           </div>
-        </section>
+          </section>
+        )}
 
       </div>
 

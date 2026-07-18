@@ -146,7 +146,7 @@ export default function MinimalTemplate({ data, theme, isPreview }: { data: any,
 
         {/* Skills  -  animated tags */}
         {skills?.length > 0 && (
-          <section>
+          <section id="skills">
             <FadeIn>
               <p className="text-xs uppercase tracking-widest mb-8 font-medium" style={{ color: ac }}>Skills</p>
               <div className="space-y-6">
@@ -173,7 +173,7 @@ export default function MinimalTemplate({ data, theme, isPreview }: { data: any,
 
         {/* Experience */}
         {experience?.length > 0 && (
-          <section>
+          <section id="experience">
             <FadeIn>
               <p className="text-xs uppercase tracking-widest mb-8 font-medium" style={{ color: ac }}>Experience</p>
               <div className="space-y-10">
@@ -200,7 +200,7 @@ export default function MinimalTemplate({ data, theme, isPreview }: { data: any,
 
         {/* Projects */}
         {projects?.length > 0 && (
-          <section id="work">
+          <section id="projects">
             <FadeIn>
               <p className="text-xs uppercase tracking-widest mb-8 font-medium" style={{ color: ac }}>Work</p>
               <div className="space-y-6">
@@ -250,7 +250,7 @@ export default function MinimalTemplate({ data, theme, isPreview }: { data: any,
 
         {/* Services */}
         {services?.length > 0 && (
-          <section>
+          <section id="services">
             <FadeIn>
               <p className="text-xs uppercase tracking-widest mb-8 font-medium" style={{ color: ac }}>Services</p>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -276,7 +276,7 @@ export default function MinimalTemplate({ data, theme, isPreview }: { data: any,
 
         {/* Testimonials */}
         {testimonials?.length > 0 && (
-          <section>
+          <section id="testimonials">
             <FadeIn>
               <p className="text-xs uppercase tracking-widest mb-8 font-medium" style={{ color: ac }}>Kind Words</p>
               <div className="space-y-6">
@@ -403,7 +403,7 @@ export default function MinimalTemplate({ data, theme, isPreview }: { data: any,
 
         {/* Certificates */}
         {gallery?.length > 0 && (
-          <section>
+          <section id="gallery">
             <FadeIn>
               <p className="text-xs uppercase tracking-widest mb-8 font-medium" style={{ color: ac }}>Certificates</p>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

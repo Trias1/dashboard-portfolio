@@ -144,7 +144,7 @@ export default function NeonTemplate({ data, theme, isPreview }: { data: any; th
                     <p className="text-xs uppercase tracking-widest" style={{ color: ac }}>// profile</p>
                     <h3 className="text-2xl font-bold" style={{ color: textColor }}>{about.name}</h3>
                     <p className="text-sm" style={{ color: ac }}>{about.title}</p>
-                    <p className="text-sm leading-relaxed" style={{ color: subColor }}>{about.bio}</p>
+                    <p className="text-sm leading-relaxed text-justify whitespace-pre-line" style={{ color: subColor }}>{about.bio}</p>
                   </div>
                 </div>
               </NeonBorder>
@@ -225,7 +225,7 @@ export default function NeonTemplate({ data, theme, isPreview }: { data: any; th
                     )}
                     <div className="p-5">
                       <h3 className="text-base font-bold mb-2 uppercase tracking-wide" style={{ color: textColor }}>{proj.title}</h3>
-                      <p className="text-xs mb-4 leading-relaxed font-mono" style={{ color: subColor }}>{proj.description}</p>
+                      <p className="text-xs mb-4 leading-relaxed text-justify font-mono" style={{ color: subColor }}>{proj.description}</p>
                       {proj.tech_stack && (
                         <div className="flex flex-wrap gap-1.5 mb-4">
                           {proj.tech_stack.split(',').map((t: string) => (
@@ -265,7 +265,7 @@ export default function NeonTemplate({ data, theme, isPreview }: { data: any; th
                   <NeonBorder key={svc.id} ac={ac} className="p-6 text-center">
                     <div className="text-3xl mb-4">{svc.icon || '✦'}</div>
                     <h3 className="text-base font-bold mb-2 uppercase tracking-wide" style={{ color: textColor }}>{svc.title}</h3>
-                    <p className="text-xs font-mono" style={{ color: subColor }}>{svc.description}</p>
+                    <p className="text-xs font-mono text-justify" style={{ color: subColor }}>{svc.description}</p>
                   </NeonBorder>
                 ))}
               </div>
@@ -282,7 +282,7 @@ export default function NeonTemplate({ data, theme, isPreview }: { data: any; th
                 {testimonials.map((t: any) => (
                   <NeonBorder key={t.id} ac={ac} className="p-6">
                     <p className="text-3xl leading-none mb-2 font-mono" style={{ color: `${ac}40` }}>&gt;_</p>
-                    <p className="text-sm italic mb-4 leading-relaxed" style={{ color: subColor }}>{t.message}</p>
+                    <p className="text-sm italic mb-4 leading-relaxed text-justify" style={{ color: subColor }}>{t.message}</p>
                     <div className="flex items-center gap-3">
                       {t.photo_url && <img src={t.photo_url} alt={t.name} className="w-10 h-10 rounded object-cover" />}
                       <div>
@@ -335,7 +335,7 @@ export default function NeonTemplate({ data, theme, isPreview }: { data: any; th
             <div className="max-w-5xl mx-auto">
               <SectionTitle title={sec.title} ac={ac} />
               {sec.type === 'text' && sec.items.map((item: any) => (
-                <NeonBorder key={item.id} ac={ac} className="p-6 mb-4"><p className="text-sm leading-relaxed text-center font-mono" style={{ color: subColor }}>{item.content?.body}</p></NeonBorder>
+                <NeonBorder key={item.id} ac={ac} className="p-6 mb-4"><p className="text-sm leading-relaxed text-center text-justify font-mono" style={{ color: subColor }}>{item.content?.body}</p></NeonBorder>
               ))}
               {sec.type === 'list' && sec.items.map((item: any) => (
                 <ul className="space-y-3 max-w-2xl mx-auto">
@@ -358,8 +358,8 @@ export default function NeonTemplate({ data, theme, isPreview }: { data: any; th
                 </div>
               )}
               {!['text','list','cards','links'].includes(sec.type) && sec.items.length > 0 && (
-                (sec.original_type === 'certification' || sec.type === 'certification') && Array.isArray(sec.content?.items) ? (
-                  <CertificationSection items={sec.content?.items} textColor={textColor} subTextColor={subColor} accentColor={ac} cardBg="" />
+                (sec.original_type === 'certification' || sec.type === 'certification') && sec.items.some((item: any) => Array.isArray(item.content?.items)) ? (
+                  <CertificationSection items={sec.items.flatMap((item: any) => item.content.items || [])} textColor={textColor} subTextColor={subColor} accentColor={ac} cardBg="" />
                 ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {sec.items.map((item: any) => {
@@ -404,7 +404,8 @@ export default function NeonTemplate({ data, theme, isPreview }: { data: any; th
         ))}
 
         {/* Contact */}
-        <section id="contact" className="py-20 md:py-28 px-4" style={{ background: `${ac}04` }}>
+        {data.portfolio?.sections_order?.find((section: any) => section.type === 'contact')?.enabled !== false && (
+          <section id="contact" className="py-20 md:py-28 px-4" style={{ background: `${ac}04` }}>
           <div className="max-w-3xl mx-auto text-center">
             <SectionTitle title="Contact" subtitle="Get In Touch" ac={ac} />
             <p className="text-sm font-mono mb-8" style={{ color: subColor }}>Have a project? Let's build something together.</p>
@@ -438,7 +439,8 @@ export default function NeonTemplate({ data, theme, isPreview }: { data: any; th
               <ContactForm slug={portfolio.slug} accentColor={ac} textColor={textColor} subColor={subColor} />
             </NeonBorder>
           </div>
-        </section>
+          </section>
+        )}
       </div>
 
       <footer className="relative z-10 py-8 text-center border-t" style={{ borderColor: `${ac}30` }}>

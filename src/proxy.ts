@@ -12,7 +12,16 @@ export async function proxy(request: NextRequest) {
   if (MAIN_DOMAINS.some(d => domain === d || domain.endsWith('.' + d))) return NextResponse.next();
 
   const pathname = request.nextUrl.pathname;
-  if (pathname.startsWith('/_next') || pathname.startsWith('/api') || pathname.includes('.')) return NextResponse.next();
+  if (pathname.startsWith('/_next') || pathname.includes('.')) return NextResponse.next();
+
+  if (pathname === '/login' || pathname.startsWith('/dashboard') || pathname.startsWith('/admin')) {
+    const mainUrl = new URL(process.env.NEXT_PUBLIC_BASE_URL || 'https://portfolio.tzm.web.id');
+    mainUrl.pathname = pathname;
+    mainUrl.search = request.nextUrl.search;
+    return NextResponse.redirect(mainUrl);
+  }
+
+  if (pathname.startsWith('/api')) return NextResponse.next();
 
   const origin = request.nextUrl.origin;
   let slug: string | null = null;
@@ -49,3 +58,4 @@ export async function proxy(request: NextRequest) {
 export const config = {
   matcher: ['/((?!_next/static|_next/image|favicon.ico).*)'],
 };
+

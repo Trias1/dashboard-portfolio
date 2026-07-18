@@ -132,7 +132,7 @@ export default function RetroTemplate({ data, theme, isPreview }: { data: any; t
                       <p className="text-xs uppercase tracking-widest font-bold" style={{ color: ac }}>// profile</p>
                       <h3 className="text-2xl font-bold uppercase tracking-wide" style={{ color: textColor }}>{about.name}</h3>
                       <p className="text-sm font-bold uppercase tracking-wider" style={{ color: ac }}>{about.title}</p>
-                      <p className="text-sm leading-relaxed" style={{ color: subColor }}>{about.bio}</p>
+                      <p className="text-sm leading-relaxed whitespace-pre-line" style={{ color: subColor }}>{about.bio}</p>
                     </div>
                   </div>
                 </RetroCard>

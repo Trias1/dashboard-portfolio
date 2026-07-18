@@ -15,14 +15,13 @@ function Rise({ children, delay = 0 }: { children: React.ReactNode; delay?: numb
 }
 
 const textColor = '#1a0a0a';
-const subColor = '#5a4a4a';
+const subColor = '#3f3333';
 
 export default function AgencyTemplate({ data, theme, isPreview }: { data: any; theme: any; isPreview?: boolean }) {
   const { portfolio, hero, about, experience, projects, services, skills, testimonials, contact, gallery, custom } = data;
   const ac = theme.accent;
-
   return (
-    <div className="min-h-screen" style={{ color: textColor }}>
+    <div className="min-h-screen bg-white" style={{ color: textColor, backgroundColor: '#ffffff' }}>
       {/* Dynamic gradient background */}
       <div className="fixed inset-0 z-0 pointer-events-none">
         <motion.div className="absolute inset-0 opacity-30" style={{ background: `linear-gradient(135deg, ${ac}30 0%, ${ac}10 50%, #fff 100%)` }}
@@ -98,22 +97,9 @@ export default function AgencyTemplate({ data, theme, isPreview }: { data: any; 
           </div>
         </section>
 
-        {/* Stats bar */}
-        <motion.section initial={{ opacity: 0 }} whileInView={{ opacity: 1 }} viewport={{ once: true }}
-          className="py-12 px-6 md:px-20 border-y" style={{ borderColor: `${ac}15`, backgroundColor: '#fafafa' }}>
-          <div className="max-w-6xl mx-auto grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
-            {[{ n: experience?.length || 0, l: 'Years Exp' }, { n: projects?.length || 0, l: 'Projects' }, { n: services?.length || 0, l: 'Services' }, { n: testimonials?.length || 0, l: 'Clients' }].map((stat, i) => (
-              <motion.div key={i} initial={{ scale: 0 }} whileInView={{ scale: 1 }} viewport={{ once: true }} transition={{ delay: i * 0.1, type: 'spring' }}>
-                <p className="text-4xl sm:text-5xl font-black" style={{ color: ac }}>{stat.n}+</p>
-                <p className="text-sm font-semibold uppercase tracking-wider mt-1" style={{ color: subColor }}>{stat.l}</p>
-              </motion.div>
-            ))}
-          </div>
-        </motion.section>
-
         {/* About */}
         {about?.name && (
-          <section id="team" className="py-24 px-6 md:px-20">
+          <section id="about" className="py-24 px-6 md:px-20">
             <div className="max-w-6xl mx-auto">
               <Rise>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
@@ -125,7 +111,7 @@ export default function AgencyTemplate({ data, theme, isPreview }: { data: any; 
                     <span className="text-xs font-bold uppercase tracking-[0.3em]" style={{ color: ac }}>About</span>
                     <h2 className="text-4xl sm:text-5xl font-black mt-2 mb-4">{about.name}</h2>
                     <p className="text-base font-semibold mb-4" style={{ color: ac }}>{about.title}</p>
-                    <p className="text-base leading-relaxed" style={{ color: subColor }}>{about.bio}</p>
+                    <p className="text-base leading-relaxed text-justify whitespace-pre-line" style={{ color: subColor }}>{about.bio}</p>
                   </div>
                 </div>
               </Rise>
@@ -151,7 +137,7 @@ export default function AgencyTemplate({ data, theme, isPreview }: { data: any; 
                         {svc.icon || '✦'}
                       </div>
                       <h3 className="text-xl font-black mb-3">{svc.title}</h3>
-                      <p className="text-sm leading-relaxed" style={{ color: subColor }}>{svc.description}</p>
+                      <p className="text-sm leading-relaxed text-justify" style={{ color: subColor }}>{svc.description}</p>
                     </motion.div>
                   ))}
                 </div>
@@ -162,7 +148,7 @@ export default function AgencyTemplate({ data, theme, isPreview }: { data: any; 
 
         {/* Projects */}
         {projects?.length > 0 && (
-          <section id="work" className="py-24 px-6 md:px-20">
+          <section id="projects" className="py-24 px-6 md:px-20">
             <div className="max-w-6xl mx-auto">
               <Rise>
                 <div className="mb-14">
@@ -176,7 +162,7 @@ export default function AgencyTemplate({ data, theme, isPreview }: { data: any; 
                       {proj.image_url && <div className="overflow-hidden"><motion.img whileHover={{ scale: 1.1 }} src={proj.image_url} alt={proj.title} className="w-full h-48 object-cover" /></div>}
                       <div className="p-6">
                         <h3 className="text-lg font-black mb-2">{proj.title}</h3>
-                        <p className="text-sm mb-4" style={{ color: subColor }}>{proj.description}</p>
+                        <p className="text-sm mb-4 text-justify" style={{ color: subColor }}>{proj.description}</p>
                         {proj.tech_stack && <div className="flex flex-wrap gap-1.5 mb-4">{proj.tech_stack.split(',').map((t: string) => <TechBadge key={t} name={t.trim()} accentColor={ac} variant="pill" />)}</div>}
                         <div className="flex gap-2">
                           {proj.demo_url && <motion.a href={proj.demo_url} target="_blank" whileHover={{ scale: 1.05 }}
@@ -195,7 +181,7 @@ export default function AgencyTemplate({ data, theme, isPreview }: { data: any; 
 
         {/* Experience */}
         {experience?.length > 0 && (
-          <section className="py-24 px-6 md:px-20" style={{ backgroundColor: '#fafafa' }}>
+          <section id="experience" className="py-24 px-6 md:px-20" style={{ backgroundColor: '#fafafa' }}>
             <div className="max-w-4xl mx-auto">
               <Rise>
                 <div className="mb-14 text-center">
@@ -222,7 +208,7 @@ export default function AgencyTemplate({ data, theme, isPreview }: { data: any; 
 
         {/* Skills */}
         {skills?.length > 0 && (
-          <section className="py-24 px-6 md:px-20">
+          <section id="skills" className="py-24 px-6 md:px-20">
             <div className="max-w-5xl mx-auto">
               <Rise>
                 <div className="mb-14 text-center">
@@ -244,7 +230,7 @@ export default function AgencyTemplate({ data, theme, isPreview }: { data: any; 
 
         {/* Testimonials */}
         {testimonials?.length > 0 && (
-          <section className="py-24 px-6 md:px-20" style={{ backgroundColor: '#fafafa' }}>
+          <section id="testimonials" className="py-24 px-6 md:px-20" style={{ backgroundColor: '#fafafa' }}>
             <div className="max-w-4xl mx-auto"><Rise>
               <div className="text-center mb-14"><span className="text-xs font-bold uppercase tracking-[0.3em]" style={{ color: ac }}>Testimonials</span><h2 className="text-4xl sm:text-5xl font-black mt-2">Kind Words</h2></div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">{testimonials.map((t: any) => (
@@ -263,7 +249,7 @@ export default function AgencyTemplate({ data, theme, isPreview }: { data: any; 
 
         {/* Gallery */}
         {gallery?.length > 0 && (
-          <section className="py-24 px-6 md:px-20">
+          <section id="gallery" className="py-24 px-6 md:px-20">
             <div className="max-w-6xl mx-auto"><Rise>
               <div className="mb-14 text-center"><span className="text-xs font-bold uppercase tracking-[0.3em]" style={{ color: ac }}>Credentials</span><h2 className="text-4xl sm:text-5xl font-black mt-2">Certificates</h2></div>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">{gallery.map((cert: any) => (
@@ -290,7 +276,7 @@ export default function AgencyTemplate({ data, theme, isPreview }: { data: any; 
           <section key={sec.id} id={`custom-${(sec.title || sec.original_type || '').toLowerCase().replace(/\s+/g, '-')}`} className="py-24 px-6 md:px-20">
             <div className="max-w-5xl mx-auto"><Rise>
               <h2 className="text-4xl sm:text-5xl font-black mb-8 text-center">{sec.title}</h2>
-              {sec.type === 'text' && <p className="text-base leading-relaxed text-center" style={{ color: subColor }}>{sec.content?.body}</p>}
+              {sec.type === 'text' && <p className="text-base leading-relaxed text-center text-justify" style={{ color: subColor }}>{sec.content?.body}</p>}
               {sec.type === 'list' && <div className="space-y-3 max-w-2xl mx-auto">{(sec.content?.items || []).map((item: string, i: number) => <div key={i} className="flex gap-3 text-base" style={{ color: subColor }}><span className="text-lg" style={{ color: ac }}>*</span>{item}</div>)}</div>}
               {sec.type === 'links' && <div className="flex flex-wrap gap-4 justify-center">{(sec.content?.links || []).map((link: any, i: number) => <motion.a key={i} href={link.url} target="_blank" whileHover={{ scale: 1.05 }} className="text-sm font-bold px-8 py-3.5 rounded-lg text-white" style={{ backgroundColor: ac }}>{link.label}</motion.a>)}</div>}
               {!['text','list','cards','links'].includes(sec.type) && sec.content && (

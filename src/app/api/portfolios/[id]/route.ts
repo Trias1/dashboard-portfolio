@@ -2,6 +2,7 @@ import { NextRequest } from 'next/server';
 import { requireAuth } from '@/lib/auth';
 import { getSupabaseAdmin } from '@/lib/supabase/admin';
 import { errorResponse, successResponse } from '@/lib/utils';
+import { normalizeCustomDomain } from '@/lib/custom-domain';
 
 export async function PUT(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -13,7 +14,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
       title, theme, sections_order, is_published, template: template || 'modern', updated_at: new Date().toISOString(),
     }).eq('id', id).eq('owner_id', auth.id).select().single();
     return successResponse(data);
-  } catch (err: any) { return errorResponse(err.message); }
+  } catch (err: any) { console.error('[portfolio PUT]', err); return errorResponse(err.message); }
 }
 
 export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -35,12 +36,13 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     // Domain update
     if (body.custom_domain !== undefined) {
       if (body.custom_domain) {
+        const normalizedDomain = normalizeCustomDomain(body.custom_domain);
         const domainRegex = /^[a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(\.[a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*\.[a-zA-Z]{2,}$/;
-        if (!domainRegex.test(body.custom_domain)) return errorResponse('Format domain tidak valid', 400);
-        const { data: existingDomain } = await getSupabaseAdmin().from('portfolios').select('id').eq('custom_domain', body.custom_domain).neq('id', id).maybeSingle();
+        if (!domainRegex.test(normalizedDomain)) return errorResponse('Format domain tidak valid', 400);
+        const { data: existingDomain } = await getSupabaseAdmin().from('portfolios').select('id').eq('custom_domain', normalizedDomain).neq('id', id).maybeSingle();
         if (existingDomain) return errorResponse('Domain sudah dipakai portfolio lain', 400);
       }
-      updates.custom_domain = body.custom_domain || null;
+      updates.custom_domain = body.custom_domain ? normalizeCustomDomain(body.custom_domain) : null;
     }
     // Publish toggle
     if (body.publish !== undefined) {

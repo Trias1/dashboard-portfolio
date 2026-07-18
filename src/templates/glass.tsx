@@ -122,7 +122,7 @@ export default function GlassTemplate({ data, theme, isPreview }: { data: any; t
                   <div className="space-y-4 flex-1">
                     <h3 className="text-2xl font-semibold" style={{ color: textColor }}>{about.name}</h3>
                     <p className="text-sm font-light" style={{ color: ac }}>{about.title}</p>
-                    <p className="text-sm leading-relaxed font-light" style={{ color: subColor }}>{about.bio}</p>
+                    <p className="text-sm leading-relaxed font-light whitespace-pre-line" style={{ color: subColor }}>{about.bio}</p>
                   </div>
                 </div>
               </GlassCard>
@@ -197,7 +197,7 @@ export default function GlassTemplate({ data, theme, isPreview }: { data: any; t
                     {proj.image_url && <img src={proj.image_url} alt={proj.title} className="w-full h-44 object-cover" />}
                     <div className="p-6">
                       <h3 className="text-lg font-semibold mb-2" style={{ color: textColor }}>{proj.title}</h3>
-                      <p className="text-sm font-light mb-4 leading-relaxed" style={{ color: subColor }}>{proj.description}</p>
+                      <p className="text-sm font-light mb-4 leading-relaxed text-justify" style={{ color: subColor }}>{proj.description}</p>
                       {proj.tech_stack && (
                         <div className="flex flex-wrap gap-1.5 mb-4">
                           {proj.tech_stack.split(',').map((t: string) => (
@@ -238,7 +238,7 @@ export default function GlassTemplate({ data, theme, isPreview }: { data: any; t
                   <GlassCard key={svc.id} className="p-8 text-center">
                     <div className="text-4xl mb-5 opacity-70">{svc.icon || '✦'}</div>
                     <h3 className="text-lg font-semibold mb-2" style={{ color: textColor }}>{svc.title}</h3>
-                    <p className="text-sm font-light" style={{ color: subColor }}>{svc.description}</p>
+                    <p className="text-sm font-light text-justify" style={{ color: subColor }}>{svc.description}</p>
                   </GlassCard>
                 ))}
               </div>
@@ -255,7 +255,7 @@ export default function GlassTemplate({ data, theme, isPreview }: { data: any; t
                 {testimonials.map((t: any) => (
                   <GlassCard key={t.id} className="p-6">
                     <p className="text-4xl font-thin leading-none mb-2 opacity-30" style={{ color: ac }}>"</p>
-                    <p className="text-sm font-light italic mb-4 leading-relaxed" style={{ color: subColor }}>{t.message}</p>
+                    <p className="text-sm font-light italic mb-4 leading-relaxed text-justify" style={{ color: subColor }}>{t.message}</p>
                     <div className="flex items-center gap-3">
                       {t.photo_url && <img src={t.photo_url} alt={t.name} className="w-10 h-10 rounded-full object-cover" />}
                       <div>
@@ -307,7 +307,7 @@ export default function GlassTemplate({ data, theme, isPreview }: { data: any; t
           <section key={sec.id} id={`custom-${(sec.title || sec.original_type || '').toLowerCase().replace(/\s+/g, '-')}`} className="py-20 md:py-28 px-4">
             <div className="max-w-5xl mx-auto">
               <SectionTitle title={sec.title} ac={ac} />
-              {sec.type === 'text' && <GlassCard className="p-8"><p className="text-base font-light leading-relaxed text-center" style={{ color: subColor }}>{sec.content?.body}</p></GlassCard>}
+              {sec.type === 'text' && <GlassCard className="p-8"><p className="text-base font-light leading-relaxed text-center text-justify" style={{ color: subColor }}>{sec.content?.body}</p></GlassCard>}
               {sec.type === 'list' && (
                 <ul className="space-y-3 max-w-2xl mx-auto">
                   {(sec.content?.items || []).map((item: string, i: number) => (
@@ -388,7 +388,8 @@ export default function GlassTemplate({ data, theme, isPreview }: { data: any; t
         ))}
 
         {/* Contact */}
-        <section id="contact" className="py-20 md:py-28 px-4">
+        {data.portfolio?.sections_order?.find((section: any) => section.type === 'contact')?.enabled !== false && (
+          <section id="contact" className="py-20 md:py-28 px-4">
           <div className="max-w-3xl mx-auto text-center">
             <SectionTitle title="Get In Touch" subtitle="Contact" ac={ac} />
             <p className="text-sm font-light mb-8" style={{ color: subColor }}>I'm always open to new projects and collaborations.</p>
@@ -426,7 +427,9 @@ export default function GlassTemplate({ data, theme, isPreview }: { data: any; t
               <ContactForm slug={portfolio.slug} accentColor={ac} textColor={textColor} subColor={subColor} />
             </GlassCard>
           </div>
-        </section>
+          </section>
+        )}
+
       </div>
 
       <footer className="relative z-10 py-8 text-center border-t border-white/[0.06] backdrop-blur-2xl" style={{ backgroundColor: 'rgba(13,13,26,0.5)' }}>

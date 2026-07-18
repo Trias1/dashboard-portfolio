@@ -135,7 +135,7 @@ export default function DeveloperTemplate({ data, theme, isPreview }: { data: an
                       <div>
                         <h2 className="text-2xl font-black font-mono mb-1">{about.name}</h2>
                         <p style={{ color: ac }} className="font-mono text-sm mb-4">@{about.title}</p>
-                        <p className="text-sm leading-relaxed" style={{ color: subColor }}>{about.bio}</p>
+                        <p className="text-sm leading-relaxed text-justify whitespace-pre-line" style={{ color: subColor }}>{about.bio}</p>
                       </div>
                     </div>
                   </div>
@@ -225,7 +225,7 @@ export default function DeveloperTemplate({ data, theme, isPreview }: { data: an
 
           {/* Services */}
           {services?.length > 0 && (
-            <section className="py-24 px-6 md:px-16">
+            <section id="services" className="py-24 px-6 md:px-16">
               <div className="max-w-5xl mx-auto">
                 <FadeUp>
                   <div className="font-mono text-xs mb-8" style={{ color: `${ac}50` }}>
@@ -236,7 +236,7 @@ export default function DeveloperTemplate({ data, theme, isPreview }: { data: an
                       <motion.div key={svc.id} whileHover={{ y: -4 }} className="rounded-xl border p-6" style={{ borderColor: `${ac}15`, backgroundColor: panelBg }}>
                         <p className="text-2xl mb-3">{svc.icon || '✦'}</p>
                         <h3 className="font-mono font-black text-sm mb-2" style={{ color: textColor }}>{'>'} {svc.title}</h3>
-                        <p className="font-mono text-xs" style={{ color: subColor }}>{svc.description}</p>
+                        <p className="font-mono text-xs text-justify" style={{ color: subColor }}>{svc.description}</p>
                       </motion.div>
                     ))}
                   </div>
@@ -247,7 +247,7 @@ export default function DeveloperTemplate({ data, theme, isPreview }: { data: an
 
           {/* Testimonials */}
           {testimonials?.length > 0 && (
-            <section className="py-24 px-6 md:px-16">
+            <section id="testimonials" className="py-24 px-6 md:px-16">
               <div className="max-w-4xl mx-auto">
                 <FadeUp>
                   <div className="font-mono text-xs mb-8" style={{ color: `${ac}50` }}>
@@ -272,7 +272,7 @@ export default function DeveloperTemplate({ data, theme, isPreview }: { data: an
 
           {/* Gallery */}
           {gallery?.length > 0 && (
-            <section className="py-24 px-6 md:px-16">
+            <section id="gallery" className="py-24 px-6 md:px-16">
               <div className="max-w-6xl mx-auto">
                 <FadeUp>
                   <div className="font-mono text-xs mb-8" style={{ color: `${ac}50` }}>
@@ -310,7 +310,7 @@ export default function DeveloperTemplate({ data, theme, isPreview }: { data: an
                     <span style={{ color: '#50fa7b' }}>$</span> ./custom_sections/{sec.title.toLowerCase().replace(/\s+/g, '_')}.sh
                   </div>
                   <h2 className="font-mono text-2xl font-black mb-6" style={{ color: textColor }}>{'>'} {sec.title}</h2>
-                  {sec.type === 'text' && <p className="font-mono text-sm leading-relaxed" style={{ color: subColor }}>{sec.content?.body}</p>}
+                  {sec.type === 'text' && <p className="font-mono text-sm leading-relaxed text-justify" style={{ color: subColor }}>{sec.content?.body}</p>}
                   {sec.type === 'list' && <div className="space-y-2">{(sec.content?.items || []).map((item: string, i: number) => <div key={i} className="flex gap-2 font-mono text-sm" style={{ color: subColor }}><span className="text-green-400">OK</span>{item}</div>)}</div>}
                   {sec.type === 'links' && <div className="flex flex-wrap gap-3">{(sec.content?.links || []).map((link: any, i: number) => <motion.a key={i} href={link.url} target="_blank" whileHover={{ scale: 1.05 }} className="font-mono text-sm px-6 py-3 rounded font-bold" style={{ backgroundColor: ac, color: '#121016' }}>{link.label}</motion.a>)}</div>}
                   {!['text','list','cards','links'].includes(sec.type) && sec.content && (

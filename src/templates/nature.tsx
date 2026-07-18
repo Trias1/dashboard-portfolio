@@ -139,7 +139,7 @@ export default function NatureTemplate({ data, theme, isPreview }: { data: any; 
                     <div className="space-y-4 flex-1">
                       <h3 className="text-2xl font-bold" style={{ color: textColor }}>{about.name}</h3>
                       <p className="text-base" style={{ color: ac }}>{about.title}</p>
-                      <p className="text-base leading-relaxed" style={{ color: subColor }}>{about.bio}</p>
+                      <p className="text-base leading-relaxed text-justify whitespace-pre-line" style={{ color: subColor }}>{about.bio}</p>
                     </div>
                   </div>
                 </OrganicCard>
@@ -231,7 +231,7 @@ export default function NatureTemplate({ data, theme, isPreview }: { data: any; 
                       )}
                       <div className="p-5">
                         <h3 className="text-lg font-bold mb-2" style={{ color: textColor }}>{proj.title}</h3>
-                        <p className="text-sm mb-4 leading-relaxed" style={{ color: subColor }}>{proj.description}</p>
+                        <p className="text-sm mb-4 leading-relaxed text-justify" style={{ color: subColor }}>{proj.description}</p>
                         {proj.tech_stack && (
                           <div className="flex flex-wrap gap-1.5 mb-4">
                             {proj.tech_stack.split(',').map((t: string) => (
@@ -273,7 +273,7 @@ export default function NatureTemplate({ data, theme, isPreview }: { data: any; 
                     <OrganicCard className="p-8 text-center">
                       <div className="text-4xl mb-5">{svc.icon || '✦'}</div>
                       <h3 className="text-lg font-bold mb-2" style={{ color: textColor }}>{svc.title}</h3>
-                      <p className="text-sm" style={{ color: subColor }}>{svc.description}</p>
+                      <p className="text-sm text-justify" style={{ color: subColor }}>{svc.description}</p>
                     </OrganicCard>
                   </Section>
                 ))}
@@ -292,7 +292,7 @@ export default function NatureTemplate({ data, theme, isPreview }: { data: any; 
                   <Section key={t.id}>
                     <OrganicCard className="p-6">
                       <p className="text-4xl leading-none mb-2" style={{ color: `${ac}30` }}>"</p>
-                      <p className="text-sm italic mb-4 leading-relaxed" style={{ color: subColor }}>{t.message}</p>
+                      <p className="text-sm italic mb-4 leading-relaxed text-justify" style={{ color: subColor }}>{t.message}</p>
                       <div className="flex items-center gap-3">
                         {t.photo_url && <img src={t.photo_url} alt={t.name} className="w-10 h-10 rounded-full object-cover" />}
                         <div>
@@ -347,7 +347,7 @@ export default function NatureTemplate({ data, theme, isPreview }: { data: any; 
           <section key={sec.id} id={`custom-${(sec.title || sec.original_type || '').toLowerCase().replace(/\s+/g, '-')}`} className="py-20 md:py-28 px-4">
             <div className="max-w-5xl mx-auto">
               <SectionTitle title={sec.title} ac={ac} />
-              {sec.type === 'text' && <Section><OrganicCard className="p-8"><p className="text-base leading-relaxed text-center" style={{ color: subColor }}>{sec.content?.body}</p></OrganicCard></Section>}
+              {sec.type === 'text' && <Section><OrganicCard className="p-8"><p className="text-base leading-relaxed text-center text-justify" style={{ color: subColor }}>{sec.content?.body}</p></OrganicCard></Section>}
               {sec.type === 'list' && (
                 <ul className="space-y-3 max-w-2xl mx-auto">
                   {(sec.content?.items || []).map((item: string, i: number) => (
@@ -415,7 +415,8 @@ export default function NatureTemplate({ data, theme, isPreview }: { data: any; 
         ))}
 
         {/* Contact */}
-        <section id="contact" className="py-20 md:py-28 px-4" style={{ background: `${ac}04` }}>
+        {data.portfolio?.sections_order?.find((section: any) => section.type === 'contact')?.enabled !== false && (
+          <section id="contact" className="py-20 md:py-28 px-4" style={{ background: `${ac}04` }}>
           <div className="max-w-3xl mx-auto text-center">
             <SectionTitle title="Get In Touch" subtitle="Contact" ac={ac} />
             <p className="text-base mb-8" style={{ color: subColor }}>I'd love to hear about your project.</p>
@@ -447,7 +448,9 @@ export default function NatureTemplate({ data, theme, isPreview }: { data: any; 
             </div>
             <ContactForm slug={portfolio.slug} accentColor={ac} textColor={textColor} subColor={subColor} />
           </div>
-        </section>
+          </section>
+        )}
+
       </div>
 
       <footer className="relative z-10 py-8 text-center border-t" style={{ borderColor: 'rgba(255,255,255,0.06)' }}>

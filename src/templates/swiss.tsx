@@ -96,7 +96,7 @@ export default function SwissTemplate({ data, theme, isPreview }: { data: any; t
                   {about.photo_url && <div className="flex items-center"><motion.div whileHover={{ scale: 1.02 }}><img src={about.photo_url} alt={about.name} className="w-56 h-56 rounded-full object-cover" style={{ filter: 'grayscale(100%)' }} /></motion.div></div>}
                   <div className="md:col-span-3 flex flex-col justify-center">
                     <p className="text-lg font-bold mb-2 uppercase tracking-wider" style={{ color: ac }}>{about.title}</p>
-                    <p className="text-base leading-relaxed" style={{ color: subColor }}>{about.bio}</p>
+                    <p className="text-base leading-relaxed text-justify text-justify whitespace-pre-line" style={{ color: subColor }}>{about.bio}</p>
                   </div>
                 </div>
               </SlideUp>
@@ -106,7 +106,7 @@ export default function SwissTemplate({ data, theme, isPreview }: { data: any; t
 
         {/* Projects */}
         {projects?.length > 0 && (
-          <section id="work" className="py-24 px-6 md:px-16" style={{ backgroundColor: dark }}>
+          <section id="projects" className="py-24 px-6 md:px-16" style={{ backgroundColor: dark }}>
             <div className="max-w-6xl mx-auto">
               <SlideUp>
                 <div className="border-t-4 pt-6 mb-14" style={{ borderColor: ac }}>
@@ -124,7 +124,7 @@ export default function SwissTemplate({ data, theme, isPreview }: { data: any; t
                           <span className="text-xs font-black tracking-widest uppercase" style={{ color: ac }}>Project</span>
                         </div>
                         <h3 className="text-xl font-black mb-1" style={{ color: dark }}>{proj.title}</h3>
-                        <p className="text-sm mb-4" style={{ color: subColor }}>{proj.description}</p>
+                        <p className="text-sm mb-4 text-justify" style={{ color: subColor }}>{proj.description}</p>
                         {proj.tech_stack && <div className="flex flex-wrap gap-1.5 mb-4">{proj.tech_stack.split(',').map((t: string) => <TechBadge key={t} name={t.trim()} accentColor={ac} size="sm" variant="pill" />)}</div>}
                         <div className="flex gap-2">
                           {proj.demo_url && <motion.a href={proj.demo_url} target="_blank" whileHover={{ scale: 1.05 }}
@@ -143,7 +143,7 @@ export default function SwissTemplate({ data, theme, isPreview }: { data: any; t
 
         {/* Experience */}
         {experience?.length > 0 && (
-          <section className="py-24 px-6 md:px-16" style={{ backgroundColor: light }}>
+          <section id="experience" className="py-24 px-6 md:px-16" style={{ backgroundColor: light }}>
             <div className="max-w-5xl mx-auto">
               <SlideUp>
                 <div className="border-t-4 pt-6 mb-14" style={{ borderColor: dark }}>
@@ -190,14 +190,14 @@ export default function SwissTemplate({ data, theme, isPreview }: { data: any; t
 
         {/* Services & Testimonials */}
         {services?.length > 0 && (
-          <section className="py-24 px-6 md:px-16" style={{ backgroundColor: light }}>
+          <section id="services" className="py-24 px-6 md:px-16" style={{ backgroundColor: light }}>
             <div className="max-w-5xl mx-auto"><SlideUp>
               <div className="border-t-4 pt-6 mb-14" style={{ borderColor: dark }}><span className="text-xs font-black tracking-[0.3em] uppercase" style={{ color: ac }}>Services</span><h2 className="text-4xl sm:text-6xl font-black tracking-[-0.03em] mt-1" style={{ color: dark }}>Services</h2></div>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">{services.map((svc: any) => (
                 <motion.div key={svc.id} whileHover={{ y: -4 }} className="p-6 border-t-4" style={{ borderColor: ac, backgroundColor: '#fff' }}>
                   <p className="text-2xl mb-3">{svc.icon || '✦'}</p>
                   <h3 className="text-base font-black uppercase tracking-wider mb-2" style={{ color: dark }}>{svc.title}</h3>
-                  <p className="text-sm" style={{ color: subColor }}>{svc.description}</p>
+                  <p className="text-sm text-justify" style={{ color: subColor }}>{svc.description}</p>
                 </motion.div>
               ))}</div>
             </SlideUp></div>
@@ -205,7 +205,7 @@ export default function SwissTemplate({ data, theme, isPreview }: { data: any; t
         )}
 
         {testimonials?.length > 0 && (
-          <section className="py-24 px-6 md:px-16" style={{ backgroundColor: dark }}>
+          <section id="testimonials" className="py-24 px-6 md:px-16" style={{ backgroundColor: dark }}>
             <div className="max-w-4xl mx-auto"><SlideUp>
               <div className="border-t-4 pt-6 mb-14" style={{ borderColor: ac }}><span className="text-xs font-black tracking-[0.3em] uppercase" style={{ color: ac }}>Kind Words</span><h2 className="text-4xl sm:text-6xl font-black tracking-[-0.03em] mt-1" style={{ color: light }}>Testimonials</h2></div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">{testimonials.map((t: any) => (
@@ -223,7 +223,7 @@ export default function SwissTemplate({ data, theme, isPreview }: { data: any; t
         )}
 
         {gallery?.length > 0 && (
-          <section className="py-24 px-6 md:px-16" style={{ backgroundColor: light }}>
+          <section id="gallery" className="py-24 px-6 md:px-16" style={{ backgroundColor: light }}>
             <div className="max-w-6xl mx-auto"><SlideUp>
               <div className="border-t-4 pt-6 mb-14" style={{ borderColor: dark }}><span className="text-xs font-black tracking-[0.3em] uppercase" style={{ color: ac }}>Credential</span><h2 className="text-4xl sm:text-6xl font-black tracking-[-0.03em] mt-1" style={{ color: dark }}>Certificates</h2></div>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">{gallery.map((cert: any) => (

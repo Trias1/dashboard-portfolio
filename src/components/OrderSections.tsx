@@ -1,20 +1,13 @@
 'use client';
 import { useLayoutEffect, useRef } from 'react';
 
+function sectionKey(id: string) {
+  const aliases: Record<string, string> = { team: 'about', work: 'projects', connect: 'contact' };
+  return aliases[id] || id;
+}
+
 function normalizeSectionOrder(sections: any[]): any[] {
-  const order = [...sections];
-  const heroIdx = order.findIndex((s: any) => s.type === 'hero' || s.id === 'hero');
-  if (heroIdx > 0) {
-    const [hero] = order.splice(heroIdx, 1);
-    order.unshift(hero);
-  }
-  const contactIdx = order.findIndex((s: any) => s.type === 'contact' || s.id === 'contact');
-  if (contactIdx !== -1 && contactIdx < order.length - 1) {
-    const [contact] = order.splice(contactIdx, 1);
-    const footerIdx = order.findIndex((s: any) => s.type === 'footer' || s.id === 'footer');
-    order.splice(footerIdx !== -1 ? footerIdx : order.length, 0, contact);
-  }
-  return order;
+  return [...sections];
 }
 
 export default function OrderSections({ sections_order, children }: { sections_order: any[]; children: React.ReactNode }) {
@@ -22,7 +15,8 @@ export default function OrderSections({ sections_order, children }: { sections_o
   const ordered = useRef(false);
 
   useLayoutEffect(() => {
-    if (!sections_order?.length || ordered.current) return;
+    if (!sections_order?.length) return;
+    ordered.current = false;
 
     const normalized = normalizeSectionOrder(sections_order);
 
@@ -31,22 +25,30 @@ export default function OrderSections({ sections_order, children }: { sections_o
       const key = s.type === 'custom' && s.label
         ? `custom-${s.label.toLowerCase().replace(/\s+/g, '-')}`
         : (s.type || s).split('-')[0];
-      if (key) orderMap[key] = i;
+      if (key) orderMap[sectionKey(key)] = i;
     });
 
-    const root = ref.current?.firstElementChild;
+    const disabled = new Set(normalized.filter((section: any) => section.enabled === false).map((section: any) => {
+      const key = section.type === 'custom' && section.label
+        ? `custom-${section.label.toLowerCase().replace(/\s+/g, '-')}`
+        : (section.type || section).split('-')[0];
+      return sectionKey(key);
+    }));
+
+    const root = ref.current;
     if (!root) return;
 
     const doOrder = () => {
-      const sections = root.querySelectorAll<HTMLElement>('section[id]');
-      if (sections.length < 2) return false;
+      const sections = root.querySelectorAll<HTMLElement>('section[id], div[id]');
+      if (!sections.length) return false;
+      sections.forEach((section) => {
+        section.hidden = disabled.has(sectionKey(section.id));
+      });
 
       const sorted = Array.from(sections).sort((a, b) => {
-        if (a.id === 'contact' || b.id === 'contact') {
-          if (a.id === 'contact') return 1;
-          if (b.id === 'contact') return -1;
-        }
-        return (orderMap[a.id] ?? 999) - (orderMap[b.id] ?? 999);
+        const aKey = sectionKey(a.id);
+        const bKey = sectionKey(b.id);
+        return (orderMap[aKey] ?? 999) - (orderMap[bKey] ?? 999);
       });
 
       const parent = sorted[0]?.parentElement;

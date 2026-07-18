@@ -95,7 +95,7 @@ export default function PlayfulTemplate({ data, theme, isPreview }: { data: any;
                   whileHover={{ borderColor: ac }}>
                   <div className="flex flex-col md:flex-row gap-8 items-center">
                     {about.photo_url && <motion.div whileHover={{ scale: 1.05, rotate: 5 }} className="shrink-0"><img src={about.photo_url} alt={about.name} className="w-44 h-44 rounded-full object-cover border-4" style={{ borderColor: `${ac}40` }} /></motion.div>}
-                    <div className="space-y-4"><p className="text-lg font-bold" style={{ color: ac }}>{about.title}</p><p className="text-base leading-relaxed" style={{ color: subColor }}>{about.bio}</p></div>
+                    <div className="space-y-4"><p className="text-lg font-bold" style={{ color: ac }}>{about.title}</p><p className="text-base leading-relaxed text-justify whitespace-pre-line" style={{ color: subColor }}>{about.bio}</p></div>
                   </div>
                 </motion.div>
               </Float>
@@ -171,7 +171,7 @@ export default function PlayfulTemplate({ data, theme, isPreview }: { data: any;
                       {proj.image_url && <div className="overflow-hidden"><motion.img src={proj.image_url} alt={proj.title} className="w-full h-44 object-cover" whileHover={{ scale: 1.15 }} /></div>}
                       <div className="p-5">
                         <h3 className="text-xl font-black mb-2" style={{ color: textColor }}>{proj.title}</h3>
-                        <p className="text-sm mb-4" style={{ color: subColor }}>{proj.description}</p>
+                        <p className="text-sm mb-4 text-justify" style={{ color: subColor }}>{proj.description}</p>
                         {proj.tech_stack && <div className="flex flex-wrap gap-1.5 mb-4">{proj.tech_stack.split(',').map((t: string) => <TechBadge key={t} name={t.trim()} accentColor={ac} />)}</div>}
                         <div className="flex gap-2">
                           {proj.demo_url && <motion.a href={proj.demo_url} target="_blank" whileHover={{ scale: 1.1, rotate: -3 }} className="text-xs font-bold px-4 py-2 rounded-2xl text-white" style={{ backgroundColor: ac }}>Demo</motion.a>}
@@ -188,20 +188,20 @@ export default function PlayfulTemplate({ data, theme, isPreview }: { data: any;
 
         {/* Services & Testimonials */}
         {services?.length > 0 && (
-          <section className="py-24 px-4"><div className="max-w-5xl mx-auto">
+          <section id="services" className="py-24 px-4"><div className="max-w-5xl mx-auto">
             <Float><div className="text-center mb-14"><motion.span className="text-xs uppercase tracking-[0.3em] font-bold" style={{ color: `${ac}80` }}>Services</motion.span><motion.h2 className="text-4xl sm:text-5xl font-black mt-2" style={{ color: textColor }}>What I Do</motion.h2></div>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">{services.map((svc: any) => (
               <motion.div key={svc.id} whileHover={{ y: -8, rotate: 1 }} className="p-8 rounded-[2rem] border-2 text-center" style={{ borderColor: `${ac}20`, backgroundColor: `${ac}06` }}>
                 <motion.div whileHover={{ scale: 1.2, rotate: 10 }} className="text-5xl mb-5">{svc.icon || '✦'}</motion.div>
                 <h3 className="text-lg font-black mb-2" style={{ color: textColor }}>{svc.title}</h3>
-                <p className="text-sm" style={{ color: subColor }}>{svc.description}</p>
+                <p className="text-sm text-justify" style={{ color: subColor }}>{svc.description}</p>
               </motion.div>
             ))}</div></Float>
           </div></section>
         )}
 
         {testimonials?.length > 0 && (
-          <section className="py-24 px-4"><div className="max-w-4xl mx-auto">
+          <section id="testimonials" className="py-24 px-4"><div className="max-w-4xl mx-auto">
             <Float><div className="text-center mb-14"><motion.span className="text-xs uppercase tracking-[0.3em] font-bold" style={{ color: `${ac}80` }}>Love</motion.span><motion.h2 className="text-4xl sm:text-5xl font-black mt-2" style={{ color: textColor }}>Testimonials</motion.h2></div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">{testimonials.map((t: any) => (
               <div key={t.id} className="p-6 rounded-[2rem] border-2" style={{ borderColor: `${ac}20`, backgroundColor: `${ac}06` }}>
@@ -214,7 +214,7 @@ export default function PlayfulTemplate({ data, theme, isPreview }: { data: any;
         )}
 
         {gallery?.length > 0 && (
-          <section className="py-24 px-4"><div className="max-w-6xl mx-auto">
+          <section id="gallery" className="py-24 px-4"><div className="max-w-6xl mx-auto">
             <Float><div className="text-center mb-14"><motion.span className="text-xs uppercase tracking-[0.3em] font-bold" style={{ color: `${ac}80` }}>Creds</motion.span><motion.h2 className="text-4xl sm:text-5xl font-black mt-2" style={{ color: textColor }}>Certificates</motion.h2></div>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">{gallery.map((cert: any) => (
               <div key={cert.id} className="p-5 rounded-[2rem] border-2" style={{ borderColor: `${ac}20`, backgroundColor: `${ac}06` }}>
@@ -240,7 +240,7 @@ export default function PlayfulTemplate({ data, theme, isPreview }: { data: any;
             <div className="max-w-5xl mx-auto">
               <Float>
                 <div className="text-center mb-14"><motion.h2 className="text-4xl sm:text-5xl font-black" style={{ color: textColor }}>{sec.title}</motion.h2></div>
-                {sec.type === 'text' && <p className="text-lg text-center" style={{ color: subColor }}>{sec.content?.body}</p>}
+                {sec.type === 'text' && <p className="text-lg text-center text-justify" style={{ color: subColor }}>{sec.content?.body}</p>}
                 {sec.type === 'list' && <ul className="space-y-3 max-w-2xl mx-auto">{(sec.content?.items || []).map((item: string, i: number) => <motion.li key={i} initial={{ opacity: 0, x: -30 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }} className="flex gap-3 text-base" style={{ color: subColor }}><span></span>{item}</motion.li>)}</ul>}
                 {sec.type === 'links' && <div className="flex flex-wrap gap-4 justify-center">{(sec.content?.links || []).map((link: any, i: number) => <motion.a key={i} href={link.url} target="_blank" whileHover={{ scale: 1.08, rotate: -2 }} className="px-8 py-3.5 rounded-2xl font-bold text-white" style={{ backgroundColor: ac }}>{link.label}</motion.a>)}</div>}
                 {!['text','list','cards','links'].includes(sec.type) && sec.content && (
@@ -291,7 +291,8 @@ export default function PlayfulTemplate({ data, theme, isPreview }: { data: any;
         ))}
 
         {/* Contact */}
-        <section id="contact" className="py-24 px-4">
+        {data.portfolio?.sections_order?.find((section: any) => section.type === 'contact')?.enabled !== false && (
+          <section id="contact" className="py-24 px-4">
           <div className="max-w-3xl mx-auto text-center">
             <Float><div className="text-center mb-14"><motion.span className="text-xs uppercase tracking-[0.3em] font-bold" style={{ color: `${ac}80` }}>Contact</motion.span><motion.h2 className="text-4xl sm:text-5xl font-black mt-2" style={{ color: textColor }}>Let's Play!</motion.h2></div>
             <p className="text-base mb-8" style={{ color: subColor }}>Got a fun project? Hit me up!</p>
@@ -303,8 +304,11 @@ export default function PlayfulTemplate({ data, theme, isPreview }: { data: any;
             </div>
             <ContactForm slug={portfolio.slug} accentColor={ac} textColor={textColor} subColor={subColor} />
           </Float></div>
-        </section>
+          </section>
+        )}
+
       </div>
+
       <footer className="py-8 text-center border-t-2" style={{ borderColor: `${ac}20` }}>
         <p className="text-sm font-bold" style={{ color: subColor }}>(c) 2026 {about?.name || portfolio.title} </p>
         <p className="text-xs font-bold mt-1" style={{ color: `${ac}60` }}>Powered by PortfolioKit</p>

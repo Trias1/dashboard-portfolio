@@ -106,3 +106,16 @@ VERCEL_TEAM_ID=
 ```
 
 `VERCEL_TEAM_ID` is optional for personal projects and required when the Vercel project belongs to a team.
+
+## Custom Domains
+
+Custom domains map directly to a published portfolio. Configure the domain in the dashboard, add the same domain manually in Vercel Project Settings, and point its DNS to Vercel.
+
+Example:
+
+- Portfolio slug: `trias-portfolio`
+- Custom domain: `portfolio.trias.id`
+- Public URL: `https://portfolio.trias.id`
+- Internal route: `/portfolio/trias-portfolio`
+
+The browser keeps the custom domain in the address bar while the app rewrites the request internally. Only published portfolios are served. Domain values are stored without protocol, path, port, or trailing dot.
