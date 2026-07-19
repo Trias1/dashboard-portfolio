@@ -122,4 +122,6 @@ Example:
 The browser keeps the custom domain in the address bar while the app rewrites the request internally. Only published portfolios are served. Domain values are stored without protocol, path, port, or trailing dot.
 ## License
 
-This project is licensed under the MIT License. You may use, modify, distribute, and sublicense the software in accordance with the MIT License terms.
+PortfolioKit is open-source software released under the [MIT License](LICENSE).
+
+Built with care by Trias.
