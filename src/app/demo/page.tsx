@@ -24,7 +24,7 @@ const demoTemplates = [
 ];
 
 const demoThemes = [
-  { id: 'dark-space', label: 'Dark bawaan', accent: '#a855f7' },
+  { id: 'dark-space', label: 'Default Dark', accent: '#a855f7' },
   { id: 'white', label: 'White', accent: '#6366f1' },
 ];
 
@@ -49,7 +49,7 @@ export default function DemoPage() {
           <Link href="/register"
             className="text-xs px-4 py-2 rounded-full font-medium text-white transition hover:opacity-90"
             style={{ backgroundColor: '#a855f7' }}>
-            Buat Portfolio
+            Build Portfolio
           </Link>
         </div>
 

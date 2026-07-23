@@ -2,6 +2,8 @@
 
 A modern portfolio dashboard for creating, managing, and publishing professional portfolios quickly.
 
+This project is free and open-source software available under the [MIT License](LICENSE). Contributions, improvements, and community use are welcome.
+
 ## Features
 
 - Drag-and-drop portfolio builder

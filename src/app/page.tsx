@@ -16,7 +16,7 @@ const translations = {
     cta2: 'Sudah punya akun',
     whyTitle: 'Kenapa PortfolioKit?',
     whySubtitle: 'Semua yang kamu butuhkan sudah tersedia',
-    templateTitle: 'Dua puluh lima tampilan,',
+    templateTitle: 'Tujuh belas tampilan,',
     templateTitle2: 'satu tujuan',
     templateSub: 'Ganti template kapan saja - data kamu tetap tersimpan',
     demoTitle: 'Lihat contohnya',
@@ -25,7 +25,7 @@ const translations = {
     ctaBottom2: 'gratis selamanya.',
     ctaBottomSub: 'Tidak perlu kartu kredit. Tidak ada biaya tersembunyi.',
     ctaBottomBtn: 'Buat Portfolio Gratis',
-    footer: 'Dibuat oleh P3ASK',
+    footer: 'Dibuat oleh Trias',
   },
   en: {
     login: 'Login',
@@ -39,7 +39,7 @@ const translations = {
     cta2: 'Already have an account',
     whyTitle: 'Why PortfolioKit?',
     whySubtitle: 'Everything you need, already here',
-    templateTitle: 'Twenty five designs,',
+    templateTitle: 'Seventeen designs,',
     templateTitle2: 'one purpose',
     templateSub: 'Switch templates anytime - your data stays intact',
     demoTitle: 'See it in action',
@@ -48,28 +48,41 @@ const translations = {
     ctaBottom2: 'free forever.',
     ctaBottomSub: 'No credit card required. No hidden fees.',
     ctaBottomBtn: 'Build Portfolio Free',
-    footer: 'Made by P3ASK',
+    footer: 'Made by Trias',
   }
 };
 
 const features = {
   id: [
-    { icon: 'T', title: '25 Template Pilihan', desc: 'Modern, Creative, Minimal, Bold, Classic, Neon, Glass, Nature, Vibrant, Retro, Immersive, Playful, Developer, Swiss, White, Agency, BoldPersona, Education Platform, Fintech Crypto, Payment Gateway, DeFi Yield, Creative Agency, Gaming Platform, NFT Cyberpunk, Developer Tools - banyak pilihan sesuai karaktermu' },
-    { icon: 'AI', title: 'AI Auto-fill', desc: 'Tidak tahu harus menulis apa? AI kami bantu isi bio, skill, hingga deskripsi layananmu' },
-    { icon: 'P', title: 'Publish Instan', desc: 'Satu klik publish, langsung online dan siap dibagikan ke siapa saja' },
-    { icon: 'C', title: 'Upload Sertifikat', desc: 'Upload sertifikat PDF, otomatis tampil sebagai preview gambar yang rapi' },
-    { icon: 'WA', title: 'WA & Email Contact', desc: 'Pengunjung bisa langsung hubungi kamu via WhatsApp atau email' },
-    { icon: 'M', title: 'Mobile Friendly', desc: 'Tampil sempurna di semua perangkat, dari smartphone hingga desktop' },
+    { icon: 'templates', title: '17 Template Pilihan', desc: 'Modern, Creative, Minimal, Bold, Classic, Neon, Glass, Nature, Vibrant, Retro, Immersive, Playful, Developer, Swiss, White, Agency, BoldPersona - banyak pilihan sesuai karaktermu' },
+    { icon: 'ai', title: 'AI Auto-fill', desc: 'Tidak tahu harus menulis apa? AI kami bantu isi bio, skill, hingga deskripsi layananmu' },
+    { icon: 'publish', title: 'Publish Instan', desc: 'Satu klik publish, langsung online dan siap dibagikan ke siapa saja' },
+    { icon: 'certificate', title: 'Upload Sertifikat', desc: 'Upload sertifikat PDF, otomatis tampil sebagai preview gambar yang rapi' },
+    { icon: 'contact', title: 'WA & Email Contact', desc: 'Pengunjung bisa langsung hubungi kamu via WhatsApp atau email' },
+    { icon: 'mobile', title: 'Mobile Friendly', desc: 'Tampil sempurna di semua perangkat, dari smartphone hingga desktop' },
   ],
   en: [
-    { icon: 'T', title: '25 Templates', desc: 'Modern, Creative, Minimal, Bold, Classic, Neon, Glass, Nature, Vibrant, Retro, Immersive, Playful, Developer, Swiss, White, Agency, BoldPersona, Education Platform, Fintech Crypto, Payment Gateway, DeFi Yield, Creative Agency, Gaming Platform, NFT Cyberpunk, Developer Tools - pick the one that fits you' },
-    { icon: 'AI', title: 'AI Auto-fill', desc: "Don't know what to write? Our AI helps fill your bio, skills, and service descriptions" },
-    { icon: 'P', title: 'Instant Publish', desc: 'One click to publish, instantly online and ready to share' },
-    { icon: 'C', title: 'Certificate Upload', desc: 'Upload PDF certificates, automatically displayed as a clean image preview' },
-    { icon: 'WA', title: 'WA & Email Contact', desc: 'Visitors can directly contact you via WhatsApp or email' },
-    { icon: 'M', title: 'Mobile Friendly', desc: 'Looks great on all devices, from smartphone to desktop' },
+    { icon: 'templates', title: '17 Templates', desc: 'Modern, Creative, Minimal, Bold, Classic, Neon, Glass, Nature, Vibrant, Retro, Immersive, Playful, Developer, Swiss, White, Agency, BoldPersona - pick the one that fits you' },
+    { icon: 'ai', title: 'AI Auto-fill', desc: "Don't know what to write? Our AI helps fill your bio, skills, and service descriptions" },
+    { icon: 'publish', title: 'Instant Publish', desc: 'One click to publish, instantly online and ready to share' },
+    { icon: 'certificate', title: 'Certificate Upload', desc: 'Upload PDF certificates, automatically displayed as a clean image preview' },
+    { icon: 'contact', title: 'WA & Email Contact', desc: 'Visitors can directly contact you via WhatsApp or email' },
+    { icon: 'mobile', title: 'Mobile Friendly', desc: 'Looks great on all devices, from smartphone to desktop' },
   ]
 };
+
+const featureIconPaths: Record<string, string> = {
+  templates: 'M4 5h6v6H4z M14 5h6v6h-6z M4 15h6v4H4z M14 15h6v4h-6z',
+  ai: 'M12 3l1.5 4.5L18 9l-4.5 1.5L12 15l-1.5-4.5L6 9l4.5-1.5z M5 15l.8 2.2L8 18l-2.2.8L5 21l-.8-2.2L2 18l2.2-.8z M19 14l.8 2.2L22 17l-2.2.8L19 20l-.8-2.2L16 17l2.2-.8z',
+  publish: 'M12 16V4 M7 9l5-5 5 5 M5 14v5h14v-5',
+  certificate: 'M6 3h12v13H6z M9 7h6 M9 11h4 M12 16l-3 5v-3H7l3-2 M12 16l3 5v-3h2l-3-2',
+  contact: 'M4 5h16v12H7l-3 3z M7 8l5 4 5-4',
+  mobile: 'M8 2h8v20H8z M11 18h2',
+};
+
+function FeatureIcon({ name }: { name: string }) {
+  return <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="h-8 w-8"><path d={featureIconPaths[name]} /></svg>;
+}
 
 const templates = {
   id: [
@@ -90,14 +103,6 @@ const templates = {
     { name: 'White', desc: 'Bersih, terang, dan minimal. Fokus pada konten.' },
     { name: 'Agency', desc: 'Tampilan profesional ala agency kreatif.' },
     { name: 'BoldPersona', desc: 'Tipografi raksasa dan kesan personal yang kuat.' },
-    { name: 'Education Platform', desc: 'Claymorphism edukasi dengan katalog kursus, progress, testimoni, dan enrollment CTA.' },
-    { name: 'Fintech Crypto', desc: 'Dark glassmorphism untuk crypto, chart harga, keamanan, wallet, dan trust indicators.' },
-    { name: 'Payment Gateway', desc: 'Landing profesional untuk pembayaran, code preview, pricing, sertifikasi, dan docs.' },
-    { name: 'DeFi Yield', desc: 'Cyberpunk neon untuk APY calculator, liquidity pools, tokenomics, dan wallet connect.' },
-    { name: 'Creative Agency', desc: 'Brutalist agency landing dengan case studies, team, motion, dan contact CTA.' },
-    { name: 'Gaming Platform', desc: 'Retro-futuristic neon untuk game showcase, community, dan download CTA.' },
-    { name: 'NFT Cyberpunk', desc: 'Marketplace NFT neon dengan gallery, wallet demo, creator spotlight, dan marketplace preview.' },
-    { name: 'Developer Tools', desc: 'Minimal dark tooling dengan snippets, comparison table, integration logos, dan docs.' },
   ],
   en: [
     { name: 'Modern', desc: 'Elegant, dark, and dynamic. Perfect for technical and creative professions.' },
@@ -117,14 +122,6 @@ const templates = {
     { name: 'White', desc: 'Clean, bright, and minimal. Content-focused.' },
     { name: 'Agency', desc: 'Professional creative agency look.' },
     { name: 'BoldPersona', desc: 'Giant typography with strong personal branding.' },
-    { name: 'Education Platform', desc: 'Claymorphism learning page with course catalog, progress, testimonials, and enrollment CTA.' },
-    { name: 'Fintech Crypto', desc: 'Dark glassmorphism for crypto charts, security, wallet integration, and trust indicators.' },
-    { name: 'Payment Gateway', desc: 'Professional payment landing with code preview, pricing, certifications, and docs.' },
-    { name: 'DeFi Yield', desc: 'Cyberpunk neon for APY calculators, liquidity pools, tokenomics, and wallet connect.' },
-    { name: 'Creative Agency', desc: 'Brutalist agency landing with case studies, team, motion, and contact CTA.' },
-    { name: 'Gaming Platform', desc: 'Retro-futuristic neon for game showcase, community, and download CTA.' },
-    { name: 'NFT Cyberpunk', desc: 'Neon NFT marketplace with gallery, wallet demo, creator spotlight, and marketplace preview.' },
-    { name: 'Developer Tools', desc: 'Minimal dark tooling with snippets, comparison table, integration logos, and docs.' },
   ]
 };
 export default function LandingPage() {
@@ -211,7 +208,7 @@ export default function LandingPage() {
             <Link href="/demo" target="_blank"
               className="px-8 py-4 rounded-full font-semibold border transition hover:border-purple-500"
               style={{ borderColor: '#a855f730', color: '#aaa' }}>
-              ' {lang === 'id' ? 'Lihat Demo' : 'View Demo'}
+              {lang === 'id' ? 'Lihat Demo' : 'View Demo'}
             </Link>
           </motion.div>
         </div>
@@ -233,7 +230,7 @@ export default function LandingPage() {
                 transition={{ delay: i * 0.1 }}
                 className="p-6 rounded-2xl border"
                 style={{ backgroundColor: 'rgba(168,85,247,0.05)', borderColor: '#a855f720' }}>
-                <div className="text-3xl mb-3">{feat.icon}</div>
+                <div className="mb-3 text-purple-300"><FeatureIcon name={feat.icon} /></div>
                 <h3 className="font-bold mb-2 text-white">{feat.title}</h3>
                 <p className="text-sm text-gray-400">{feat.desc}</p>
               </motion.div>
