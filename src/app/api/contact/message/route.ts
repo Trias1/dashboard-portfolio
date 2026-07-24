@@ -27,9 +27,13 @@ export async function POST(request: NextRequest) {
     // Notify owner
     const { data: contactInfo } = await getSupabaseAdmin().from('contact_info').select('email').eq('owner_id', owner_id).maybeSingle();
     if (contactInfo?.email) {
-      sendContactNotification(contactInfo.email, name, email, message).catch((err) => {
+      try {
+        await sendContactNotification(contactInfo.email, name, email, message);
+      } catch (err: any) {
         console.error('[SMTP Error] Failed to send contact email:', err);
-      });
+        // Return error so the user knows it failed, preventing silent data loss.
+        return errorResponse('Pesan tersimpan, tetapi gagal meneruskan ke email pemilik.', 500);
+      }
     }
 
     return successResponse({ message: 'Pesan berhasil dikirim!' }, 201);
