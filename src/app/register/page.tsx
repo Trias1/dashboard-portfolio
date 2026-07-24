@@ -9,23 +9,13 @@ const themes = [
   { name: 'White', id: 'white', bg: '#ffffff', accent: '#6366f1', card: 'rgba(99,102,241,0.08)', border: 'rgba(99,102,241,0.2)' },
 ];
 
-function getInitialTheme() {
-  if (typeof window === 'undefined') return themes[0];
-  try {
-    const saved = localStorage.getItem('lang-theme') || localStorage.getItem('portfolio-theme');
-    const parsed = saved ? JSON.parse(saved) : null;
-    return themes.find(theme => theme.id === parsed?.id || theme.name === parsed?.label || theme.name === parsed?.name || theme.accent === parsed?.accent) || themes[0];
-  } catch {
-    return themes[0];
-  }
-}
 
 export default function RegisterPage() {
   const [form, setForm] = useState({ name: '', email: '', password: '', confirmPassword: '' });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
-  const [theme, setTheme] = useState(getInitialTheme);
+  const [theme, setTheme] = useState(themes[0]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -152,10 +142,10 @@ export default function RegisterPage() {
           <Link href="/login" className="font-medium transition hover:opacity-80" style={{ color: theme.accent }}>Login</Link>
         </p>
 
-        <div className="flex justify-center gap-2 mt-6">
-          {themes.map(t => (
-            <motion.button key={t.name} onClick={() => { setTheme(t); localStorage.setItem('lang-theme', JSON.stringify({ id: t.id, label: t.name, accent: t.accent })); }}
-              title={t.name} whileHover={{ scale: 1.2 }}
+          <div className="flex justify-center gap-2 mt-6">
+            {themes.map(t => (
+              <motion.button key={t.name} onClick={() => setTheme(t)}
+                title={t.name} whileHover={{ scale: 1.2 }}
               className="w-5 h-5 rounded-full border-2 transition-all"
               style={{ backgroundColor: t.accent, borderColor: theme.name === t.name ? 'white' : 'transparent' }} />
           ))}
