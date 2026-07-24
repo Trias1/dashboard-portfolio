@@ -70,14 +70,13 @@ npm run lint
 
 ```text
 src/
-├── app/          # Pages, layouts, and API routes
-├── components/   # Shared UI components
-├── lib/          # Helpers and service integrations
-└── templates/    # Portfolio templates
+|-- app/          # Pages, layouts, and API routes
+|-- components/   # Shared UI components
+|-- lib/          # Helpers and service integrations
+`-- templates/    # Portfolio templates
 supabase/         # Database configuration and migration scripts
 public/           # Static assets
 ```
-
 ## Portfolio Templates
 
 | Template | Style |
@@ -86,7 +85,19 @@ public/           # Static assets
 | Creative | Editorial sidebar layout with rounded cards |
 | Minimal | Clean typography focused on content |
 | Bold | Gradients, neon glow, and glassmorphism |
-
+| Classic | Traditional professional presentation |
+| Neon | Cyber-inspired neon interface |
+| Glass | Layered glassmorphism cards |
+| Nature | Organic colors and soft layouts |
+| Vibrant | Bright colors and expressive sections |
+| Retro | Nostalgic visual styling |
+| Immersive | Full-screen visual storytelling |
+| Playful | Friendly shapes and energetic colors |
+| Developer | Code-inspired developer portfolio |
+| Swiss | Structured grid and bold typography |
+| White | Clean light professional layout |
+| Agency | Polished studio and service presentation |
+| BoldPersona | Strong personal-brand typography |
 ## Deployment
 
 Build the application first, then deploy it to a Node.js platform that supports Next.js. Configure all production environment variables through the deployment platform's secret manager instead of committing them to the repository.

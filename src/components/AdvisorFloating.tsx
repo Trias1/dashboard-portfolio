@@ -1,7 +1,18 @@
 'use client';
 import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import api from '@/lib/api';
+
+function AdvisorIcon({ size = 'sm' }: { size?: 'sm' | 'lg' }) {
+  return (
+    <div className={`${size === 'lg' ? 'h-11 w-11 rounded-2xl' : 'h-7 w-7 rounded-xl'} relative flex flex-shrink-0 items-center justify-center bg-gradient-to-br from-purple-500 via-violet-600 to-cyan-500 shadow-lg shadow-purple-950/40`}>
+      <svg viewBox="0 0 24 24" fill="none" className={size === 'lg' ? 'h-5 w-5' : 'h-3.5 w-3.5'} aria-hidden="true">
+        <path d="M12 3l1.15 3.1L16 7.25l-2.85 1.15L12 11.5l-1.15-3.1L8 7.25l2.85-1.15L12 3Z" fill="white" />
+        <path d="M6.5 12l.75 2.25L9.5 15l-2.25.75L6.5 18l-.75-2.25L3.5 15l2.25-.75L6.5 12Zm11 1 .65 1.85L20 15.5l-1.85.65L17.5 18l-.65-1.85L15 15.5l1.85-.65L17.5 13Z" fill="white" fillOpacity=".85" />
+      </svg>
+      {size === 'lg' ? <span className="absolute -bottom-0.5 -right-0.5 h-3.5 w-3.5 rounded-full border-[3px] border-[#0f0f1a] bg-emerald-400" /> : null}
+    </div>
+  );
+}
 
 interface Message {
   role: 'user' | 'assistant';
@@ -18,7 +29,7 @@ export default function AdvisorFloating({ accentColor }: { accentColor: string }
   const [score, setScore] = useState<{score: number, total: number} | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
-  const ac = '#a855f7';
+  const ac = accentColor || '#a855f7';
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -92,7 +103,7 @@ export default function AdvisorFloating({ accentColor }: { accentColor: string }
   const suggested = [' Analyze my portfolio', ' What should I add?', ' Improve my bio'];
 
   return (
-    <div className="fixed bottom-6 right-6 z-[999] flex flex-col items-end gap-3">
+    <div className="fixed inset-x-3 bottom-3 z-[999] flex flex-col items-end gap-3 sm:inset-x-auto sm:bottom-6 sm:right-6">
       <AnimatePresence>
         {open && (
           <motion.div
@@ -100,16 +111,19 @@ export default function AdvisorFloating({ accentColor }: { accentColor: string }
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 20, scale: 0.95 }}
             transition={{ duration: 0.2 }}
-            className="w-80 sm:w-96 rounded-2xl overflow-hidden shadow-2xl flex flex-col"
-            style={{ height: '480px', backgroundColor: '#0f0f1a', border: `1px solid ${ac}40` }}>
+            className="flex h-[min(480px,calc(100dvh-6rem))] w-full flex-col overflow-hidden rounded-2xl shadow-2xl sm:w-96"
+            style={{ backgroundColor: '#0f0f1a', border: `1px solid ${ac}40` }}>
 
             {/* Header */}
             <div className="flex items-center justify-between px-4 py-3 flex-shrink-0"
               style={{ backgroundColor: `${ac}15`, borderBottom: `1px solid ${ac}20` }}>
-              <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-full flex items-center justify-center text-sm" style={{ backgroundColor: ac }}></div>
+              <div className="flex items-center gap-3">
+                <AdvisorIcon size="lg" />
                 <div>
-                  <p className="text-white text-sm font-semibold">Portfolio Advisor</p>
+                  <div className="flex items-center gap-2">
+                    <p className="text-white text-sm font-semibold">Portfolio Advisor</p>
+                    <span className="rounded-full border border-emerald-400/20 bg-emerald-400/10 px-2 py-0.5 text-[9px] font-medium text-emerald-300">Online</span>
+                  </div>
                   {scorePercent !== null && (
                     <div className="flex items-center gap-1">
                       <div className="w-16 h-1.5 bg-white/10 rounded-full overflow-hidden">
@@ -120,17 +134,19 @@ export default function AdvisorFloating({ accentColor }: { accentColor: string }
                   )}
                 </div>
               </div>
-              <button onClick={() => setOpen(false)} className="text-gray-400 hover:text-white transition"></button>
+              <button type="button" onClick={() => setOpen(false)} className="flex h-8 w-8 items-center justify-center rounded-lg text-gray-400 transition hover:bg-white/10 hover:text-white" aria-label="Close advisor">
+                <svg viewBox="0 0 24 24" fill="none" className="h-4 w-4" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" /></svg>
+              </button>
             </div>
 
             {/* Messages */}
-            <div className="flex-1 overflow-y-auto p-4 space-y-3">
+            <div className="flex-1 space-y-3 overflow-y-auto p-3 sm:p-4">
               {messages.map((msg, i) => (
                 <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
                   {msg.role === 'assistant' && (
-                    <div className="w-6 h-6 rounded-full flex-shrink-0 flex items-center justify-center text-xs mr-2 mt-1" style={{ backgroundColor: ac }}></div>
+                    <div className="mr-2 mt-1"><AdvisorIcon /></div>
                   )}
-                  <div className={`max-w-[75%] px-3 py-2 rounded-2xl text-sm leading-relaxed ${msg.role === 'user' ? 'rounded-br-sm' : 'rounded-bl-sm'}`}
+                  <div className={`max-w-[82%] px-3 py-2 rounded-2xl text-sm leading-relaxed sm:max-w-[75%] ${msg.role === 'user' ? 'rounded-br-sm' : 'rounded-bl-sm'}`}
                     style={{ backgroundColor: msg.role === 'user' ? ac : 'rgba(255,255,255,0.07)', color: 'white', whiteSpace: 'pre-wrap' }}>
                     {msg.content}
                     {loading && i === messages.length - 1 && msg.role === 'assistant' && msg.content && (
@@ -141,7 +157,7 @@ export default function AdvisorFloating({ accentColor }: { accentColor: string }
               ))}
               {loading && messages[messages.length - 1]?.content === '' && (
                 <div className="flex justify-start">
-                  <div className="w-6 h-6 rounded-full flex-shrink-0 flex items-center justify-center text-xs mr-2" style={{ backgroundColor: ac }}></div>
+                  <div className="mr-2"><AdvisorIcon /></div>
                   <div className="px-4 py-3 rounded-2xl rounded-bl-sm" style={{ backgroundColor: 'rgba(255,255,255,0.07)' }}>
                     <div className="flex gap-1">
                       {[0,1,2].map(i => (
@@ -168,9 +184,8 @@ export default function AdvisorFloating({ accentColor }: { accentColor: string }
             )}
 
             {/* Input */}
-            <div className="px-3 pb-3 flex-shrink-0">
-              <div className="flex gap-2 items-center p-2 rounded-xl"
-                style={{ backgroundColor: 'rgba(255,255,255,0.05)', border: `1px solid ${ac}20` }}>
+            <div className="flex-shrink-0 px-3 pb-3">
+              <div className="flex items-center gap-2 rounded-2xl border border-purple-400/20 bg-white/[0.05] p-2 transition focus-within:border-purple-400/60 focus-within:shadow-[0_0_0_3px_rgba(168,85,247,0.08)]">
                 <input ref={inputRef} value={input}
                   onChange={e => setInput(e.target.value)}
                   onKeyDown={e => e.key === 'Enter' && !e.shiftKey && sendMessage()}
@@ -178,10 +193,12 @@ export default function AdvisorFloating({ accentColor }: { accentColor: string }
                   disabled={loading}
                   className="flex-1 bg-transparent text-white text-sm outline-none placeholder-gray-500 disabled:opacity-50"
                 />
-                <button onClick={() => sendMessage()} disabled={loading || !input.trim()}
-                  className="w-8 h-8 rounded-lg flex items-center justify-center transition disabled:opacity-40"
-                  style={{ backgroundColor: ac }}>
-                  <span className="text-white text-sm"></span>
+                <button type="button" onClick={() => sendMessage()} disabled={loading || !input.trim()}
+                  className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-purple-500 to-violet-700 text-white shadow-lg shadow-purple-950/40 transition hover:-translate-y-0.5 disabled:translate-y-0 disabled:cursor-not-allowed disabled:opacity-35"
+                  aria-label={loading ? 'Sending message' : 'Send message'}>
+                  {loading ? <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/40 border-t-white" /> : (
+                    <svg viewBox="0 0 24 24" fill="none" className="h-4.5 w-4.5" aria-hidden="true"><path d="m5 12 14-7-4.5 14-3-5.5L5 12Z" fill="currentColor" /><path d="m11.5 13.5 7-8.5" stroke="#7c3aed" strokeWidth="1.5" strokeLinecap="round" /></svg>
+                  )}
                 </button>
               </div>
             </div>
@@ -192,18 +209,14 @@ export default function AdvisorFloating({ accentColor }: { accentColor: string }
       {/* Bubble */}
       <motion.button onClick={() => setOpen(!open)}
         whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.95 }}
-        className="w-14 h-14 rounded-full shadow-2xl flex items-center justify-center text-xl relative"
-        style={{ backgroundColor: ac, boxShadow: `0 0 20px ${ac}60` }}>
+        className="relative flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-purple-500 via-violet-600 to-cyan-500 shadow-2xl shadow-purple-950/50"
+        aria-label={open ? 'Close portfolio advisor' : 'Open portfolio advisor'}>
         <AnimatePresence mode="wait">
           {open
-            ? <motion.span key="x" initial={{ rotate: -90, opacity: 0 }} animate={{ rotate: 0, opacity: 1 }} exit={{ rotate: 90, opacity: 0 }} transition={{ duration: 0.15 }}></motion.span>
-            : <motion.span key="a" initial={{ rotate: 90, opacity: 0 }} animate={{ rotate: 0, opacity: 1 }} exit={{ rotate: -90, opacity: 0 }} transition={{ duration: 0.15 }}></motion.span>
+            ? <motion.svg key="x" viewBox="0 0 24 24" fill="none" className="h-6 w-6 text-white" initial={{ rotate: -90, opacity: 0 }} animate={{ rotate: 0, opacity: 1 }} exit={{ rotate: 90, opacity: 0 }} transition={{ duration: 0.15 }} aria-hidden="true"><path d="m6 6 12 12M18 6 6 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" /></motion.svg>
+            : <motion.div key="a" initial={{ rotate: 90, opacity: 0 }} animate={{ rotate: 0, opacity: 1 }} exit={{ rotate: -90, opacity: 0 }} transition={{ duration: 0.15 }}><AdvisorIcon size="lg" /></motion.div>
           }
         </AnimatePresence>
-        {!open && (
-          <motion.div className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-yellow-400 border-2 border-[#0f0f1a]"
-            animate={{ scale: [1, 1.2, 1] }} transition={{ duration: 2, repeat: Infinity }} />
-        )}
       </motion.button>
     </div>
   );

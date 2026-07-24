@@ -9,6 +9,18 @@ interface Message {
   preview?: { section: string; data: any };
 }
 
+function AdvisorAvatar({ small = false }: { small?: boolean }) {
+  return (
+    <div className={`${small ? 'h-8 w-8 rounded-xl' : 'h-11 w-11 rounded-2xl'} relative flex flex-shrink-0 items-center justify-center bg-gradient-to-br from-purple-500 via-violet-600 to-cyan-500 shadow-lg shadow-purple-950/40`}>
+      <svg viewBox="0 0 24 24" fill="none" className={small ? 'h-4 w-4' : 'h-5 w-5'} aria-hidden="true">
+        <path d="M12 3l1.15 3.1L16 7.25l-2.85 1.15L12 11.5l-1.15-3.1L8 7.25l2.85-1.15L12 3Z" fill="white" />
+        <path d="M6.5 12l.75 2.25L9.5 15l-2.25.75L6.5 18l-.75-2.25L3.5 15l2.25-.75L6.5 12Zm11 1 .65 1.85L20 15.5l-1.85.65L17.5 18l-.65-1.85L15 15.5l1.85-.65L17.5 13Z" fill="white" fillOpacity=".85" />
+      </svg>
+      {!small ? <span className="absolute -bottom-0.5 -right-0.5 h-3.5 w-3.5 rounded-full border-[3px] border-[#0a0a1a] bg-emerald-400" aria-label="Online" /> : null}
+    </div>
+  );
+}
+
 export default function AdvisorWidget({ inline = false }: { inline?: boolean }) {
   const [messages, setMessages] = useState<Message[]>([
     { role: 'assistant', content: ' Hi! I\'m your Portfolio Advisor.\n\nI can help you:\n* Analyze your portfolio completeness\n* Suggest what content to add\n* **Auto-fill sections** for you!\n\nKlik tombol di bawah untuk langsung merapihkan portfolio kamu, atau tanya apa saja!', preview: { section: 'boom', data: null } }
@@ -387,6 +399,17 @@ export default function AdvisorWidget({ inline = false }: { inline?: boolean }) 
 
   return (
     <div className="flex flex-col h-full bg-[#0a0a1a]">
+      <div className="flex flex-shrink-0 items-center gap-3 border-b border-purple-900/20 px-6 py-4">
+        <AdvisorAvatar />
+        <div className="min-w-0">
+          <div className="flex items-center gap-2">
+            <h2 className="truncate text-sm font-semibold text-white">Portfolio Advisor</h2>
+            <span className="rounded-full border border-emerald-400/20 bg-emerald-400/10 px-2 py-0.5 text-[10px] font-medium text-emerald-300">Online</span>
+          </div>
+          <p className="mt-0.5 truncate text-xs text-gray-400">AI-powered portfolio assistant</p>
+        </div>
+      </div>
+
       {/* Completeness bar  -  compact */}
       {scorePercent !== null && (
         <div className="flex-shrink-0 px-6 py-2 border-b border-purple-900/20 flex items-center gap-3">
@@ -405,7 +428,7 @@ export default function AdvisorWidget({ inline = false }: { inline?: boolean }) 
         {messages.map((msg, i) => (
           <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
             {msg.role === 'assistant' && (
-              <div className="w-8 h-8 rounded-xl flex-shrink-0 bg-purple-600 flex items-center justify-center text-sm mr-3 mt-1"></div>
+              <div className="mr-3 mt-1"><AdvisorAvatar small /></div>
             )}
             <div className="max-w-[80%]">
               <div className={`px-4 py-3 rounded-2xl text-sm ${msg.role === 'user' ? 'rounded-br-sm' : 'rounded-bl-sm'}`}
@@ -435,7 +458,7 @@ export default function AdvisorWidget({ inline = false }: { inline?: boolean }) 
 
         {loading && messages[messages.length - 1]?.content === '' && (
           <div className="flex justify-start">
-            <div className="w-8 h-8 rounded-xl flex-shrink-0 bg-purple-600 flex items-center justify-center text-sm mr-3"></div>
+            <div className="mr-3"><AdvisorAvatar small /></div>
             <div className="px-4 py-3 rounded-2xl rounded-bl-sm border border-purple-900/20" style={{ backgroundColor: 'rgba(255,255,255,0.06)' }}>
               <div className="flex gap-1">
                 {[0,1,2].map(i => (
@@ -466,8 +489,7 @@ export default function AdvisorWidget({ inline = false }: { inline?: boolean }) 
 
       {/* Input */}
       <div className="flex-shrink-0 px-6 pb-6">
-        <div className="flex gap-3 items-center p-3 rounded-xl"
-          style={{ backgroundColor: 'rgba(255,255,255,0.04)', border: '1px solid rgba(168,85,247,0.2)' }}>
+        <div className="flex items-center gap-3 rounded-2xl border border-purple-400/20 bg-white/[0.04] p-2.5 transition focus-within:border-purple-400/60 focus-within:bg-white/[0.06] focus-within:shadow-[0_0_0_3px_rgba(168,85,247,0.08)]">
           <input ref={inputRef} value={input}
             onChange={e => setInput(e.target.value)}
             onKeyDown={e => e.key === 'Enter' && !e.shiftKey && sendMessage()}
@@ -475,9 +497,17 @@ export default function AdvisorWidget({ inline = false }: { inline?: boolean }) 
             disabled={loading}
             className="flex-1 bg-transparent text-white text-sm outline-none placeholder-gray-500 disabled:opacity-50"
           />
-          <button onClick={() => sendMessage()} disabled={loading || !input.trim()}
-            className="px-4 py-2 rounded-lg bg-purple-600 hover:bg-purple-700 text-white text-sm font-medium transition disabled:opacity-40">
-            Send
+          <button type="button" onClick={() => sendMessage()} disabled={loading || !input.trim()}
+            className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-purple-500 to-violet-700 text-white shadow-lg shadow-purple-950/40 transition hover:-translate-y-0.5 hover:shadow-purple-900/60 disabled:translate-y-0 disabled:cursor-not-allowed disabled:opacity-35"
+            aria-label={loading ? 'Sending message' : 'Send message'}>
+            {loading ? (
+              <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/40 border-t-white" />
+            ) : (
+              <svg viewBox="0 0 24 24" fill="none" className="h-5 w-5" aria-hidden="true">
+                <path d="m5 12 14-7-4.5 14-3-5.5L5 12Z" fill="currentColor" />
+                <path d="m11.5 13.5 7-8.5" stroke="#7c3aed" strokeWidth="1.5" strokeLinecap="round" />
+              </svg>
+            )}
           </button>
         </div>
       </div>

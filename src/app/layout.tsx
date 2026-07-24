@@ -7,10 +7,11 @@ const geistSans = Geist({ variable: "--font-geist-sans", subsets: ["latin"] });
 const geistMono = Geist_Mono({ variable: "--font-geist-mono", subsets: ["latin"] });
 
 export const metadata: Metadata = {
+  metadataBase: new URL(process.env.NEXT_PUBLIC_BASE_URL || "https://portfolio.tzm.web.id"),
   title: "PortfolioKit  -  Buat Portfolio Profesional Gratis",
   description: "Platform portfolio profesional untuk semua profesi. Designer, developer, marketer  -  tampilkan dirimu secara profesional dalam menit. Gratis selamanya.",
   keywords: ["portfolio", "portfolio gratis", "buat portfolio", "portfolio profesional", "portfoliokit"],
-  authors: [{ name: "P3ASK" }],
+  authors: [{ name: "Trias" }],
   openGraph: {
     title: "PortfolioKit  -  Buat Portfolio Profesional Gratis",
     description: "Tampilkan dirimu secara profesional. Gratis selamanya.",

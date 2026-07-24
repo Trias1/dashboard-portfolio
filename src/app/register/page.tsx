@@ -1,31 +1,31 @@
 'use client';
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
-import api from '@/lib/api';
+import api, { getApiErrorMessage } from '@/lib/api';
 
 const themes = [
   { name: 'Dark bawaan', id: 'dark-space', bg: '#0a0a1a', accent: '#8b5cf6', card: 'rgba(139,92,246,0.08)', border: 'rgba(139,92,246,0.2)' },
   { name: 'White', id: 'white', bg: '#ffffff', accent: '#6366f1', card: 'rgba(99,102,241,0.08)', border: 'rgba(99,102,241,0.2)' },
 ];
 
+function getInitialTheme() {
+  if (typeof window === 'undefined') return themes[0];
+  try {
+    const saved = localStorage.getItem('lang-theme') || localStorage.getItem('portfolio-theme');
+    const parsed = saved ? JSON.parse(saved) : null;
+    return themes.find(theme => theme.id === parsed?.id || theme.name === parsed?.label || theme.name === parsed?.name || theme.accent === parsed?.accent) || themes[0];
+  } catch {
+    return themes[0];
+  }
+}
+
 export default function RegisterPage() {
   const [form, setForm] = useState({ name: '', email: '', password: '', confirmPassword: '' });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
-  const [theme, setTheme] = useState(themes[0]);
-
-  useEffect(() => {
-    const savedTheme = localStorage.getItem('lang-theme') || localStorage.getItem('portfolio-theme');
-    if (savedTheme) {
-      try {
-        const parsed = JSON.parse(savedTheme);
-        const found = themes.find(t => t.id === parsed.id || t.name === parsed.label || t.name === parsed.name || t.accent === parsed.accent);
-        if (found) setTheme(found);
-      } catch {}
-    }
-  }, []);
+  const [theme, setTheme] = useState(getInitialTheme);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -34,8 +34,8 @@ export default function RegisterPage() {
     try {
       await api.post('/api/auth/register', { name: form.name, email: form.email, password: form.password });
       setSuccess(true);
-    } catch (err: any) {
-      setError(err.response?.data?.message || 'Register failed');
+    } catch (err: unknown) {
+      setError(getApiErrorMessage(err, 'Register failed'));
     } finally {
       setLoading(false);
     }
@@ -47,7 +47,7 @@ export default function RegisterPage() {
   if (success) return (
     <div className="min-h-screen flex items-center justify-center p-4" style={{ backgroundColor: theme.bg }}>
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="text-center max-w-md">
-        <motion.div className="text-6xl mb-4" animate={{ scale: [1, 1.1, 1] }} transition={{ duration: 2, repeat: Infinity }}>"</motion.div>
+        <motion.div className="text-6xl mb-4" animate={{ scale: [1, 1.1, 1] }} transition={{ duration: 2, repeat: Infinity }}>&quot;</motion.div>
         <h2 className="text-2xl font-bold text-white mb-2">Check your email!</h2>
         <p className="text-sm mb-6" style={{ color: 'rgba(255,255,255,0.4)' }}>
           We sent a verification link to <span style={{ color: theme.accent }}>{form.email}</span>
@@ -164,4 +164,3 @@ export default function RegisterPage() {
     </div>
   );
 }
-

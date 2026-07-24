@@ -5,6 +5,7 @@ let memoryUser: any = null;
 
 export const setToken = (token: string | null) => { memoryToken = token; };
 export const getToken = () => memoryToken;
+export const getApiErrorMessage = (error: unknown, fallback: string) => axios.isAxiosError(error) ? error.response?.data?.message || fallback : fallback;
 export const setUser = (user: any) => {
   memoryUser = user;
   if (user) localStorage.setItem('user', JSON.stringify({ role: user.role }));

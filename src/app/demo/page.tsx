@@ -54,25 +54,20 @@ export default function DemoPage() {
         </div>
 
         {/* Row 2: Template + Theme picker */}
-        <div className="flex items-center justify-between gap-2">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
           {/* Template picker */}
-          <div className="flex flex-wrap items-center gap-1 p-1 rounded-2xl border" style={{ borderColor: '#a855f730' }}>
-            {demoTemplates.map(t => (
-              <button type="button" key={t.id} onClick={() => setTemplate(t.id)}
-                className="py-1 px-2 rounded-full text-xs font-medium transition whitespace-nowrap"
-                style={{
-                  backgroundColor: template === t.id ? '#a855f7' : 'transparent',
-                  color: template === t.id ? '#fff' : '#aaa'
-                }}>
-                {t.label}
-              </button>
-            ))}
-          </div>
+          <label className="flex min-w-0 flex-1 items-center gap-2 rounded-xl border border-purple-400/20 bg-white/5 px-3 py-2 sm:max-w-xs">
+            <span className="flex-shrink-0 text-[11px] font-medium uppercase tracking-[0.14em] text-gray-500">Template</span>
+            <select value={template} onChange={(event) => setTemplate(event.target.value)} aria-label="Choose portfolio template"
+              className="min-w-0 flex-1 cursor-pointer bg-transparent text-sm font-medium text-white outline-none">
+              {demoTemplates.map((item) => <option key={item.id} value={item.id} className="bg-[#111124]">{item.label} — {item.desc}</option>)}
+            </select>
+          </label>
 
           {/* Theme picker */}
-          <div className="flex items-center gap-2 flex-shrink-0">
+          <div className="flex items-center justify-end gap-2 sm:flex-shrink-0">
             {demoThemes.map(th => (
-              <button type="button" key={th.id} onClick={() => setTheme(th)}
+              <button type="button" key={th.id} aria-pressed={theme.id === th.id} onClick={() => setTheme(th)}
                 title={th.label}
                 className="h-8 rounded-full border-2 px-3 text-[11px] font-semibold transition-all"
                 style={{
@@ -91,9 +86,9 @@ export default function DemoPage() {
         initial={{ opacity: 0 }} animate={{ opacity: 1 }}
         className="flex-1">
         <iframe
+          title="Portfolio template demo"
           src={`/portfolio/demo?preview=true&template=${template}&theme=${theme.id}&demo=alex`}
-          className="w-full h-full border-0"
-          style={{ minHeight: 'calc(100vh - 53px)' }}
+          className="h-full min-h-[calc(100dvh-8rem)] w-full border-0 sm:min-h-[calc(100dvh-5.5rem)]"
         />
       </motion.div>
     </div>

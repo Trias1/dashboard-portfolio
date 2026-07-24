@@ -34,24 +34,24 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
           photo_url: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=400&q=80',
         },
         experience: [
-          { company: 'Nova Labs', position: 'Senior Frontend Engineer', start_date: '2023-01-01', end_date: null, description: 'Led design system adoption and shipped customer-facing dashboards.' },
-          { company: 'Orbit Studio', position: 'Full-stack Developer', start_date: '2020-06-01', end_date: '2022-12-01', description: 'Built APIs, admin panels, and deployment workflows for SaaS clients.' },
+          { id: 1, company: 'Nova Labs', position: 'Senior Frontend Engineer', start_date: '2023-01-01', end_date: null, description: 'Led design system adoption and shipped customer-facing dashboards.' },
+          { id: 2, company: 'Orbit Studio', position: 'Full-stack Developer', start_date: '2020-06-01', end_date: '2022-12-01', description: 'Built APIs, admin panels, and deployment workflows for SaaS clients.' },
         ],
         projects: [
-          { title: 'Analytics Dashboard', description: 'Realtime dashboard with charts, filters, and team reports.', tech_stack: 'Next.js, PostgreSQL, Recharts', demo_url: '#', github_url: '#' },
-          { title: 'Portfolio Builder', description: 'No-code portfolio generator with multiple templates.', tech_stack: 'React, Node.js, Supabase', demo_url: '#', github_url: '#' },
+          { id: 1, title: 'Analytics Dashboard', description: 'Realtime dashboard with charts, filters, and team reports.', tech_stack: 'Next.js, PostgreSQL, Recharts', demo_url: '#', github_url: '#' },
+          { id: 2, title: 'Portfolio Builder', description: 'No-code portfolio generator with multiple templates.', tech_stack: 'React, Node.js, Supabase', demo_url: '#', github_url: '#' },
         ],
         services: [
-          { title: 'Web App Development', description: 'Custom full-stack applications from idea to launch.', icon: '✦' },
-          { title: 'UI Engineering', description: 'Responsive, accessible, and delightful interfaces.', icon: '✦' },
+          { id: 1, title: 'Web App Development', description: 'Custom full-stack applications from idea to launch.', icon: '✦' },
+          { id: 2, title: 'UI Engineering', description: 'Responsive, accessible, and delightful interfaces.', icon: '✦' },
         ],
         contact: { email: 'alex@example.com', phone: '+1 555 0100', location: 'Remote' },
         skills: [
-          { title: 'Frontend', skills: 'React, Next.js, TypeScript, Tailwind CSS' },
-          { title: 'Backend', skills: 'Node.js, PostgreSQL, Supabase, REST API' },
+          { id: 1, title: 'Frontend', skills: 'React, Next.js, TypeScript, Tailwind CSS' },
+          { id: 2, title: 'Backend', skills: 'Node.js, PostgreSQL, Supabase, REST API' },
         ],
         testimonials: [
-          { name: 'Maya Chen', position: 'Product Manager', message: 'Alex ships quickly and keeps quality high.' },
+          { id: 1, name: 'Maya Chen', position: 'Product Manager', message: 'Alex ships quickly and keeps quality high.' },
         ],
         gallery: [],
         custom: [],

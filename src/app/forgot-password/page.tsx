@@ -2,7 +2,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
-import api from '@/lib/api';
+import api, { getApiErrorMessage } from '@/lib/api';
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState('');
@@ -16,8 +16,8 @@ export default function ForgotPasswordPage() {
     try {
       await api.post('/api/auth/forgot-password', { email });
       setSent(true);
-    } catch (err: any) {
-      setError(err.response?.data?.message || 'Gagal mengirim email');
+    } catch (err: unknown) {
+      setError(getApiErrorMessage(err, 'Gagal mengirim email'));
     } finally { setLoading(false); }
   };
 

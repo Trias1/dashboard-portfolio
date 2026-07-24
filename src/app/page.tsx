@@ -1,6 +1,6 @@
 ﻿'use client';
 import { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import Link from 'next/link';
 
 const translations = {
@@ -205,7 +205,7 @@ export default function LandingPage() {
               style={{ borderColor: '#a855f730', color: '#aaa' }}>
               {t.cta2}
             </Link>
-            <Link href="/demo" target="_blank"
+            <Link href="/demo" target="_blank" rel="noopener noreferrer"
               className="px-8 py-4 rounded-full font-semibold border transition hover:border-purple-500"
               style={{ borderColor: '#a855f730', color: '#aaa' }}>
               {lang === 'id' ? 'Lihat Demo' : 'View Demo'}

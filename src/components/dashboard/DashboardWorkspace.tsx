@@ -1,34 +1,15 @@
 "use client";
-import {
-  LineChart,
-  Line,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-  Area,
-  AreaChart,
-} from "recharts";
 import React, { useEffect, useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
 import { useRouter } from "next/navigation";
 import {
-  DndContext,
-  closestCenter,
   KeyboardSensor,
   PointerSensor,
   useSensor,
   useSensors,
   DragEndEvent,
 } from "@dnd-kit/core";
-import {
-  arrayMove,
-  SortableContext,
-  sortableKeyboardCoordinates,
-  verticalListSortingStrategy,
-} from "@dnd-kit/sortable";
-import api, { setToken, initAuth } from "@/lib/api";
+import { arrayMove, sortableKeyboardCoordinates } from "@dnd-kit/sortable";
+import api, { initAuth } from "@/lib/api";
 import {
   defaultSections,
   Section,
@@ -37,7 +18,6 @@ import {
   getThemeById,
   normalizeThemeId,
 } from "@/lib/sections";
-import SortableSection from "@/components/builder/SortableSection";
 import DeleteSectionModal from "@/components/builder/DeleteSectionModal";
 import AnalyticsPanel from "@/components/dashboard/AnalyticsPanel";
 import GitHubPanel from "@/components/dashboard/GitHubPanel";
@@ -66,7 +46,6 @@ import DashboardPortfolioControls from "@/components/dashboard/DashboardPortfoli
 import { useDashboardProfileActions } from "@/hooks/useDashboardProfileActions";
 import { useDashboardAnalytics } from "@/hooks/useDashboardAnalytics";
 import { useDashboardGitHubImport } from "@/hooks/useDashboardGitHubImport";
-import { useDashboardCv } from "@/hooks/useDashboardCv";
 
 function parseSectionsOrder(value: any): Section[] {
   if (Array.isArray(value)) return value;
@@ -100,7 +79,6 @@ export default function DashboardPage() {
   const { logout: handleLogout, updateProfile: handleUpdateProfile } = useDashboardProfileActions({ user, profileForm, setUser, setProfileForm, setProfileMsg, setProfileError, router });
   const { visits, setVisits, dateFrom, setDateFrom, dateTo, setDateTo, fetchVisits } = useDashboardAnalytics();
   const { githubUsername, setGithubUsername, githubPreview, setGithubPreview, githubLoading, setGithubLoading, githubImporting, setGithubImporting, githubMsg, setGithubMsg, githubOptions, setGithubOptions, selectedProjects, setSelectedProjects } = useDashboardGitHubImport();
-  const { cvTemplate, setCvTemplate, cvLoading, setCvLoading } = useDashboardCv();
 
   const [editForm, setEditForm] = useState<any>({});
   const [saving, setSaving] = useState(false);

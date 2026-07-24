@@ -3,12 +3,23 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
-import api, { setToken, setUser, getUser } from '@/lib/api';
+import api, { getApiErrorMessage, setToken, setUser } from '@/lib/api';
 
 const themes = [
   { name: 'Dark bawaan', id: 'dark-space', bg: '#0a0a1a', accent: '#8b5cf6', card: 'rgba(139,92,246,0.08)', border: 'rgba(139,92,246,0.2)' },
   { name: 'White', id: 'white', bg: '#ffffff', accent: '#6366f1', card: 'rgba(99,102,241,0.08)', border: 'rgba(99,102,241,0.2)' },
 ];
+
+function getInitialTheme() {
+  if (typeof window === 'undefined') return themes[0];
+  try {
+    const saved = localStorage.getItem('lang-theme') || localStorage.getItem('portfolio-theme');
+    const parsed = saved ? JSON.parse(saved) : null;
+    return themes.find(theme => theme.id === parsed?.id || theme.name === parsed?.label || theme.name === parsed?.name || theme.accent === parsed?.accent) || themes[0];
+  } catch {
+    return themes[0];
+  }
+}
 
 export default function LoginPage() {
   const router = useRouter();
@@ -19,17 +30,9 @@ export default function LoginPage() {
   const [otpSent, setOtpSent] = useState(false);
   const [otp, setOtp] = useState('');
   const [otpLoading, setOtpLoading] = useState(false);
-  const [theme, setTheme] = useState(themes[0]);
+  const [theme, setTheme] = useState(getInitialTheme);
 
   useEffect(() => {
-    const savedTheme = localStorage.getItem('lang-theme') || localStorage.getItem('portfolio-theme');
-    if (savedTheme) {
-      try {
-        const parsed = JSON.parse(savedTheme);
-        const found = themes.find(t => t.id === parsed.id || t.name === parsed.label || t.name === parsed.name || t.accent === parsed.accent);
-        if (found) setTheme(found);
-      } catch {}
-    }
     const checkAuth = async () => {
       try {
         const res = await api.post('/api/auth/refresh');
@@ -41,7 +44,7 @@ export default function LoginPage() {
       }
     };
     checkAuth();
-  }, []);
+  }, [router]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -51,8 +54,8 @@ export default function LoginPage() {
       await api.post('/api/auth/verify-credentials', form);
       await api.post('/api/otp/send', { email: form.email });
       setOtpSent(true);
-    } catch (err: any) {
-      setError(err.response?.data?.message || 'Login failed');
+    } catch (err: unknown) {
+      setError(getApiErrorMessage(err, 'Login failed'));
     } finally {
       setSubmitting(false);
     }
@@ -70,8 +73,8 @@ export default function LoginPage() {
         const u = res.data.user;
         router.replace(u.role === 'superadmin' || u.role === 'admin' ? '/dashboard' : '/portfolio');
       }
-    } catch (err: any) {
-      setError(err.response?.data?.message || 'Invalid OTP');
+    } catch (err: unknown) {
+      setError(getApiErrorMessage(err, 'Invalid OTP'));
     } finally {
       setOtpLoading(false);
     }
@@ -208,7 +211,7 @@ export default function LoginPage() {
           </Link>
         </p>
         <p className="text-center mt-2 text-sm" style={{ color: 'rgba(255,255,255,0.4)' }}>
-          Don't have an account?{' '}
+          Don&apos;t have an account?{' '}
           <Link href="/register" className="font-medium transition hover:opacity-80" style={{ color: theme.accent }}>
             Register free
           </Link>

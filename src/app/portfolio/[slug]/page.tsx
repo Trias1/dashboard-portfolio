@@ -1,9 +1,10 @@
-﻿"use client";
+"use client";
 import { useEffect, useState } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useSearchParams } from "next/navigation";
+import Link from "next/link";
 import { motion } from "framer-motion";
 import api from "@/lib/api";
-import { themes, getThemeById, normalizeThemeId } from "@/lib/sections";
+import { themes, getThemeById } from "@/lib/sections";
 import ModernTemplate from "@/templates/modern";
 import CreativeTemplate from "@/templates/creative";
 import MinimalTemplate from "@/templates/minimal";
@@ -24,187 +25,47 @@ import BoldPersonaTemplate from "@/templates/boldpersona";
 import ChatWidget from "@/components/ChatWidget";
 import AdvisorFloating from "@/components/AdvisorFloating";
 import OrderSections from "@/components/OrderSections";
+import PortfolioShare from "@/components/PortfolioShare";
 
-function setMeta(title: string, description: string, image?: string) {
-  document.title = title;
-  const set = (name: string, content: string) => {
-    let el = document.querySelector(
-      `meta[name="${name}"], meta[property="${name}"]`,
-    ) as HTMLMetaElement | null;
-    if (!el) {
-      el = document.createElement("meta");
-      el.name = name;
-      document.head.appendChild(el);
-    }
-    el.content = content;
-  };
-  set("description", description);
-  set("og:title", title);
-  set("og:description", description);
-  set("twitter:title", title);
-  set("twitter:description", description);
-  if (image) {
-    set("og:image", image);
-    set("twitter:image", image);
-  }
-}
-
-function getDemoPortfolio(template = "modern", theme = "dark-space") {
-  const normalizedTheme = normalizeThemeId(theme);
-  return {
-    portfolio: {
-      id: 0,
-      slug: "demo",
-      title: "Demo Portfolio",
-      template,
-      theme: normalizedTheme,
-      sections_order: [],
-      is_published: true,
-      custom_domain: null,
-    },
-    hero: {
-      headline: "Hi, I'm Alex Rivera",
-      subheadline: "Full-stack developer building polished web products",
-      cta_text: "View My Work",
-    },
-    about: {
-      name: "Alex Rivera",
-      title: "Full-stack Developer",
-      bio: "I build fast, accessible, and scalable web applications with React, Next.js, Node.js, and PostgreSQL. I enjoy turning complex problems into clean user experiences.",
-      photo_url:
-        "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=400&q=80",
-    },
-    experience: [
-      {
-        company: "Nova Labs",
-        position: "Senior Frontend Engineer",
-        start_date: "2023-01-01",
-        end_date: null,
-        description:
-          "Led design system adoption and shipped customer-facing dashboards.",
-      },
-      {
-        company: "Orbit Studio",
-        position: "Full-stack Developer",
-        start_date: "2020-06-01",
-        end_date: "2022-12-01",
-        description:
-          "Built APIs, admin panels, and deployment workflows for SaaS clients.",
-      },
-    ],
-    projects: [
-      {
-        title: "Analytics Dashboard",
-        description:
-          "Realtime dashboard with charts, filters, and team reports.",
-        tech_stack: "Next.js, PostgreSQL, Recharts",
-        demo_url: "#",
-        github_url: "#",
-      },
-      {
-        title: "Portfolio Builder",
-        description: "No-code portfolio generator with multiple templates.",
-        tech_stack: "React, Node.js, Supabase",
-        demo_url: "#",
-        github_url: "#",
-      },
-    ],
-    services: [
-      {
-        title: "Web App Development",
-        description: "Custom full-stack applications from idea to launch.",
-        icon: "✦",
-      },
-      {
-        title: "UI Engineering",
-        description: "Responsive, accessible, and delightful interfaces.",
-        icon: "✦",
-      },
-    ],
-    contact: {
-      email: "alex@example.com",
-      phone: "+1 555 0100",
-      location: "Remote",
-    },
-    skills: [
-      { title: "Frontend", skills: "React, Next.js, TypeScript, Tailwind CSS" },
-      { title: "Backend", skills: "Node.js, PostgreSQL, Supabase, REST API" },
-    ],
-    testimonials: [
-      {
-        name: "Maya Chen",
-        position: "Product Manager",
-        message: "Alex ships quickly and keeps quality high.",
-      },
-    ],
-    gallery: [],
-    custom: [],
-  };
-}
+type PortfolioPageData = {
+  portfolio: { template?: string; theme?: string; sections_order: unknown[]; title?: string; slug: string };
+  about?: { name?: string; bio?: string; photo_url?: string };
+  hero?: { subheadline?: string };
+  [key: string]: unknown;
+};
 
 export default function PublicPortfolioPage() {
   const params = useParams();
   const slug = params.slug as string;
-  const [data, setData] = useState<any>(null);
+  const searchParams = useSearchParams();
+  const [data, setData] = useState<PortfolioPageData | null>(null);
   const [theme, setTheme] = useState(themes[0]);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
-  const [isPreview, setIsPreview] = useState(false);
+  const isPreview = searchParams.get("preview") === "true";
   useEffect(() => {
-    const preview =
-      typeof window !== "undefined" &&
-      window.location.search.includes("preview=true");
-    setIsPreview(preview);
+    const preview = isPreview;
     api
       .get(`/api/public/${slug}${preview ? "?preview=true" : ""}`)
       .then((res) => {
-        const order = new URLSearchParams(window.location.search).get("order");
+        const order = preview ? searchParams.get("order") : null;
         if (order) {
           try {
             res.data.portfolio.sections_order = JSON.parse(order);
           } catch {}
         }
         setData(res.data);
-        const name = res.data.about?.name || res.data.portfolio?.title || slug;
-        const desc =
-          res.data.about?.bio?.slice(0, 160) ||
-          res.data.hero?.subheadline ||
-          `${name}'s portfolio`;
-        const img = res.data.about?.photo_url || "";
-        setMeta(`${name} " Portfolio`, desc, img);
         const urlTheme =
           typeof window !== "undefined"
-            ? new URLSearchParams(window.location.search).get("theme")
+            ? searchParams.get("theme")
             : null;
         setTheme(getThemeById(urlTheme || res.data.portfolio?.theme));
       })
       .catch(() => {
-        if (slug === "demo") {
-          const params = new URLSearchParams(window.location.search);
-          const demoData = getDemoPortfolio(
-            params.get("template") || "modern",
-            params.get("theme") || "dark-space",
-          );
-          setData(demoData);
-          setNotFound(false);
-          setMeta(
-            'Alex Rivera " Portfolio',
-            demoData.about.bio,
-            demoData.about.photo_url,
-          );
-          setTheme(
-            getThemeById(params.get("theme") || demoData.portfolio.theme),
-          );
-          return;
-        }
         setNotFound(true);
-        setMeta(
-          "Portfolio Not Found",
-          "The requested portfolio does not exist or is not published.",
-        );
       })
       .finally(() => setLoading(false));
-  }, [slug]);
+  }, [isPreview, searchParams, slug]);
   if (loading)
     return (
       <div className="min-h-screen flex items-center justify-center bg-[#0a0a1a]">
@@ -240,33 +101,32 @@ export default function PublicPortfolioPage() {
             Portfolio Not Found
           </h1>
           <p className="text-gray-400 mb-8">
-            The portfolio "{slug}" does not exist or is not published yet.
+            The portfolio &quot;{slug}&quot; does not exist or is not published yet.
           </p>
-          <a
+          <Link
             href="/"
             className="inline-block px-6 py-3 rounded-full font-medium text-white transition hover:opacity-90"
             style={{ backgroundColor: "#a855f7" }}
           >
             {" "}
             Back to Home
-          </a>
+          </Link>
         </div>
       </div>
     );
   const urlTemplate =
     typeof window !== "undefined"
-      ? new URLSearchParams(window.location.search).get("template")
+      ? searchParams.get("template")
       : null;
   const templateName = urlTemplate || data.portfolio?.template || "modern";
   const accentColor = theme.accent;
   const widget = isPreview ? (
     <AdvisorFloating accentColor={accentColor} />
   ) : (
-    <ChatWidget
-      slug={data.portfolio.slug}
-      accentColor={accentColor}
-      ownerName={data.about?.name}
-    />
+    <>
+      <PortfolioShare title={data.about?.name || data.portfolio.title || data.portfolio.slug} accentColor={accentColor} />
+      <ChatWidget slug={data.portfolio.slug} accentColor={accentColor} ownerName={data.about?.name} />
+    </>
   );
 
   if (templateName === "modern") return (

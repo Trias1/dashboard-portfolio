@@ -3,7 +3,7 @@ import { useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
-import api from '@/lib/api';
+import api, { getApiErrorMessage } from '@/lib/api';
 
 function ResetContent() {
   const router = useRouter();
@@ -26,8 +26,8 @@ function ResetContent() {
       await api.post('/api/auth/reset-password', { token, password });
       setSuccess(true);
       setTimeout(() => router.push('/login'), 3000);
-    } catch (err: any) {
-      setError(err.response?.data?.message || 'Failed to reset password / Gagal reset password');
+    } catch (err: unknown) {
+      setError(getApiErrorMessage(err, 'Failed to reset password / Gagal reset password'));
     } finally { setLoading(false); }
   };
 

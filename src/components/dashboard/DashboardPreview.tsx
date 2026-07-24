@@ -27,7 +27,7 @@ export default function DashboardPreview({ portfolio, previewData, previewLoadin
     <div className="flex h-full flex-col overflow-hidden" style={{ backgroundColor: theme.bg }}>
       <div className="flex shrink-0 flex-wrap items-center justify-between gap-3 border-b border-white/10 bg-slate-950/90 px-4 py-3 text-xs">
         <div><p className="font-medium text-white">Live preview</p><p className="text-slate-500">Template: {portfolio.template || 'modern'}</p></div>
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto sm:justify-end">
           <div className="flex items-center gap-1">{themes.map((item) => <button key={item.id} type="button" onClick={() => onThemeChange(item)} title={item.label} aria-label={`Use ${item.label} theme`} className={`h-5 w-5 rounded-full border-2 transition ${selectedTheme.id === item.id ? 'scale-110 border-white' : 'border-transparent'}`} style={{ backgroundColor: item.accent }} />)}</div>
           <select aria-label="Portfolio template" value={portfolio.template || 'modern'} disabled={portfolio.is_published} onChange={async (event) => {
             try {
@@ -36,8 +36,8 @@ export default function DashboardPreview({ portfolio, previewData, previewLoadin
             } catch (error) {
               console.error('Template update failed', error);
             }
-          }} className="rounded-lg border border-white/10 bg-slate-900 px-2 py-1 text-xs text-white disabled:cursor-not-allowed disabled:text-slate-600">{templates.map((value) => <option key={value} value={value}>{value.split('-').map((part) => part[0].toUpperCase() + part.slice(1)).join(' ')}</option>)}</select>
-          <button type="button" onClick={onRefresh} className="rounded-lg bg-purple-500 px-3 py-1.5 font-medium text-white hover:bg-purple-400">Refresh</button>
+          }} className="min-w-0 flex-1 rounded-lg border border-white/10 bg-slate-900 px-3 py-2 text-xs text-white disabled:cursor-not-allowed disabled:text-slate-600 sm:w-44 sm:flex-none">{templates.map((value) => <option key={value} value={value}>{value.split('-').map((part) => part[0].toUpperCase() + part.slice(1)).join(' ')}</option>)}</select>
+          <button type="button" onClick={onRefresh} className="rounded-lg bg-purple-500 px-3 py-2 font-medium text-white hover:bg-purple-400">Refresh</button>
         </div>
       </div>
       {portfolio.slug ? <iframe title="Portfolio preview" key={`${portfolio.slug}-${portfolio.template}-${portfolio.theme}-${toggleVersion}`} src={`/portfolio/${portfolio.slug}?preview=true&v=${toggleVersion}&order=${encodeURIComponent(JSON.stringify(sections))}`} className="min-h-0 w-full flex-1 border-0" /> : <div className="flex h-full items-center justify-center text-sm text-slate-500">No portfolio found</div>}
