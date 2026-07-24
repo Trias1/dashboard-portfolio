@@ -90,6 +90,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     const parseSectionsOrder = (value: any) => {
       if (Array.isArray(value)) return value;
       if (typeof value !== 'string') return [];
+      if (value === 'undefined' || value === 'null') return [];
       try {
         const parsed = JSON.parse(value);
         return Array.isArray(parsed) ? parsed : [];
@@ -107,10 +108,14 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     const rawCustomData = (custom.data || []).map((section: any) => {
       let content = section.content;
       if (typeof content === 'string') {
-        try {
-          content = JSON.parse(content);
-        } catch {
-          content = { body: content };
+        if (content === 'undefined' || content === 'null') {
+          content = {};
+        } else {
+          try {
+            content = JSON.parse(content);
+          } catch {
+            content = { body: content };
+          }
         }
       }
       return { ...section, content: content || {} };
