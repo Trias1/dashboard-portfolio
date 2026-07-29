@@ -115,23 +115,21 @@ export default function DashboardPage() {
     return () => window.clearInterval(timer);
   }, [user]);
   useEffect(() => {
-    const stored = localStorage.getItem("user"); // role only
-    if (!stored) {
-      router.push("/login");
-      return;
-    }
-    const u = JSON.parse(stored);
-    if (u.role !== "admin" && u.role !== "superadmin") {
+    const stored = localStorage.getItem("user");
+    const u = stored ? JSON.parse(stored) : null;
+    if (u && u.role !== "admin" && u.role !== "superadmin") {
       router.push("/");
       return;
     }
-    setUser(u);
-    setProfileForm((prev) => ({
-      ...prev,
-      name: u.name || "",
-      photo_url: u.photo_url || "",
-    }));
-    if (u.role === "superadmin") setActiveMenu("superadmin");
+    if (u) {
+      setUser(u);
+      setProfileForm((prev) => ({
+        ...prev,
+        name: u.name || "",
+        photo_url: u.photo_url || "",
+      }));
+      if (u.role === "superadmin") setActiveMenu("superadmin");
+    }
     // Init auth " restore token dari httpOnly cookie dulu
     initAuth().then((ok) => {
       if (!ok) {
@@ -142,6 +140,11 @@ export default function DashboardPage() {
       api
         .get("/api/auth/me", { headers: { "Cache-Control": "no-cache" } })
         .then((res) => {
+          if (res.data.role !== "admin" && res.data.role !== "superadmin") {
+            router.push("/");
+            return;
+          }
+          if (res.data.role === "superadmin") setActiveMenu("superadmin");
           setUser(res.data);
           localStorage.setItem(
             "user",

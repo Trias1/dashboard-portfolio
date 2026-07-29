@@ -1,5 +1,6 @@
 'use client';
 import { useState, useEffect } from 'react';
+import axios from 'axios';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -15,7 +16,7 @@ export default function LoginPage() {
   const router = useRouter();
   const [form, setForm] = useState({ email: '', password: '' });
   const [error, setError] = useState('');
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [otpSent, setOtpSent] = useState(false);
   const [otp, setOtp] = useState('');
@@ -25,7 +26,7 @@ export default function LoginPage() {
   useEffect(() => {
     const checkAuth = async () => {
       try {
-        const res = await api.post('/api/auth/refresh');
+        const res = await axios.post('/api/auth/refresh', {}, { withCredentials: true });
         setToken(res.data.accessToken);
         const user = res.data.user || JSON.parse(localStorage.getItem('user') || '{}');
         router.replace(user.role === 'admin' || user.role === 'superadmin' ? '/dashboard' : '/portfolio');
@@ -61,7 +62,7 @@ export default function LoginPage() {
         setToken(res.data.accessToken);
         setUser(res.data.user);
         const u = res.data.user;
-        router.replace(u.role === 'superadmin' || u.role === 'admin' ? '/dashboard' : '/portfolio');
+        window.location.assign(u.role === 'superadmin' || u.role === 'admin' ? '/dashboard' : '/portfolio');
       }
     } catch (err: unknown) {
       setError(getApiErrorMessage(err, 'Invalid OTP'));
