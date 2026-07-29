@@ -16,10 +16,10 @@ function formatBullets(text: string, color: string, font: string, size: string) 
   if (!text) return '';
   const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
   if (lines.length <= 1) {
-    return `<p style="margin:4px 0 0;font-size:${size};color:${color};font-family:${font};line-height:1.55;white-space:pre-line">${esc(lines[0] || text)}</p>`;
+    return `<p style="margin:6px 0 0;font-size:${size};color:${color};font-family:${font};line-height:1.6;white-space:pre-line">${esc(lines[0] || text)}</p>`;
   }
-  return `<ul style="margin:4px 0 0;padding-left:18px;list-style-type:disc">${lines.map(l =>
-    `<li style="margin-bottom:2px;font-size:${size};color:${color};font-family:${font};line-height:1.5">${esc(l)}</li>`
+  return `<ul style="margin:6px 0 0;padding-left:22px;list-style-type:disc;color:${color}">${lines.map(l =>
+    `<li style="margin-bottom:4px;font-size:${size};font-family:${font};line-height:1.5;padding-left:4px">${esc(l.replace(/^[-*•]\s*/, ''))}</li>`
   ).join('')}</ul>`;
 }
 
@@ -38,7 +38,7 @@ function headerCss(t: string, accent: string) {
 
 function pageCss(t: string) {
   if (t === 'modern') return `background:#fff;max-width:210mm;margin:0 auto`;
-  return `max-width:210mm;margin:0 auto;background:#fff`;
+  return `max-width:210mm;min-height:297mm;margin:0 auto;background:#fff;padding:20px 40px;box-sizing:border-box`;
 }
 
 function nameCss(t: string) {
@@ -65,15 +65,15 @@ function summaryCss(t: string) {
 }
 
 function sectionTitleCss(t: string, accent: string) {
-  const base = `font-size:10pt;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;padding-bottom:4px;margin-bottom:10px`;
+  const base = `font-size:10pt;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;padding-bottom:6px;margin:24px 0 12px;page-break-after:avoid`;
   const fonts = t === 'executive' ? `font-family:Georgia,'Times New Roman',serif` : `font-family:Arial,Helvetica,sans-serif`;
   if (t === 'modern') return `${base};color:${accent};border-bottom:2px solid ${accent};${fonts}`;
   if (t === 'executive') return `${base};color:#78716c;border-bottom:0.5px solid #d6d3d1;${fonts}`;
-  return `${base};color:#111827;border-bottom:1.5px solid #d1d5db;${fonts}`;
+  return `${base};color:#111827;border-bottom:2px solid #e5e7eb;${fonts}`;
 }
 
 function itemTitleCss(t: string) {
-  const base = `font-weight:700;font-size:11pt;`;
+  const base = `font-weight:700;font-size:11pt;margin:0 0 2px;`;
   if (t === 'executive') return base + `color:#1c1917;font-family:Georgia,'Times New Roman',serif`;
   return base + `color:#111827;font-family:Arial,Helvetica,sans-serif`;
 }
