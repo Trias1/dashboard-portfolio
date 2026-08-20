@@ -1,4 +1,6 @@
-﻿'use client';
+'use client';
+import type { TemplateData, TemplateItem, TemplateSectionOrder, ThemeConfig } from '@/types';
+import type { SyntheticEvent } from 'react';
 import { useRef } from 'react';
 import { motion, useInView } from 'framer-motion';
 import TechBadge from '@/components/TechIcon';
@@ -16,8 +18,8 @@ function Section({ children }: { children: React.ReactNode }) {
   );
 }
 
-export default function CreativeTemplate({ data, theme, isPreview }: { data: any, theme: any, isPreview?: boolean }) {
-  const { portfolio, hero, about, experience, projects, services, skills, testimonials, contact, gallery, custom } = data;
+export default function CreativeTemplate({ data, theme, isPreview }: { data: TemplateData, theme: ThemeConfig, isPreview?: boolean }) {
+  const { portfolio, hero, about, experience = [], projects = [], services = [], skills = [], testimonials = [], contact, gallery = [], custom = [] } = data;
   const ac = theme.accent;
   const isLight = theme.bg === '#ffffff';
   const textColor = isLight ? '#111' : '#fff';
@@ -122,14 +124,14 @@ export default function CreativeTemplate({ data, theme, isPreview }: { data: any
           </section>
 
           {/* Skills horizontal pills */}
-          {skills?.length > 0 && (
+          {((skills?.length ?? 0) > 0) && (
             <section id="skills">
               <Section>
                 <h2 className="text-2xl font-bold mb-6" style={{ color: textColor }}>
                   <span style={{ color: ac }}>#</span> Skills
                 </h2>
                 <div className="space-y-4">
-                  {skills.map((sk: any) => (
+                  {skills.map((sk: TemplateItem) => (
                     <div key={sk.id}>
                       {sk.title && <p className="text-xs uppercase tracking-widest mb-2" style={{ color: `${ac}80` }}>{sk.title}</p>}
                       <div className="flex flex-wrap gap-2">
@@ -145,14 +147,14 @@ export default function CreativeTemplate({ data, theme, isPreview }: { data: any
           )}
 
           {/* Experience timeline */}
-          {experience?.length > 0 && (
+          {((experience?.length ?? 0) > 0) && (
             <section id="experience">
               <Section>
                 <h2 className="text-2xl font-bold mb-6" style={{ color: textColor }}>
                   <span style={{ color: ac }}>#</span> Experience
                 </h2>
                 <div className="space-y-6">
-                  {experience.map((exp: any, i: number) => (
+                  {experience.map((exp: TemplateItem, i: number) => (
                     <motion.div key={exp.id}
                       initial={{ opacity: 0, x: -20 }} whileInView={{ opacity: 1, x: 0 }}
                       transition={{ delay: i * 0.1 }}
@@ -181,14 +183,14 @@ export default function CreativeTemplate({ data, theme, isPreview }: { data: any
           )}
 
           {/* Projects grid */}
-          {projects?.length > 0 && (
+          {((projects?.length ?? 0) > 0) && (
             <section id="projects">
               <Section>
                 <h2 className="text-2xl font-bold mb-6" style={{ color: textColor }}>
                   <span style={{ color: ac }}>#</span> Projects
                 </h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {projects.map((proj: any) => (
+                  {projects.map((proj: TemplateItem) => (
                     <motion.div key={proj.id} whileHover={{ y: -4 }}
                       className="p-5 rounded-2xl border transition-all"
                       style={{ backgroundColor: cardBg, borderColor: `${ac}20` }}>
@@ -214,14 +216,14 @@ export default function CreativeTemplate({ data, theme, isPreview }: { data: any
           )}
 
           {/* Services */}
-          {services?.length > 0 && (
+          {((services?.length ?? 0) > 0) && (
             <section id="services">
               <Section>
                 <h2 className="text-2xl font-bold mb-6" style={{ color: textColor }}>
                   <span style={{ color: ac }}>#</span> Services
                 </h2>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  {services.map((svc: any) => (
+                  {services.map((svc: TemplateItem) => (
                     <div key={svc.id} className="p-5 rounded-2xl border text-center"
                       style={{ backgroundColor: cardBg, borderColor: `${ac}20` }}>
                       <div className="text-3xl mb-3">{svc.icon || '✦'}</div>
@@ -235,14 +237,14 @@ export default function CreativeTemplate({ data, theme, isPreview }: { data: any
           )}
 
           {/* Testimonials */}
-          {testimonials?.length > 0 && (
+          {((testimonials?.length ?? 0) > 0) && (
             <section id="testimonials">
               <Section>
                 <h2 className="text-2xl font-bold mb-6" style={{ color: textColor }}>
                   <span style={{ color: ac }}>#</span> Testimonials
                 </h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {testimonials.map((tm: any) => (
+                  {testimonials.map((tm: TemplateItem) => (
                     <div key={tm.id} className="p-5 rounded-2xl border"
                       style={{ backgroundColor: cardBg, borderColor: `${ac}20` }}>
                       <p className="text-sm italic mb-4" style={{ color: subColor }}>"{tm.message}"</p>
@@ -261,7 +263,7 @@ export default function CreativeTemplate({ data, theme, isPreview }: { data: any
           )}
 
           {/* Custom Sections */}
-          {custom?.length > 0 && custom.map((sec: any) => (
+          {((custom?.length ?? 0) > 0) && custom.map((sec: TemplateItem) => (
             <section key={sec.id} id={`custom-${(sec.title || sec.original_type || '').toLowerCase().replace(/\s+/g, '-')}`}>
               <Section>
                 <h2 className="text-2xl font-bold mb-6" style={{ color: textColor }}>
@@ -281,7 +283,7 @@ export default function CreativeTemplate({ data, theme, isPreview }: { data: any
                 )}
                 {sec.type === 'cards' && (
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {(sec.content?.cards || []).map((card: any, i: number) => (
+                    {(sec.content?.cards || []).map((card: TemplateItem, i: number) => (
                       <div key={i} className="p-5 rounded-2xl border" style={{ backgroundColor: cardBg, borderColor: `${ac}20` }}>
                         {card.icon && <div className="text-2xl mb-2">{card.icon}</div>}
                         <h3 className="font-bold text-sm mb-1" style={{ color: textColor }}>{card.title}</h3>
@@ -292,7 +294,7 @@ export default function CreativeTemplate({ data, theme, isPreview }: { data: any
                 )}
                 {sec.type === 'links' && (
                   <div className="flex flex-wrap gap-3">
-                    {(sec.content?.links || []).map((link: any, i: number) => (
+                    {(sec.content?.links || []).map((link: TemplateItem, i: number) => (
                       <a key={i} href={link.url} target="_blank"
                         className="px-4 py-2 rounded-xl text-sm font-medium transition hover:opacity-80"
                         style={{ backgroundColor: `${ac}20`, color: ac }}>
@@ -301,7 +303,7 @@ export default function CreativeTemplate({ data, theme, isPreview }: { data: any
                     ))}
                   </div>
                 )}
-                {!['text','list','cards','links'].includes(sec.type) && sec.content && (
+                {!['text','list','cards','links'].includes(sec.type ?? '') && sec.content && (
                   <div className="space-y-4">
                     {(() => {
                       if ((sec.original_type === 'certification' || sec.type === 'certification') && Array.isArray(sec.content?.items)) {
@@ -348,14 +350,14 @@ export default function CreativeTemplate({ data, theme, isPreview }: { data: any
           ))}
 
           {/* Certificates */}
-          {gallery?.length > 0 && (
+          {((gallery?.length ?? 0) > 0) && (
             <section id="gallery">
               <Section>
                 <h2 className="text-2xl font-bold mb-6" style={{ color: textColor }}>
                   <span style={{ color: ac }}>#</span> Certificates
                 </h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {gallery.map((cert: any) => (
+                  {gallery.map((cert: TemplateItem) => (
                     <motion.div key={cert.id} whileHover={{ y: -4 }}
                       className="p-5 rounded-2xl border transition-all"
                       style={{ backgroundColor: cardBg, borderColor: `${ac}20` }}>
@@ -364,7 +366,7 @@ export default function CreativeTemplate({ data, theme, isPreview }: { data: any
                           style={{ backgroundImage: `url(${cert.image_url || cert.file_url})` }}>
                           <img src={cert.image_url || cert.file_url} alt={cert.title}
                             className="w-full h-full object-cover"
-                            onError={(e: any) => { e.target.style.display = 'none' }} />
+                            onError={(e: SyntheticEvent<HTMLImageElement>) => { e.currentTarget.style.display = 'none' }} />
                         </div>
                       )}
                       <h3 className="font-bold mb-1" style={{ color: textColor }}>{cert.title}</h3>
@@ -389,7 +391,7 @@ export default function CreativeTemplate({ data, theme, isPreview }: { data: any
           )}
 
           {/* Contact */}
-          {data.portfolio?.sections_order?.find((section: any) => section.type === 'contact')?.enabled !== false && (
+          {data.portfolio?.sections_order?.find((section: TemplateSectionOrder) => section.type === 'contact')?.enabled !== false && (
             <section id="contact">
             <Section>
               <div className="p-8 rounded-2xl border text-center"

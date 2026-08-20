@@ -1,4 +1,6 @@
-﻿'use client';
+'use client';
+import type { TemplateData, TemplateItem, TemplateSectionOrder, ThemeConfig } from '@/types';
+import type { SyntheticEvent } from 'react';
 import { useState, useRef, useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { motion, useInView, useScroll, useTransform } from 'framer-motion';
@@ -23,7 +25,7 @@ function AnimatedSection({ children, className }: { children: React.ReactNode, c
   );
 }
 
-export default function ModernTemplate({ data, theme: initialTheme, isPreview }: { data: any, theme: any, isPreview?: boolean }) {
+export default function ModernTemplate({ data, theme: initialTheme, isPreview }: { data: TemplateData, theme: ThemeConfig, isPreview?: boolean }) {
   const [theme, setTheme] = useState(initialTheme || themes[0]);
   const [mobileMenu, setMobileMenu] = useState(false);
   const [isInPreview, setIsInPreview] = useState(false);
@@ -39,7 +41,7 @@ export default function ModernTemplate({ data, theme: initialTheme, isPreview }:
   const { scrollYProgress } = useScroll();
   const progressWidth = useTransform(scrollYProgress, [0, 1], ['0%', '100%']);
 
-  const { portfolio, hero, about, experience, projects, services, skills, testimonials, contact, gallery, custom } = data;
+  const { portfolio, hero, about, experience = [], projects = [], services = [], skills = [], testimonials = [], contact, gallery = [], custom = [] } = data;
   const accentColor = theme.accent;
   const isLight = theme.bg === '#ffffff';
   const textColor = isLight ? 'text-gray-900' : 'text-white';
@@ -164,14 +166,14 @@ export default function ModernTemplate({ data, theme: initialTheme, isPreview }:
         )}
 
         {/* Skills */}
-        {isVisible('skills') && skills?.length > 0 && (
+        {isVisible('skills') && ((skills?.length ?? 0) > 0) && (
           <section id="skills" className="py-16 md:py-24 px-4">
             <div className="max-w-4xl mx-auto">
               <AnimatedSection>
                 <motion.h2 variants={fadeUp} className={`text-4xl font-bold mb-16 text-center ${textColor}`}>
                   My <span style={{ color: accentColor }}>Skills</span>
                 </motion.h2>
-                {skills.map((skill: any) => (
+                {skills.map((skill: TemplateItem) => (
                   <motion.div key={skill.id} variants={fadeUp} className="mb-8">
                     {skill.title && <h3 className={`text-lg font-semibold mb-4 ${textColor}`}>{skill.title}</h3>}
                     <div className="flex flex-wrap gap-3">
@@ -189,7 +191,7 @@ export default function ModernTemplate({ data, theme: initialTheme, isPreview }:
         )}
 
         {/* Experience */}
-        {isVisible('experience') && experience?.length > 0 && (
+        {isVisible('experience') && ((experience?.length ?? 0) > 0) && (
           <section id="experience" className="py-16 md:py-24 px-4">
             <div className="max-w-4xl mx-auto">
               <AnimatedSection>
@@ -199,7 +201,7 @@ export default function ModernTemplate({ data, theme: initialTheme, isPreview }:
                 <div className="relative">
                   <div className="absolute left-4 top-0 bottom-0 w-0.5" style={{ backgroundColor: `${accentColor}30` }} />
                   <div className="space-y-8 pl-12">
-                    {experience.map((exp: any, i: number) => (
+                    {experience.map((exp: TemplateItem, i: number) => (
                       <motion.div key={exp.id} variants={fadeUp} whileHover={{ x: 8 }}
                         className={`relative p-6 rounded-2xl border ${cardBg}`}>
                         <motion.div className="absolute -left-9 w-4 h-4 rounded-full border-2 border-white"
@@ -225,7 +227,7 @@ export default function ModernTemplate({ data, theme: initialTheme, isPreview }:
         )}
 
         {/* Projects */}
-        {isVisible('projects') && projects?.length > 0 && (
+        {isVisible('projects') && ((projects?.length ?? 0) > 0) && (
           <section id="projects" className="py-16 md:py-24 px-4">
             <div className="max-w-5xl mx-auto">
               <AnimatedSection>
@@ -233,7 +235,7 @@ export default function ModernTemplate({ data, theme: initialTheme, isPreview }:
                   My <span style={{ color: accentColor }}>Projects</span>
                 </motion.h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {projects.map((proj: any) => (
+                  {projects.map((proj: TemplateItem) => (
                     <motion.div key={proj.id} variants={fadeUp} whileHover={{ y: -8, boxShadow: `0 20px 40px ${accentColor}20` }}
                       className={`p-6 rounded-2xl border flex flex-col ${cardBg}`}>
                       {proj.image_url && <motion.img src={proj.image_url} alt={proj.title} className="w-full h-40 object-cover rounded-lg mb-4" />}
@@ -259,7 +261,7 @@ export default function ModernTemplate({ data, theme: initialTheme, isPreview }:
         )}
 
         {/* Services */}
-        {isVisible('services') && services?.length > 0 && (
+        {isVisible('services') && ((services?.length ?? 0) > 0) && (
           <section id="services" className="py-16 md:py-24 px-4">
             <div className="max-w-4xl mx-auto">
               <AnimatedSection>
@@ -267,7 +269,7 @@ export default function ModernTemplate({ data, theme: initialTheme, isPreview }:
                   My <span style={{ color: accentColor }}>Services</span>
                 </motion.h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {services.map((svc: any) => (
+                  {services.map((svc: TemplateItem) => (
                     <motion.div key={svc.id} variants={fadeUp} whileHover={{ y: -8 }}
                       className={`p-6 rounded-2xl border text-center ${cardBg}`}>
                       <motion.div className="text-4xl mb-4" whileHover={{ scale: 1.2, rotate: 10 }}>{svc.icon || '✦'}</motion.div>
@@ -282,7 +284,7 @@ export default function ModernTemplate({ data, theme: initialTheme, isPreview }:
         )}
 
         {/* Testimonials */}
-        {isVisible('testimonials') && testimonials?.length > 0 && (
+        {isVisible('testimonials') && ((testimonials?.length ?? 0) > 0) && (
           <section id="testimonials" className="py-16 md:py-24 px-4">
             <div className="max-w-4xl mx-auto">
               <AnimatedSection>
@@ -290,7 +292,7 @@ export default function ModernTemplate({ data, theme: initialTheme, isPreview }:
                   What People <span style={{ color: accentColor }}>Say</span>
                 </motion.h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {testimonials.map((t: any) => (
+                  {testimonials.map((t: TemplateItem) => (
                     <motion.div key={t.id} variants={fadeUp} whileHover={{ y: -4 }}
                       className={`p-6 rounded-2xl border ${cardBg}`}>
                       <p className={`text-sm mb-4 italic ${subTextColor}`}>"{t.message}"</p>
@@ -310,7 +312,7 @@ export default function ModernTemplate({ data, theme: initialTheme, isPreview }:
         )}
 
         {/* Custom Sections */}
-        {isVisible('custom') && custom?.length > 0 && custom.map((sec: any) => (
+        {isVisible('custom') && ((custom?.length ?? 0) > 0) && custom.map((sec: TemplateItem) => (
           <section key={sec.id} id={`custom-${(sec.title || sec.original_type || '').toLowerCase().replace(/\s+/g, '-')}`} className="py-16 md:py-24 px-4">
             <div className="max-w-4xl mx-auto">
               <AnimatedSection key={sec.id}>
@@ -333,7 +335,7 @@ export default function ModernTemplate({ data, theme: initialTheme, isPreview }:
                 )}
                 {sec.type === 'cards' && (
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {(sec.content?.cards || []).map((card: any, i: number) => (
+                    {(sec.content?.cards || []).map((card: TemplateItem, i: number) => (
                       <motion.div key={i} variants={fadeUp} whileHover={{ y: -8 }}
                         className={`p-6 rounded-2xl border ${cardBg}`}>
                         {card.icon && <div className="text-3xl mb-3">{card.icon}</div>}
@@ -345,7 +347,7 @@ export default function ModernTemplate({ data, theme: initialTheme, isPreview }:
                 )}
                 {sec.type === 'links' && (
                   <div className="flex flex-wrap gap-3 justify-center">
-                    {(sec.content?.links || []).map((link: any, i: number) => (
+                    {(sec.content?.links || []).map((link: TemplateItem, i: number) => (
                       <motion.a key={i} href={link.url} target="_blank" variants={fadeUp}
                         whileHover={{ scale: 1.05 }}
                         className="px-6 py-3 rounded-full font-medium text-white"
@@ -356,7 +358,7 @@ export default function ModernTemplate({ data, theme: initialTheme, isPreview }:
                   </div>
                 )}
                 {/* Fallback for typed sections (education, certification, language, etc.) */}
-                {!['text','list','cards','links'].includes(sec.type) && sec.content && (
+                {!['text','list','cards','links'].includes(sec.type ?? '') && sec.content && (
                   <div className="space-y-6">
                     {(() => {
                       if ((sec.original_type === 'certification' || sec.type === 'certification') && Array.isArray(sec.content?.items)) {
@@ -389,7 +391,7 @@ export default function ModernTemplate({ data, theme: initialTheme, isPreview }:
         ))}
 
         {/* Certificates */}
-        {isVisible('gallery') && gallery?.length > 0 && (
+        {isVisible('gallery') && ((gallery?.length ?? 0) > 0) && (
           <section id="gallery" className="py-16 md:py-24 px-4">
             <div className="max-w-5xl mx-auto">
               <AnimatedSection>
@@ -397,7 +399,7 @@ export default function ModernTemplate({ data, theme: initialTheme, isPreview }:
                   My <span style={{ color: accentColor }}>Certificates</span>
                 </motion.h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {gallery.map((cert: any) => (
+                  {gallery.map((cert: TemplateItem) => (
                     <motion.div key={cert.id} variants={fadeUp} whileHover={{ y: -8, boxShadow: `0 20px 40px ${accentColor}20` }}
                       className={`p-5 rounded-2xl border flex flex-col ${cardBg}`}>
                       {(cert.image_url || cert.file_url) && (
@@ -405,7 +407,7 @@ export default function ModernTemplate({ data, theme: initialTheme, isPreview }:
                           style={{ backgroundImage: `url(${cert.image_url || cert.file_url})` }}>
                           <img src={cert.image_url || cert.file_url} alt={cert.title}
                             className="w-full h-full object-cover"
-                            onError={(e: any) => { e.target.style.display = 'none' }} />
+                            onError={(e: SyntheticEvent<HTMLImageElement>) => { e.currentTarget.style.display = 'none' }} />
                         </div>
                       )}
                       <h3 className={`text-base font-bold mb-1 ${textColor}`}>{cert.title}</h3>

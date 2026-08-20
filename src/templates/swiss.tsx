@@ -1,4 +1,6 @@
-﻿'use client';
+'use client';
+import type { TemplateData, TemplateItem, TemplateSectionOrder, ThemeConfig } from '@/types';
+import type { SyntheticEvent } from 'react';
 import { useRef } from 'react';
 import { motion, useInView } from 'framer-motion';
 import TechBadge from '@/components/TechIcon';
@@ -17,8 +19,8 @@ function SlideUp({ children, delay = 0 }: { children: React.ReactNode; delay?: n
 const textColor = '#1a1a1a';
 const subColor = '#6b6b6b';
 
-export default function SwissTemplate({ data, theme, isPreview }: { data: any; theme: any; isPreview?: boolean }) {
-  const { portfolio, hero, about, experience, projects, services, skills, testimonials, contact, gallery, custom } = data;
+export default function SwissTemplate({ data, theme, isPreview }: { data: TemplateData; theme: ThemeConfig; isPreview?: boolean }) {
+  const { portfolio, hero, about, experience = [], projects = [], services = [], skills = [], testimonials = [], contact, gallery = [], custom = [] } = data;
   const ac = theme.accent;
   const dark = '#1a1a1a';
   const light = '#f5f5f5';
@@ -105,7 +107,7 @@ export default function SwissTemplate({ data, theme, isPreview }: { data: any; t
         )}
 
         {/* Projects */}
-        {projects?.length > 0 && (
+        {((projects?.length ?? 0) > 0) && (
           <section id="projects" className="py-24 px-6 md:px-16" style={{ backgroundColor: dark }}>
             <div className="max-w-6xl mx-auto">
               <SlideUp>
@@ -114,7 +116,7 @@ export default function SwissTemplate({ data, theme, isPreview }: { data: any; t
                   <h2 className="text-4xl sm:text-6xl font-black tracking-[-0.03em] mt-1" style={{ color: light }}>Projects</h2>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-gap-4">
-                  {projects.map((proj: any, i: number) => (
+                  {projects.map((proj: TemplateItem, i: number) => (
                     <motion.div key={proj.id} initial={{ opacity: 0, scale: 0.95 }} whileInView={{ opacity: 1, scale: 1 }} viewport={{ once: true }} transition={{ delay: i * 0.08 }}
                       whileHover={{ y: -6 }} className="group" style={{ backgroundColor: light }}>
                       {proj.image_url && <div className="overflow-hidden"><motion.img whileHover={{ scale: 1.08 }} src={proj.image_url} alt={proj.title} className="w-full h-52 object-cover" /></div>}
@@ -142,7 +144,7 @@ export default function SwissTemplate({ data, theme, isPreview }: { data: any; t
         )}
 
         {/* Experience */}
-        {experience?.length > 0 && (
+        {((experience?.length ?? 0) > 0) && (
           <section id="experience" className="py-24 px-6 md:px-16" style={{ backgroundColor: light }}>
             <div className="max-w-5xl mx-auto">
               <SlideUp>
@@ -151,7 +153,7 @@ export default function SwissTemplate({ data, theme, isPreview }: { data: any; t
                   <h2 className="text-4xl sm:text-6xl font-black tracking-[-0.03em] mt-1" style={{ color: dark }}>Experience</h2>
                 </div>
                 <div className="space-y-6">
-                  {experience.map((exp: any, i: number) => (
+                  {experience.map((exp: TemplateItem, i: number) => (
                     <motion.div key={exp.id} initial={{ opacity: 0, x: -20 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }} transition={{ delay: i * 0.06 }}
                       className="border-l-4 pl-6 py-4" style={{ borderColor: ac }}>
                       <span className="text-xs font-black tracking-widest uppercase" style={{ color: ac }}>{exp.start_date?.slice(0, 7)}  -  {exp.end_date?.slice(0, 7) || 'Present'}</span>
@@ -167,7 +169,7 @@ export default function SwissTemplate({ data, theme, isPreview }: { data: any; t
         )}
 
         {/* Skills */}
-        {skills?.length > 0 && (
+        {((skills?.length ?? 0) > 0) && (
           <section id="skills" className="py-24 px-6 md:px-16" style={{ backgroundColor: dark }}>
             <div className="max-w-5xl mx-auto">
               <SlideUp>
@@ -176,7 +178,7 @@ export default function SwissTemplate({ data, theme, isPreview }: { data: any; t
                   <h2 className="text-4xl sm:text-6xl font-black tracking-[-0.03em] mt-1" style={{ color: light }}>Skills</h2>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {skills.map((skill: any) => (
+                  {skills.map((skill: TemplateItem) => (
                     <motion.div key={skill.id} whileHover={{ x: 4 }} className="p-6" style={{ backgroundColor: light }}>
                       <h3 className="text-base font-black uppercase tracking-wider mb-4" style={{ color: dark }}>{skill.title}</h3>
                       <div className="flex flex-wrap gap-2">{skill.skills?.split(',').map((s: string) => <TechBadge key={s} name={s.trim()} accentColor={ac} size="sm" variant="pill" />)}</div>
@@ -189,11 +191,11 @@ export default function SwissTemplate({ data, theme, isPreview }: { data: any; t
         )}
 
         {/* Services & Testimonials */}
-        {services?.length > 0 && (
+        {((services?.length ?? 0) > 0) && (
           <section id="services" className="py-24 px-6 md:px-16" style={{ backgroundColor: light }}>
             <div className="max-w-5xl mx-auto"><SlideUp>
               <div className="border-t-4 pt-6 mb-14" style={{ borderColor: dark }}><span className="text-xs font-black tracking-[0.3em] uppercase" style={{ color: ac }}>Services</span><h2 className="text-4xl sm:text-6xl font-black tracking-[-0.03em] mt-1" style={{ color: dark }}>Services</h2></div>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">{services.map((svc: any) => (
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">{services.map((svc: TemplateItem) => (
                 <motion.div key={svc.id} whileHover={{ y: -4 }} className="p-6 border-t-4" style={{ borderColor: ac, backgroundColor: '#fff' }}>
                   <p className="text-2xl mb-3">{svc.icon || '✦'}</p>
                   <h3 className="text-base font-black uppercase tracking-wider mb-2" style={{ color: dark }}>{svc.title}</h3>
@@ -204,11 +206,11 @@ export default function SwissTemplate({ data, theme, isPreview }: { data: any; t
           </section>
         )}
 
-        {testimonials?.length > 0 && (
+        {((testimonials?.length ?? 0) > 0) && (
           <section id="testimonials" className="py-24 px-6 md:px-16" style={{ backgroundColor: dark }}>
             <div className="max-w-4xl mx-auto"><SlideUp>
               <div className="border-t-4 pt-6 mb-14" style={{ borderColor: ac }}><span className="text-xs font-black tracking-[0.3em] uppercase" style={{ color: ac }}>Kind Words</span><h2 className="text-4xl sm:text-6xl font-black tracking-[-0.03em] mt-1" style={{ color: light }}>Testimonials</h2></div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">{testimonials.map((t: any) => (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">{testimonials.map((t: TemplateItem) => (
                 <div key={t.id} className="p-6" style={{ backgroundColor: light }}>
                   <p className="text-3xl mb-2" style={{ color: ac }}>"</p>
                   <p className="text-sm leading-relaxed italic mb-4" style={{ color: subColor }}>{t.message}</p>
@@ -222,18 +224,18 @@ export default function SwissTemplate({ data, theme, isPreview }: { data: any; t
           </section>
         )}
 
-        {gallery?.length > 0 && (
+        {((gallery?.length ?? 0) > 0) && (
           <section id="gallery" className="py-24 px-6 md:px-16" style={{ backgroundColor: light }}>
             <div className="max-w-6xl mx-auto"><SlideUp>
               <div className="border-t-4 pt-6 mb-14" style={{ borderColor: dark }}><span className="text-xs font-black tracking-[0.3em] uppercase" style={{ color: ac }}>Credential</span><h2 className="text-4xl sm:text-6xl font-black tracking-[-0.03em] mt-1" style={{ color: dark }}>Certificates</h2></div>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">{gallery.map((cert: any) => (
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">{gallery.map((cert: TemplateItem) => (
                 <div key={cert.id} className="p-5" style={{ backgroundColor: '#fff' }}>
                   {(cert.image_url || cert.file_url) && (
                     <div className="w-full h-36 mb-4 overflow-hidden bg-cover bg-center"
                       style={{ backgroundImage: `url(${cert.image_url || cert.file_url})` }}>
                       <img src={cert.image_url || cert.file_url} alt={cert.title}
                         className="w-full h-full object-cover"
-                        onError={(e: any) => { e.target.style.display = 'none' }} />
+                        onError={(e: SyntheticEvent<HTMLImageElement>) => { e.currentTarget.style.display = 'none' }} />
                     </div>
                   )}
                   <h3 className="font-black text-sm uppercase tracking-wider mb-1" style={{ color: dark }}>{cert.title}</h3>
@@ -246,14 +248,14 @@ export default function SwissTemplate({ data, theme, isPreview }: { data: any; t
           </section>
         )}
 
-        {custom?.length > 0 && custom.map((sec: any) => (
+        {((custom?.length ?? 0) > 0) && custom.map((sec: TemplateItem) => (
           <section key={sec.id} id={`custom-${(sec.title || sec.original_type || '').toLowerCase().replace(/\s+/g, '-')}`} className="py-24 px-6 md:px-16" style={{ backgroundColor: light }}>
             <div className="max-w-5xl mx-auto"><SlideUp>
-              <div className="border-t-4 pt-6 mb-10" style={{ borderColor: dark }}><h2 className="text-4xl sm:text-6xl font-black tracking-[-0.03em]" style={{ color: dark }}>{sec.title}</h2></div>
+              <div className="border-t-4 pt-6 mb-10" style={{ borderColor: dark }}><h2 className="text-4xl sm:text-6xl font-black tracking-[-0.03em]" style={{ color: dark }}>{sec.title || sec.original_type || 'Section'}</h2></div>
               {sec.type === 'text' && <p className="text-base leading-relaxed" style={{ color: subColor }}>{sec.content?.body}</p>}
               {sec.type === 'list' && <div className="space-y-3">{(sec.content?.items || []).map((item: string, i: number) => <div key={i} className="flex gap-3 text-base" style={{ color: subColor }}><span className="text-lg" style={{ color: ac }}></span>{item}</div>)}</div>}
-              {sec.type === 'links' && <div className="flex flex-wrap gap-3">{(sec.content?.links || []).map((link: any, i: number) => <motion.a key={i} href={link.url} target="_blank" whileHover={{ scale: 1.05 }} className="text-xs font-black tracking-widest uppercase px-6 py-3 text-white" style={{ backgroundColor: dark }}>{link.label}</motion.a>)}</div>}
-              {!['text','list','cards','links'].includes(sec.type) && sec.content && (
+              {sec.type === 'links' && <div className="flex flex-wrap gap-3">{(sec.content?.links || []).map((link: TemplateItem, i: number) => <motion.a key={i} href={link.url} target="_blank" whileHover={{ scale: 1.05 }} className="text-xs font-black tracking-widest uppercase px-6 py-3 text-white" style={{ backgroundColor: dark }}>{link.label}</motion.a>)}</div>}
+              {!['text','list','cards','links'].includes(sec.type ?? '') && sec.content && (
                 <div className="space-y-4">
                   {(() => {
                     if ((sec.original_type === 'certification' || sec.type === 'certification') && Array.isArray(sec.content?.items)) {

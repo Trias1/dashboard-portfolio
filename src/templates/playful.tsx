@@ -1,4 +1,6 @@
-﻿'use client';
+'use client';
+import type { TemplateData, TemplateItem, TemplateSectionOrder, ThemeConfig } from '@/types';
+import type { SyntheticEvent } from 'react';
 import { useRef } from 'react';
 import { motion, useInView } from 'framer-motion';
 import TechBadge from '@/components/TechIcon';
@@ -17,8 +19,8 @@ function Float({ children, delay = 0 }: { children: React.ReactNode; delay?: num
 const textColor = '#f0eef5';
 const subColor = '#a098b0';
 
-export default function PlayfulTemplate({ data, theme, isPreview }: { data: any; theme: any; isPreview?: boolean }) {
-  const { portfolio, hero, about, experience, projects, services, skills, testimonials, contact, gallery, custom } = data;
+export default function PlayfulTemplate({ data, theme, isPreview }: { data: TemplateData; theme: ThemeConfig; isPreview?: boolean }) {
+  const { portfolio, hero, about, experience = [], projects = [], services = [], skills = [], testimonials = [], contact, gallery = [], custom = [] } = data;
   const ac = theme.accent;
 
   return (
@@ -104,7 +106,7 @@ export default function PlayfulTemplate({ data, theme, isPreview }: { data: any;
         )}
 
         {/* Skills */}
-        {skills?.length > 0 && (
+        {((skills?.length ?? 0) > 0) && (
           <section id="skills" className="py-24 px-4">
             <div className="max-w-5xl mx-auto">
               <Float>
@@ -113,7 +115,7 @@ export default function PlayfulTemplate({ data, theme, isPreview }: { data: any;
                   <motion.h2 className="text-4xl sm:text-5xl font-black mt-2" style={{ color: textColor }}>Skills & Tools</motion.h2>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {skills.map((skill: any) => (
+                  {skills.map((skill: TemplateItem) => (
                     <motion.div key={skill.id} initial={{ opacity: 0, x: -30 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }}
                       whileHover={{ y: -5, boxShadow: `0 20px 40px ${ac}20` }}
                       className="p-6 rounded-[2rem] border-2" style={{ borderColor: `${ac}20`, backgroundColor: `${ac}06` }}>
@@ -128,7 +130,7 @@ export default function PlayfulTemplate({ data, theme, isPreview }: { data: any;
         )}
 
         {/* Experience */}
-        {experience?.length > 0 && (
+        {((experience?.length ?? 0) > 0) && (
           <section id="experience" className="py-24 px-4">
             <div className="max-w-4xl mx-auto">
               <Float>
@@ -137,7 +139,7 @@ export default function PlayfulTemplate({ data, theme, isPreview }: { data: any;
                   <motion.h2 className="text-4xl sm:text-5xl font-black mt-2" style={{ color: textColor }}>Experience</motion.h2>
                 </div>
                 <div className="space-y-6">
-                  {experience.map((exp: any, i: number) => (
+                  {experience.map((exp: TemplateItem, i: number) => (
                     <motion.div key={exp.id} initial={{ opacity: 0, scale: 0.95 }} whileInView={{ opacity: 1, scale: 1 }} viewport={{ once: true }} transition={{ delay: i * 0.08 }}
                       whileHover={{ x: 5 }} className="p-6 md:p-8 rounded-[2rem] border-2" style={{ borderColor: `${ac}20`, backgroundColor: `${ac}06` }}>
                       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-3">
@@ -155,7 +157,7 @@ export default function PlayfulTemplate({ data, theme, isPreview }: { data: any;
         )}
 
         {/* Projects */}
-        {projects?.length > 0 && (
+        {((projects?.length ?? 0) > 0) && (
           <section id="projects" className="py-24 px-4">
             <div className="max-w-6xl mx-auto">
               <Float>
@@ -164,7 +166,7 @@ export default function PlayfulTemplate({ data, theme, isPreview }: { data: any;
                   <motion.h2 className="text-4xl sm:text-5xl font-black mt-2" style={{ color: textColor }}>Featured Work</motion.h2>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {projects.map((proj: any, i: number) => (
+                  {projects.map((proj: TemplateItem, i: number) => (
                     <motion.div key={proj.id} initial={{ opacity: 0, y: 40 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: i * 0.1, type: 'spring' }}
                       whileHover={{ y: -10, rotate: i % 2 === 0 ? 1 : -1 }}
                       className="rounded-[2rem] overflow-hidden border-2" style={{ borderColor: `${ac}20`, backgroundColor: `${ac}06` }}>
@@ -187,10 +189,10 @@ export default function PlayfulTemplate({ data, theme, isPreview }: { data: any;
         )}
 
         {/* Services & Testimonials */}
-        {services?.length > 0 && (
+        {((services?.length ?? 0) > 0) && (
           <section id="services" className="py-24 px-4"><div className="max-w-5xl mx-auto">
             <Float><div className="text-center mb-14"><motion.span className="text-xs uppercase tracking-[0.3em] font-bold" style={{ color: `${ac}80` }}>Services</motion.span><motion.h2 className="text-4xl sm:text-5xl font-black mt-2" style={{ color: textColor }}>What I Do</motion.h2></div>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">{services.map((svc: any) => (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">{services.map((svc: TemplateItem) => (
               <motion.div key={svc.id} whileHover={{ y: -8, rotate: 1 }} className="p-8 rounded-[2rem] border-2 text-center" style={{ borderColor: `${ac}20`, backgroundColor: `${ac}06` }}>
                 <motion.div whileHover={{ scale: 1.2, rotate: 10 }} className="text-5xl mb-5">{svc.icon || '✦'}</motion.div>
                 <h3 className="text-lg font-black mb-2" style={{ color: textColor }}>{svc.title}</h3>
@@ -200,10 +202,10 @@ export default function PlayfulTemplate({ data, theme, isPreview }: { data: any;
           </div></section>
         )}
 
-        {testimonials?.length > 0 && (
+        {((testimonials?.length ?? 0) > 0) && (
           <section id="testimonials" className="py-24 px-4"><div className="max-w-4xl mx-auto">
             <Float><div className="text-center mb-14"><motion.span className="text-xs uppercase tracking-[0.3em] font-bold" style={{ color: `${ac}80` }}>Love</motion.span><motion.h2 className="text-4xl sm:text-5xl font-black mt-2" style={{ color: textColor }}>Testimonials</motion.h2></div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">{testimonials.map((t: any) => (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">{testimonials.map((t: TemplateItem) => (
               <div key={t.id} className="p-6 rounded-[2rem] border-2" style={{ borderColor: `${ac}20`, backgroundColor: `${ac}06` }}>
                 <p className="text-3xl mb-2"></p>
                 <p className="text-sm italic mb-4" style={{ color: subColor }}>{t.message}</p>
@@ -213,17 +215,17 @@ export default function PlayfulTemplate({ data, theme, isPreview }: { data: any;
           </div></section>
         )}
 
-        {gallery?.length > 0 && (
+        {((gallery?.length ?? 0) > 0) && (
           <section id="gallery" className="py-24 px-4"><div className="max-w-6xl mx-auto">
             <Float><div className="text-center mb-14"><motion.span className="text-xs uppercase tracking-[0.3em] font-bold" style={{ color: `${ac}80` }}>Creds</motion.span><motion.h2 className="text-4xl sm:text-5xl font-black mt-2" style={{ color: textColor }}>Certificates</motion.h2></div>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">{gallery.map((cert: any) => (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">{gallery.map((cert: TemplateItem) => (
               <div key={cert.id} className="p-5 rounded-[2rem] border-2" style={{ borderColor: `${ac}20`, backgroundColor: `${ac}06` }}>
                 {(cert.image_url || cert.file_url) && (
                   <div className="w-full h-32 rounded-2xl mb-4 overflow-hidden bg-cover bg-center"
                     style={{ backgroundImage: `url(${cert.image_url || cert.file_url})` }}>
                     <img src={cert.image_url || cert.file_url} alt={cert.title}
                       className="w-full h-full object-cover"
-                      onError={(e: any) => { e.target.style.display = 'none' }} />
+                      onError={(e: SyntheticEvent<HTMLImageElement>) => { e.currentTarget.style.display = 'none' }} />
                   </div>
                 )}
                 <h3 className="font-bold text-base mb-1" style={{ color: textColor }}>{cert.title}</h3>
@@ -235,15 +237,15 @@ export default function PlayfulTemplate({ data, theme, isPreview }: { data: any;
           </div></section>
         )}
 
-        {custom?.length > 0 && custom.map((sec: any) => (
+        {((custom?.length ?? 0) > 0) && custom.map((sec: TemplateItem) => (
           <section key={sec.id} id={`custom-${(sec.title || sec.original_type || '').toLowerCase().replace(/\s+/g, '-')}`} className="py-24 px-4">
             <div className="max-w-5xl mx-auto">
               <Float>
                 <div className="text-center mb-14"><motion.h2 className="text-4xl sm:text-5xl font-black" style={{ color: textColor }}>{sec.title}</motion.h2></div>
                 {sec.type === 'text' && <p className="text-lg text-center text-justify" style={{ color: subColor }}>{sec.content?.body}</p>}
                 {sec.type === 'list' && <ul className="space-y-3 max-w-2xl mx-auto">{(sec.content?.items || []).map((item: string, i: number) => <motion.li key={i} initial={{ opacity: 0, x: -30 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }} className="flex gap-3 text-base" style={{ color: subColor }}><span></span>{item}</motion.li>)}</ul>}
-                {sec.type === 'links' && <div className="flex flex-wrap gap-4 justify-center">{(sec.content?.links || []).map((link: any, i: number) => <motion.a key={i} href={link.url} target="_blank" whileHover={{ scale: 1.08, rotate: -2 }} className="px-8 py-3.5 rounded-2xl font-bold text-white" style={{ backgroundColor: ac }}>{link.label}</motion.a>)}</div>}
-                {!['text','list','cards','links'].includes(sec.type) && sec.content && (
+                {sec.type === 'links' && <div className="flex flex-wrap gap-4 justify-center">{(sec.content?.links || []).map((link: TemplateItem, i: number) => <motion.a key={i} href={link.url} target="_blank" whileHover={{ scale: 1.08, rotate: -2 }} className="px-8 py-3.5 rounded-2xl font-bold text-white" style={{ backgroundColor: ac }}>{link.label}</motion.a>)}</div>}
+                {!['text','list','cards','links'].includes(sec.type ?? '') && sec.content && (
                   <div className="space-y-4">
                     {(() => {
                       if ((sec.original_type === 'certification' || sec.type === 'certification') && Array.isArray(sec.content?.items)) {
@@ -291,7 +293,7 @@ export default function PlayfulTemplate({ data, theme, isPreview }: { data: any;
         ))}
 
         {/* Contact */}
-        {data.portfolio?.sections_order?.find((section: any) => section.type === 'contact')?.enabled !== false && (
+        {data.portfolio?.sections_order?.find((section: TemplateSectionOrder) => section.type === 'contact')?.enabled !== false && (
           <section id="contact" className="py-24 px-4">
           <div className="max-w-3xl mx-auto text-center">
             <Float><div className="text-center mb-14"><motion.span className="text-xs uppercase tracking-[0.3em] font-bold" style={{ color: `${ac}80` }}>Contact</motion.span><motion.h2 className="text-4xl sm:text-5xl font-black mt-2" style={{ color: textColor }}>Let's Play!</motion.h2></div>

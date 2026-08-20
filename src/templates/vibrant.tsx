@@ -1,4 +1,6 @@
-﻿'use client';
+'use client';
+import type { TemplateData, TemplateItem, TemplateSectionOrder, ThemeConfig } from '@/types';
+import type { SyntheticEvent } from 'react';
 import { useRef } from 'react';
 import { motion, useInView } from 'framer-motion';
 import TechBadge from '@/components/TechIcon';
@@ -47,8 +49,8 @@ function SectionTitle({ title, subtitle, ac }: { title: string; subtitle?: strin
 const textColor = '#f0f0f5';
 const subColor = '#b0b0c8';
 
-export default function VibrantTemplate({ data, theme, isPreview }: { data: any; theme: any; isPreview?: boolean }) {
-  const { portfolio, hero, about, experience, projects, services, skills, testimonials, contact, gallery, custom } = data;
+export default function VibrantTemplate({ data, theme, isPreview }: { data: TemplateData; theme: ThemeConfig; isPreview?: boolean }) {
+  const { portfolio, hero, about, experience = [], projects = [], services = [], skills = [], testimonials = [], contact, gallery = [], custom = [] } = data;
   const ac = theme.accent;
 
   return (
@@ -156,12 +158,12 @@ export default function VibrantTemplate({ data, theme, isPreview }: { data: any;
         )}
 
         {/* Skills */}
-        {skills?.length > 0 && (
+        {((skills?.length ?? 0) > 0) && (
           <section id="skills" className="py-20 md:py-28 px-4">
             <div className="max-w-5xl mx-auto">
               <SectionTitle title="My Toolkit" subtitle="Skills" ac={ac} />
               <div className="space-y-8">
-                {skills.map((skill: any) => (
+                {skills.map((skill: TemplateItem) => (
                   <BounceSection key={skill.id}>
                     <ColorCard ac={ac} className="p-8">
                       {skill.title && <h3 className="text-xl font-black mb-5" style={{ color: textColor }}>{skill.title}</h3>}
@@ -181,12 +183,12 @@ export default function VibrantTemplate({ data, theme, isPreview }: { data: any;
         )}
 
         {/* Experience */}
-        {experience?.length > 0 && (
+        {((experience?.length ?? 0) > 0) && (
           <section id="experience" className="py-20 md:py-28 px-4">
             <div className="max-w-4xl mx-auto">
               <SectionTitle title="Experience" subtitle="My Journey" ac={ac} />
               <div className="space-y-6">
-                {experience.map((exp: any, i: number) => (
+                {experience.map((exp: TemplateItem, i: number) => (
                   <BounceSection key={exp.id}>
                     <motion.div className="rounded-3xl border-2 p-6 md:p-8" style={{ borderColor: `${ac}30`, backgroundColor: `${ac}06` }}
                       whileHover={{ x: i % 2 === 0 ? 8 : -8 }}>
@@ -218,12 +220,12 @@ export default function VibrantTemplate({ data, theme, isPreview }: { data: any;
         )}
 
         {/* Projects */}
-        {projects?.length > 0 && (
+        {((projects?.length ?? 0) > 0) && (
           <section id="projects" className="py-20 md:py-28 px-4">
             <div className="max-w-6xl mx-auto">
               <SectionTitle title="Projects" subtitle="Featured Work" ac={ac} />
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {projects.map((proj: any, i: number) => (
+                {projects.map((proj: TemplateItem, i: number) => (
                   <BounceSection key={proj.id}>
                     <ColorCard ac={ac} className={`overflow-hidden ${i % 2 === 0 ? 'rotate-0' : ''}`}>
                       {proj.image_url && (
@@ -264,12 +266,12 @@ export default function VibrantTemplate({ data, theme, isPreview }: { data: any;
         )}
 
         {/* Services */}
-        {services?.length > 0 && (
+        {((services?.length ?? 0) > 0) && (
           <section id="services" className="py-20 md:py-28 px-4">
             <div className="max-w-5xl mx-auto">
               <SectionTitle title="Services" subtitle="What I Do" ac={ac} />
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {services.map((svc: any) => (
+                {services.map((svc: TemplateItem) => (
                   <BounceSection key={svc.id}>
                     <ColorCard ac={ac} className="p-8 text-center">
                       <motion.div className="text-5xl mb-5" whileHover={{ scale: 1.2, rotate: 10 }}>{svc.icon || '✦'}</motion.div>
@@ -284,12 +286,12 @@ export default function VibrantTemplate({ data, theme, isPreview }: { data: any;
         )}
 
         {/* Testimonials */}
-        {testimonials?.length > 0 && (
+        {((testimonials?.length ?? 0) > 0) && (
           <section id="testimonials" className="py-20 md:py-28 px-4">
             <div className="max-w-4xl mx-auto">
               <SectionTitle title="Testimonials" subtitle="Kind Words" ac={ac} />
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {testimonials.map((t: any) => (
+                {testimonials.map((t: TemplateItem) => (
                   <BounceSection key={t.id}>
                     <ColorCard ac={ac} className="p-6">
                       <p className="text-5xl leading-none mb-3 font-black" style={{ color: `${ac}40` }}>"</p>
@@ -310,12 +312,12 @@ export default function VibrantTemplate({ data, theme, isPreview }: { data: any;
         )}
 
         {/* Certificates */}
-        {gallery?.length > 0 && (
+        {((gallery?.length ?? 0) > 0) && (
           <section id="gallery" className="py-20 md:py-28 px-4">
             <div className="max-w-6xl mx-auto">
               <SectionTitle title="Certificates" subtitle="Credentials" ac={ac} />
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {gallery.map((cert: any) => (
+                {gallery.map((cert: TemplateItem) => (
                   <BounceSection key={cert.id}>
                     <ColorCard ac={ac} className="p-5">
                       {(cert.image_url || cert.file_url) && (
@@ -323,7 +325,7 @@ export default function VibrantTemplate({ data, theme, isPreview }: { data: any;
                           style={{ backgroundImage: `url(${cert.image_url || cert.file_url})` }}>
                           <img src={cert.image_url || cert.file_url} alt={cert.title}
                             className="w-full h-full object-cover"
-                            onError={(e: any) => { e.target.style.display = 'none' }} />
+                            onError={(e: SyntheticEvent<HTMLImageElement>) => { e.currentTarget.style.display = 'none' }} />
                         </div>
                       )}
                       <h3 className="font-black text-base mb-1" style={{ color: textColor }}>{cert.title}</h3>
@@ -344,10 +346,10 @@ export default function VibrantTemplate({ data, theme, isPreview }: { data: any;
         )}
 
         {/* Custom Sections */}
-        {custom?.length > 0 && custom.map((sec: any) => (
+        {((custom?.length ?? 0) > 0) && custom.map((sec: TemplateItem) => (
           <section key={sec.id} id={`custom-${(sec.title || sec.original_type || '').toLowerCase().replace(/\s+/g, '-')}`} className="py-20 md:py-28 px-4">
             <div className="max-w-5xl mx-auto">
-              <SectionTitle title={sec.title} ac={ac} />
+              <SectionTitle title={sec.title || sec.original_type || "Section"} ac={ac} />
               {sec.type === 'text' && <BounceSection><ColorCard ac={ac} className="p-8"><p className="text-base leading-relaxed text-center text-justify" style={{ color: subColor }}>{sec.content?.body}</p></ColorCard></BounceSection>}
               {sec.type === 'list' && (
                 <ul className="space-y-3 max-w-2xl mx-auto">
@@ -363,7 +365,7 @@ export default function VibrantTemplate({ data, theme, isPreview }: { data: any;
               )}
               {sec.type === 'links' && (
                 <div className="flex flex-wrap gap-4 justify-center">
-                  {(sec.content?.links || []).map((link: any, i: number) => (
+                  {(sec.content?.links || []).map((link: TemplateItem, i: number) => (
                     <motion.a key={i} href={link.url} target="_blank" whileHover={{ scale: 1.08, rotate: -2 }}
                       className="px-8 py-3.5 rounded-2xl font-bold text-white" style={{ backgroundColor: ac }}>
                       {link.label}
@@ -371,7 +373,7 @@ export default function VibrantTemplate({ data, theme, isPreview }: { data: any;
                   ))}
                 </div>
               )}
-              {!['text','list','cards','links'].includes(sec.type) && sec.content && (
+              {!['text','list','cards','links'].includes(sec.type ?? '') && sec.content && (
                 <div className="space-y-4">
                   {(() => {
                     if ((sec.original_type === 'certification' || sec.type === 'certification') && Array.isArray(sec.content?.items)) {
@@ -418,7 +420,7 @@ export default function VibrantTemplate({ data, theme, isPreview }: { data: any;
         ))}
 
         {/* Contact */}
-        {data.portfolio?.sections_order?.find((section: any) => section.type === 'contact')?.enabled !== false && (
+        {data.portfolio?.sections_order?.find((section: TemplateSectionOrder) => section.type === 'contact')?.enabled !== false && (
           <section id="contact" className="py-20 md:py-28 px-4">
           <div className="max-w-3xl mx-auto text-center">
             <SectionTitle title="Let's Talk" subtitle="Contact" ac={ac} />

@@ -5,6 +5,7 @@ import Link from "next/link";
 import { motion } from "framer-motion";
 import api from "@/lib/api";
 import { themes, getThemeById } from "@/lib/sections";
+import type { TemplateSectionOrder } from "@/types";
 import ModernTemplate from "@/templates/modern";
 import CreativeTemplate from "@/templates/creative";
 import MinimalTemplate from "@/templates/minimal";
@@ -28,7 +29,7 @@ import OrderSections from "@/components/OrderSections";
 import PortfolioShare from "@/components/PortfolioShare";
 
 type PortfolioPageData = {
-  portfolio: { template?: string; theme?: string; sections_order: unknown[]; title?: string; slug: string };
+  portfolio: { template?: string; theme?: string; sections_order: TemplateSectionOrder[]; title?: string; slug: string };
   about?: { name?: string; bio?: string; photo_url?: string };
   hero?: { subheadline?: string };
   [key: string]: unknown;

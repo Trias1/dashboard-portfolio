@@ -1,4 +1,6 @@
-﻿'use client';
+'use client';
+import type { TemplateData, TemplateItem, TemplateSectionOrder, ThemeConfig } from '@/types';
+import type { SyntheticEvent } from 'react';
 import { useRef } from 'react';
 import { motion, useInView } from 'framer-motion';
 import TechBadge from '@/components/TechIcon';
@@ -17,8 +19,8 @@ function Rise({ children, delay = 0 }: { children: React.ReactNode; delay?: numb
 const textColor = '#1a0a0a';
 const subColor = '#3f3333';
 
-export default function AgencyTemplate({ data, theme, isPreview }: { data: any; theme: any; isPreview?: boolean }) {
-  const { portfolio, hero, about, experience, projects, services, skills, testimonials, contact, gallery, custom } = data;
+export default function AgencyTemplate({ data, theme, isPreview }: { data: TemplateData; theme: ThemeConfig; isPreview?: boolean }) {
+  const { portfolio, hero, about, experience = [], projects = [], services = [], skills = [], testimonials = [], contact, gallery = [], custom = [] } = data;
   const ac = theme.accent;
   return (
     <div className="min-h-screen bg-white" style={{ color: textColor, backgroundColor: '#ffffff' }}>
@@ -66,9 +68,9 @@ export default function AgencyTemplate({ data, theme, isPreview }: { data: any; 
             <motion.h1 initial={{ opacity: 0, y: 50 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1, type: 'spring' }}
               className="text-5xl sm:text-7xl md:text-8xl font-black leading-[0.9] tracking-[-0.03em] mb-6">
               {hero?.headline ? (
-                hero.headline.split(' ').map((w: string, i: number) => (
+                (hero.headline || '').split(' ').map((w: string, i: number) => (
                   <motion.span key={i} className="inline-block mr-[0.05em]" whileHover={{ scale: 1.05, color: ac }}>
-                    {i === hero.headline.split(' ').length - 1 ? <span style={{ color: ac }}>{w}</span> : w}{' '}
+                    {i === (hero.headline || '').split(' ').length - 1 ? <span style={{ color: ac }}>{w}</span> : w}{' '}
                   </motion.span>
                 ))
               ) : <><span>{about?.name || portfolio.title}</span></>}
@@ -120,7 +122,7 @@ export default function AgencyTemplate({ data, theme, isPreview }: { data: any; 
         )}
 
         {/* Services */}
-        {services?.length > 0 && (
+        {((services?.length ?? 0) > 0) && (
           <section id="services" className="py-24 px-6 md:px-20" style={{ backgroundColor: '#fafafa' }}>
             <div className="max-w-6xl mx-auto">
               <Rise>
@@ -129,7 +131,7 @@ export default function AgencyTemplate({ data, theme, isPreview }: { data: any; 
                   <h2 className="text-4xl sm:text-5xl font-black mt-2">Services</h2>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                  {services.map((svc: any, i: number) => (
+                  {services.map((svc: TemplateItem, i: number) => (
                     <motion.div key={svc.id} initial={{ opacity: 0, y: 40 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: i * 0.1 }}
                       whileHover={{ y: -8, boxShadow: `0 30px 60px ${ac}20` }}
                       className="p-8 rounded-2xl bg-white border-2" style={{ borderColor: `${ac}10` }}>
@@ -147,7 +149,7 @@ export default function AgencyTemplate({ data, theme, isPreview }: { data: any; 
         )}
 
         {/* Projects */}
-        {projects?.length > 0 && (
+        {((projects?.length ?? 0) > 0) && (
           <section id="projects" className="py-24 px-6 md:px-20">
             <div className="max-w-6xl mx-auto">
               <Rise>
@@ -156,7 +158,7 @@ export default function AgencyTemplate({ data, theme, isPreview }: { data: any; 
                   <h2 className="text-4xl sm:text-5xl font-black mt-2">Featured Work</h2>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {projects.map((proj: any, i: number) => (
+                  {projects.map((proj: TemplateItem, i: number) => (
                     <motion.div key={proj.id} initial={{ opacity: 0, y: 40 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: i * 0.1 }}
                       whileHover={{ y: -6 }} className="group rounded-2xl overflow-hidden bg-white border-2" style={{ borderColor: `${ac}10` }}>
                       {proj.image_url && <div className="overflow-hidden"><motion.img whileHover={{ scale: 1.1 }} src={proj.image_url} alt={proj.title} className="w-full h-48 object-cover" /></div>}
@@ -180,7 +182,7 @@ export default function AgencyTemplate({ data, theme, isPreview }: { data: any; 
         )}
 
         {/* Experience */}
-        {experience?.length > 0 && (
+        {((experience?.length ?? 0) > 0) && (
           <section id="experience" className="py-24 px-6 md:px-20" style={{ backgroundColor: '#fafafa' }}>
             <div className="max-w-4xl mx-auto">
               <Rise>
@@ -189,7 +191,7 @@ export default function AgencyTemplate({ data, theme, isPreview }: { data: any; 
                   <h2 className="text-4xl sm:text-5xl font-black mt-2">Experience</h2>
                 </div>
                 <div className="space-y-6">
-                  {experience.map((exp: any, i: number) => (
+                  {experience.map((exp: TemplateItem, i: number) => (
                     <motion.div key={exp.id} initial={{ opacity: 0, x: -20 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }} transition={{ delay: i * 0.06 }}
                       className="p-6 md:p-8 rounded-2xl bg-white border-2" style={{ borderColor: `${ac}10` }}>
                       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-3">
@@ -207,7 +209,7 @@ export default function AgencyTemplate({ data, theme, isPreview }: { data: any; 
         )}
 
         {/* Skills */}
-        {skills?.length > 0 && (
+        {((skills?.length ?? 0) > 0) && (
           <section id="skills" className="py-24 px-6 md:px-20">
             <div className="max-w-5xl mx-auto">
               <Rise>
@@ -216,7 +218,7 @@ export default function AgencyTemplate({ data, theme, isPreview }: { data: any; 
                   <h2 className="text-4xl sm:text-5xl font-black mt-2">Skills</h2>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {skills.map((skill: any) => (
+                  {skills.map((skill: TemplateItem) => (
                     <motion.div key={skill.id} whileHover={{ x: 5 }} className="p-6 rounded-2xl bg-white border-2" style={{ borderColor: `${ac}10` }}>
                       <h3 className="text-base font-black mb-4">{skill.title}</h3>
                       <div className="flex flex-wrap gap-2">{skill.skills?.split(',').map((s: string) => <TechBadge key={s} name={s.trim()} accentColor={ac} size="md" />)}</div>
@@ -229,11 +231,11 @@ export default function AgencyTemplate({ data, theme, isPreview }: { data: any; 
         )}
 
         {/* Testimonials */}
-        {testimonials?.length > 0 && (
+        {((testimonials?.length ?? 0) > 0) && (
           <section id="testimonials" className="py-24 px-6 md:px-20" style={{ backgroundColor: '#fafafa' }}>
             <div className="max-w-4xl mx-auto"><Rise>
               <div className="text-center mb-14"><span className="text-xs font-bold uppercase tracking-[0.3em]" style={{ color: ac }}>Testimonials</span><h2 className="text-4xl sm:text-5xl font-black mt-2">Kind Words</h2></div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">{testimonials.map((t: any) => (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">{testimonials.map((t: TemplateItem) => (
                 <div key={t.id} className="p-6 rounded-2xl bg-white border-2" style={{ borderColor: `${ac}10` }}>
                   <div className="flex gap-1 mb-3">{[...Array(5)].map((_, i) => <span key={i} style={{ color: ac }}></span>)}</div>
                   <p className="text-sm italic mb-4" style={{ color: subColor }}>{t.message}</p>
@@ -248,18 +250,18 @@ export default function AgencyTemplate({ data, theme, isPreview }: { data: any; 
         )}
 
         {/* Gallery */}
-        {gallery?.length > 0 && (
+        {((gallery?.length ?? 0) > 0) && (
           <section id="gallery" className="py-24 px-6 md:px-20">
             <div className="max-w-6xl mx-auto"><Rise>
               <div className="mb-14 text-center"><span className="text-xs font-bold uppercase tracking-[0.3em]" style={{ color: ac }}>Credentials</span><h2 className="text-4xl sm:text-5xl font-black mt-2">Certificates</h2></div>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">{gallery.map((cert: any) => (
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">{gallery.map((cert: TemplateItem) => (
                 <div key={cert.id} className="p-5 rounded-2xl bg-white border-2" style={{ borderColor: `${ac}10` }}>
                   {(cert.image_url || cert.file_url) && (
                     <div className="w-full h-36 rounded-xl mb-4 overflow-hidden bg-cover bg-center"
                       style={{ backgroundImage: `url(${cert.image_url || cert.file_url})` }}>
                       <img src={cert.image_url || cert.file_url} alt={cert.title}
                         className="w-full h-full object-cover"
-                        onError={(e: any) => { e.target.style.display = 'none' }} />
+                        onError={(e: SyntheticEvent<HTMLImageElement>) => { e.currentTarget.style.display = 'none' }} />
                     </div>
                   )}
                   <h3 className="font-bold text-base mb-1">{cert.title}</h3>
@@ -272,14 +274,14 @@ export default function AgencyTemplate({ data, theme, isPreview }: { data: any; 
           </section>
         )}
 
-        {custom?.length > 0 && custom.map((sec: any) => (
+        {((custom?.length ?? 0) > 0) && custom.map((sec: TemplateItem) => (
           <section key={sec.id} id={`custom-${(sec.title || sec.original_type || '').toLowerCase().replace(/\s+/g, '-')}`} className="py-24 px-6 md:px-20">
             <div className="max-w-5xl mx-auto"><Rise>
-              <h2 className="text-4xl sm:text-5xl font-black mb-8 text-center">{sec.title}</h2>
+              <h2 className="text-4xl sm:text-5xl font-black mb-8 text-center">{sec.title || sec.original_type || 'Section'}</h2>
               {sec.type === 'text' && <p className="text-base leading-relaxed text-center text-justify" style={{ color: subColor }}>{sec.content?.body}</p>}
               {sec.type === 'list' && <div className="space-y-3 max-w-2xl mx-auto">{(sec.content?.items || []).map((item: string, i: number) => <div key={i} className="flex gap-3 text-base" style={{ color: subColor }}><span className="text-lg" style={{ color: ac }}>*</span>{item}</div>)}</div>}
-              {sec.type === 'links' && <div className="flex flex-wrap gap-4 justify-center">{(sec.content?.links || []).map((link: any, i: number) => <motion.a key={i} href={link.url} target="_blank" whileHover={{ scale: 1.05 }} className="text-sm font-bold px-8 py-3.5 rounded-lg text-white" style={{ backgroundColor: ac }}>{link.label}</motion.a>)}</div>}
-              {!['text','list','cards','links'].includes(sec.type) && sec.content && (
+              {sec.type === 'links' && <div className="flex flex-wrap gap-4 justify-center">{(sec.content?.links || []).map((link: TemplateItem, i: number) => <motion.a key={i} href={link.url} target="_blank" whileHover={{ scale: 1.05 }} className="text-sm font-bold px-8 py-3.5 rounded-lg text-white" style={{ backgroundColor: ac }}>{link.label}</motion.a>)}</div>}
+              {!['text','list','cards','links'].includes(sec.type ?? '') && sec.content && (
                 <div className="space-y-4">
                   {(() => {
                     if ((sec.original_type === 'certification' || sec.type === 'certification') && Array.isArray(sec.content?.items)) {

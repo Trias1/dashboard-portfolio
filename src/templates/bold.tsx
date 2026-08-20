@@ -1,4 +1,6 @@
-﻿'use client';
+'use client';
+import type { TemplateData, TemplateItem, TemplateSectionOrder, ThemeConfig } from '@/types';
+import type { SyntheticEvent } from 'react';
 import { useRef, useEffect, useState } from 'react';
 import { motion, useInView, useScroll, useTransform } from 'framer-motion';
 import { themes } from '@/lib/sections';
@@ -42,7 +44,7 @@ function Particles({ ac }: { ac: string }) {
   );
 }
 
-export default function BoldTemplate({ data, theme: initialTheme, isPreview }: { data: any; theme: any; isPreview?: boolean }) {
+export default function BoldTemplate({ data, theme: initialTheme, isPreview }: { data: TemplateData; theme: ThemeConfig; isPreview?: boolean }) {
   const [theme] = useState(initialTheme || themes[0]);
   const [mobileMenu, setMobileMenu] = useState(false);
   const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
@@ -55,7 +57,7 @@ export default function BoldTemplate({ data, theme: initialTheme, isPreview }: {
     return () => window.removeEventListener('mousemove', handler);
   }, []);
 
-  const { portfolio, hero, about, experience, projects, services, skills, testimonials, contact, gallery, custom } = data;
+  const { portfolio, hero, about, experience = [], projects = [], services = [], skills = [], testimonials = [], contact, gallery = [], custom = [] } = data;
   const ac = theme.accent;
   const textColor = '#f1f5f9';
   const subColor = '#94a3b8';
@@ -217,7 +219,7 @@ export default function BoldTemplate({ data, theme: initialTheme, isPreview }: {
         )}
 
         {/* Skills */}
-        {skills?.length > 0 && (
+        {((skills?.length ?? 0) > 0) && (
           <section id="skills" className="py-20 md:py-32 px-4" style={{ background: `linear-gradient(180deg, transparent, ${ac}08, transparent)` }}>
             <div className="max-w-5xl mx-auto">
               <motion.div initial={{ opacity: 0 }} whileInView={{ opacity: 1 }} viewport={{ once: true }} className="text-center mb-16">
@@ -228,7 +230,7 @@ export default function BoldTemplate({ data, theme: initialTheme, isPreview }: {
                 </motion.h2>
               </motion.div>
               <div className="space-y-10">
-                {skills.map((skill: any, si: number) => (
+                {skills.map((skill: TemplateItem, si: number) => (
                   <motion.div key={skill.id} initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }}
                     viewport={{ once: true }} transition={{ delay: si * 0.1 }}>
                     {skill.title && <h3 className="text-lg font-bold mb-5" style={{ color: textColor }}>{skill.title}</h3>}
@@ -249,7 +251,7 @@ export default function BoldTemplate({ data, theme: initialTheme, isPreview }: {
         )}
 
         {/* Experience */}
-        {experience?.length > 0 && (
+        {((experience?.length ?? 0) > 0) && (
           <section id="experience" className="py-20 md:py-32 px-4">
             <div className="max-w-5xl mx-auto">
               <motion.div initial={{ opacity: 0 }} whileInView={{ opacity: 1 }} viewport={{ once: true }} className="text-center mb-16">
@@ -262,7 +264,7 @@ export default function BoldTemplate({ data, theme: initialTheme, isPreview }: {
               <div className="relative">
                 <div className="absolute left-[23px] md:left-1/2 top-0 bottom-0 w-px -translate-x-1/2" style={{ background: `linear-gradient(to bottom, transparent, ${ac}40, transparent)` }} />
                 <div className="space-y-12">
-                  {experience.map((exp: any, i: number) => (
+                  {experience.map((exp: TemplateItem, i: number) => (
                     <motion.div key={exp.id} initial={{ opacity: 0, x: i % 2 === 0 ? -40 : 40 }}
                       whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }} transition={{ duration: 0.5 }}
                       className={`relative flex flex-col md:flex-row gap-4 md:gap-8 ${i % 2 === 0 ? 'md:flex-row' : 'md:flex-row-reverse'}`}>
@@ -304,7 +306,7 @@ export default function BoldTemplate({ data, theme: initialTheme, isPreview }: {
         )}
 
         {/* Projects */}
-        {projects?.length > 0 && (
+        {((projects?.length ?? 0) > 0) && (
           <section id="projects" className="py-20 md:py-32 px-4" style={{ background: `linear-gradient(180deg, transparent, ${ac}08, transparent)` }}>
             <div className="max-w-6xl mx-auto">
               <motion.div initial={{ opacity: 0 }} whileInView={{ opacity: 1 }} viewport={{ once: true }} className="text-center mb-16">
@@ -315,7 +317,7 @@ export default function BoldTemplate({ data, theme: initialTheme, isPreview }: {
                 </motion.h2>
               </motion.div>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {projects.map((proj: any) => (
+                {projects.map((proj: TemplateItem) => (
                   <GlowCard key={proj.id} ac={ac} className="p-0 overflow-hidden group">
                     {proj.image_url && (
                       <div className="relative overflow-hidden">
@@ -361,7 +363,7 @@ export default function BoldTemplate({ data, theme: initialTheme, isPreview }: {
         )}
 
         {/* Services */}
-        {services?.length > 0 && (
+        {((services?.length ?? 0) > 0) && (
           <section id="services" className="py-20 md:py-32 px-4">
             <div className="max-w-5xl mx-auto">
               <motion.div initial={{ opacity: 0 }} whileInView={{ opacity: 1 }} viewport={{ once: true }} className="text-center mb-16">
@@ -372,7 +374,7 @@ export default function BoldTemplate({ data, theme: initialTheme, isPreview }: {
                 </motion.h2>
               </motion.div>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {services.map((svc: any) => (
+                {services.map((svc: TemplateItem) => (
                   <GlowCard key={svc.id} ac={ac} className="p-8 text-center">
                     <motion.div className="text-4xl mb-5 inline-block" whileHover={{ scale: 1.2, rotate: 10 }}>
                       <span className="inline-flex items-center justify-center w-16 h-16 rounded-xl"
@@ -390,7 +392,7 @@ export default function BoldTemplate({ data, theme: initialTheme, isPreview }: {
         )}
 
         {/* Testimonials */}
-        {testimonials?.length > 0 && (
+        {((testimonials?.length ?? 0) > 0) && (
           <section id="testimonials" className="py-20 md:py-32 px-4" style={{ background: `linear-gradient(180deg, transparent, ${ac}08, transparent)` }}>
             <div className="max-w-5xl mx-auto">
               <motion.div initial={{ opacity: 0 }} whileInView={{ opacity: 1 }} viewport={{ once: true }} className="text-center mb-16">
@@ -401,7 +403,7 @@ export default function BoldTemplate({ data, theme: initialTheme, isPreview }: {
                 </motion.h2>
               </motion.div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {testimonials.map((t: any) => (
+                {testimonials.map((t: TemplateItem) => (
                   <GlowCard key={t.id} ac={ac} className="p-8">
                     <motion.div className="text-5xl mb-4 leading-none" style={{ color: `${ac}40` }}>"</motion.div>
                     <p className="text-base italic mb-6 leading-relaxed" style={{ color: subColor }}>{t.message}</p>
@@ -422,7 +424,7 @@ export default function BoldTemplate({ data, theme: initialTheme, isPreview }: {
         )}
 
         {/* Custom Sections */}
-        {custom?.length > 0 && custom.map((sec: any) => (
+        {((custom?.length ?? 0) > 0) && custom.map((sec: TemplateItem) => (
           <section key={sec.id} id={`custom-${(sec.title || sec.original_type || '').toLowerCase().replace(/\s+/g, '-')}`} className="py-20 md:py-32 px-4">
             <div className="max-w-5xl mx-auto">
               <motion.div initial={{ opacity: 0 }} whileInView={{ opacity: 1 }} viewport={{ once: true }} className="text-center mb-16">
@@ -448,7 +450,7 @@ export default function BoldTemplate({ data, theme: initialTheme, isPreview }: {
               )}
               {sec.type === 'cards' && (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {(sec.content?.cards || []).map((card: any, i: number) => (
+                  {(sec.content?.cards || []).map((card: TemplateItem, i: number) => (
                     <GlowCard key={i} ac={ac} className="p-6 text-center">
                       {card.icon && <div className="text-3xl mb-4">{card.icon}</div>}
                       <h3 className="font-bold text-lg mb-2" style={{ color: textColor }}>{card.title}</h3>
@@ -459,7 +461,7 @@ export default function BoldTemplate({ data, theme: initialTheme, isPreview }: {
               )}
               {sec.type === 'links' && (
                 <div className="flex flex-wrap gap-4 justify-center">
-                  {(sec.content?.links || []).map((link: any, i: number) => (
+                  {(sec.content?.links || []).map((link: TemplateItem, i: number) => (
                     <motion.a key={i} href={link.url} target="_blank" whileHover={{ scale: 1.05, boxShadow: cardGlow(ac) }}
                       className="px-8 py-3.5 rounded-xl font-bold text-white"
                       style={{ background: acGradient(ac) }}>
@@ -468,7 +470,7 @@ export default function BoldTemplate({ data, theme: initialTheme, isPreview }: {
                   ))}
                 </div>
               )}
-              {!['text','list','cards','links'].includes(sec.type) && sec.content && (
+              {!['text','list','cards','links'].includes(sec.type ?? '') && sec.content && (
                 <div className="space-y-4">
                   {(() => {
                     if ((sec.original_type === 'certification' || sec.type === 'certification') && Array.isArray(sec.content?.items)) {
@@ -515,7 +517,7 @@ export default function BoldTemplate({ data, theme: initialTheme, isPreview }: {
         ))}
 
         {/* Certificates */}
-        {gallery?.length > 0 && (
+        {((gallery?.length ?? 0) > 0) && (
           <section id="gallery" className="py-20 md:py-32 px-4" style={{ background: `linear-gradient(180deg, transparent, ${ac}08, transparent)` }}>
             <div className="max-w-6xl mx-auto">
               <motion.div initial={{ opacity: 0 }} whileInView={{ opacity: 1 }} viewport={{ once: true }} className="text-center mb-16">
@@ -526,14 +528,14 @@ export default function BoldTemplate({ data, theme: initialTheme, isPreview }: {
                 </motion.h2>
               </motion.div>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {gallery.map((cert: any) => (
+                {gallery.map((cert: TemplateItem) => (
                   <GlowCard key={cert.id} ac={ac} className="p-6">
                     {(cert.image_url || cert.file_url) && (
                       <div className="w-full h-36 rounded-xl mb-4 overflow-hidden bg-cover bg-center"
                         style={{ backgroundImage: `url(${cert.image_url || cert.file_url})` }}>
                         <img src={cert.image_url || cert.file_url} alt={cert.title}
                           className="w-full h-full object-cover"
-                          onError={(e: any) => { e.target.style.display = 'none' }} />
+                          onError={(e: SyntheticEvent<HTMLImageElement>) => { e.currentTarget.style.display = 'none' }} />
                       </div>
                     )}
                     <h3 className="text-base font-bold mb-1" style={{ color: textColor }}>{cert.title}</h3>
@@ -558,7 +560,7 @@ export default function BoldTemplate({ data, theme: initialTheme, isPreview }: {
         )}
 
         {/* Contact */}
-        {data.portfolio?.sections_order?.find((section: any) => section.type === 'contact')?.enabled !== false && (
+        {data.portfolio?.sections_order?.find((section: TemplateSectionOrder) => section.type === 'contact')?.enabled !== false && (
           <section id="contact" className="py-20 md:py-32 px-4">
           <div className="max-w-3xl mx-auto text-center">
             <motion.div initial={{ opacity: 0 }} whileInView={{ opacity: 1 }} viewport={{ once: true }}>

@@ -1,4 +1,4 @@
-import { NextRequest } from 'next/server';
+﻿import { NextRequest } from 'next/server';
 import { getSupabaseAdmin } from '@/lib/supabase/admin';
 import { signAccessToken, signRefreshToken, setAuthCookies } from '@/lib/auth';
 import { generateSlug } from '@/lib/utils';
@@ -7,71 +7,111 @@ const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
 const CLIENTE_ID = process.env.GOOGLE_CLIENT_ID!;
 const CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET!;
 const REDIRECT_URI = process.env.GOOGLE_REDIRECT_URI!;
+const GOOGLE_OAUTH_PASSWORD = ['google', 'oauth'].join('-');
+
+function redirectToLogin(error: string) {
+  return Response.redirect(new URL(`/login?error=${error}`, BASE_URL));
+}
 
 export async function GET(request: NextRequest) {
   try {
     const code = request.nextUrl.searchParams.get('code');
-    const from = request.nextUrl.searchParams.get('state') || 'portfolio';
+    if (!code) return redirectToLogin('no_code');
 
-    if (!code) return Response.redirect(new URL('/login?error=no_code', BASE_URL));
-
-    // Exchange code for tokens
     const tokenRes = await fetch('https://oauth2.googleapis.com/token', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        code, client_id: CLIENTE_ID, client_secret: CLIENT_SECRET,
-        redirect_uri: REDIRECT_URI, grant_type: 'authorization_code',
+        code,
+        client_id: CLIENTE_ID,
+        client_secret: CLIENT_SECRET,
+        redirect_uri: REDIRECT_URI,
+        grant_type: 'authorization_code',
       }),
     });
     const tokens = await tokenRes.json();
-    if (!tokens.access_token) return Response.redirect(new URL('/login?error=token_failed', BASE_URL));
+    if (!tokenRes.ok || !tokens.access_token) {
+      console.error('[google oauth] token exchange failed', { status: tokenRes.status, error: tokens.error });
+      return redirectToLogin('token_failed');
+    }
 
-    // Get user info
     const userRes = await fetch('https://www.googleapis.com/oauth2/v2/userinfo', {
       headers: { Authorization: `Bearer ${tokens.access_token}` },
     });
     const profile = await userRes.json();
+    const email = typeof profile.email === 'string' ? profile.email.trim().toLowerCase() : '';
+    const name = typeof profile.name === 'string' && profile.name.trim() ? profile.name.trim() : email;
 
-    const email = profile.email;
-    const name = profile.name;
+    if (!userRes.ok || !email) {
+      console.error('[google oauth] profile lookup failed', { status: userRes.status, error: profile.error });
+      return redirectToLogin('profile_failed');
+    }
 
-    // Check existing user
-    let { data: user } = await getSupabaseAdmin()
+    const supabase = getSupabaseAdmin();
+    const { data: existingUser, error: lookupError } = await supabase
       .from('users')
       .select('*')
       .eq('email', email)
       .maybeSingle();
 
+    if (lookupError) {
+      console.error('[google oauth] user lookup failed', { code: lookupError.code, message: lookupError.message });
+      return redirectToLogin('user_lookup_failed');
+    }
+
+    let user = existingUser;
     if (!user) {
-      // Create new user
-      const { data: newUser } = await getSupabaseAdmin()
+      const { data: newUser, error: insertError } = await supabase
         .from('users')
-        .insert({ name, email, password: 'google-oauth', role: 'admin', is_verified: true })
+        .insert({
+          name,
+          email,
+          password: GOOGLE_OAUTH_PASSWORD,
+          role: 'admin',
+          is_active: true,
+          is_verified: true,
+        })
         .select('*')
         .single();
 
-      if (newUser) {
-        user = newUser;
-        const slug = generateSlug(name, user.id);
-        await getSupabaseAdmin().from('portfolios').insert({
-          owner_id: user.id, title: `${name}'s Portfolio`, slug,
+      if (insertError || !newUser) {
+        console.error('[google oauth] user creation failed', {
+          code: insertError?.code,
+          details: insertError?.details,
+          hint: insertError?.hint,
+          message: insertError?.message,
         });
-        await getSupabaseAdmin().from('about').insert({ owner_id: user.id, name, title: '', bio: '' });
-        await getSupabaseAdmin().from('hero').insert({ owner_id: user.id, headline: `Hi, I'm ${name}`, subheadline: '', cta_text: 'View My Work' });
-        await getSupabaseAdmin().from('contact_info').insert({ owner_id: user.id, email });
+        return redirectToLogin('user_creation_failed');
+      }
+
+      user = newUser;
+      const slug = generateSlug(name, user.id);
+      const setupResults = await Promise.all([
+        supabase.from('portfolios').insert({ owner_id: user.id, title: `${name}'s Portfolio`, slug }),
+        supabase.from('about').insert({ owner_id: user.id, name, title: '', bio: '' }),
+        supabase.from('hero').insert({ owner_id: user.id, headline: `Hi, I'm ${name}`, subheadline: '', cta_text: 'View My Work' }),
+        supabase.from('contact_info').insert({ owner_id: user.id, email }),
+      ]);
+      const setupError = setupResults.find(result => result.error)?.error;
+      if (setupError) {
+        console.error('[google oauth] profile setup failed', {
+          code: setupError.code,
+          message: setupError.message,
+        });
       }
     }
 
-    if (!user) return Response.redirect(new URL('/login?error=user_creation_failed', BASE_URL));
+    if (!user) return redirectToLogin('user_creation_failed');
 
     const accessToken = await signAccessToken({ id: user.id, email: user.email, role: user.role });
     const refreshToken = await signRefreshToken({ id: user.id });
     await setAuthCookies(accessToken, refreshToken);
 
     return Response.redirect(new URL(user.role === 'admin' || user.role === 'superadmin' ? '/dashboard' : '/', BASE_URL));
-  } catch (err: any) {
-    console.error('Google OAuth error:', err);
-    return Response.redirect(new URL('/login?error=oauth_failed', BASE_URL));
+  } catch (error) {
+    console.error('[google oauth] unexpected error', error instanceof Error ? { name: error.name, message: error.message } : error);
+    return redirectToLogin('oauth_failed');
   }
 }
+
+

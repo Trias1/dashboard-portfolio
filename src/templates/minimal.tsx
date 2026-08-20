@@ -1,4 +1,6 @@
-﻿'use client';
+'use client';
+import type { TemplateData, TemplateItem, TemplateSectionOrder, ThemeConfig } from '@/types';
+import type { SyntheticEvent } from 'react';
 import TechBadge from '@/components/TechIcon';
 import ContactForm from '@/components/ContactForm';
 import CertificationSection from '@/components/CertificationSection';
@@ -31,8 +33,8 @@ function SlideIn({ children, delay = 0 }: { children: React.ReactNode, delay?: n
   );
 }
 
-export default function MinimalTemplate({ data, theme, isPreview }: { data: any, theme: any, isPreview?: boolean }) {
-  const { portfolio, hero, about, experience, projects, services, skills, testimonials, contact, gallery, custom } = data;
+export default function MinimalTemplate({ data, theme, isPreview }: { data: TemplateData, theme: ThemeConfig, isPreview?: boolean }) {
+  const { portfolio, hero, about, experience = [], projects = [], services = [], skills = [], testimonials = [], contact, gallery = [], custom = [] } = data;
   const { scrollYProgress } = useScroll();
   const progressWidth = useTransform(scrollYProgress, [0, 1], ['0%', '100%']);
 
@@ -145,12 +147,12 @@ export default function MinimalTemplate({ data, theme, isPreview }: { data: any,
         </section>
 
         {/* Skills  -  animated tags */}
-        {skills?.length > 0 && (
+        {((skills?.length ?? 0) > 0) && (
           <section id="skills">
             <FadeIn>
               <p className="text-xs uppercase tracking-widest mb-8 font-medium" style={{ color: ac }}>Skills</p>
               <div className="space-y-6">
-                {skills.map((sk: any, si: number) => (
+                {skills.map((sk: TemplateItem, si: number) => (
                   <div key={sk.id}>
                     {sk.title && <p className="text-xs mb-3" style={{ color: subColor }}>{sk.title}</p>}
                     <div className="flex flex-wrap gap-2">
@@ -172,12 +174,12 @@ export default function MinimalTemplate({ data, theme, isPreview }: { data: any,
         )}
 
         {/* Experience */}
-        {experience?.length > 0 && (
+        {((experience?.length ?? 0) > 0) && (
           <section id="experience">
             <FadeIn>
               <p className="text-xs uppercase tracking-widest mb-8 font-medium" style={{ color: ac }}>Experience</p>
               <div className="space-y-10">
-                {experience.map((exp: any, i: number) => (
+                {experience.map((exp: TemplateItem, i: number) => (
                   <SlideIn key={exp.id} delay={i * 0.1}>
                     <div className="flex gap-6 group">
                       <div className="w-24 flex-shrink-0 pt-1">
@@ -199,12 +201,12 @@ export default function MinimalTemplate({ data, theme, isPreview }: { data: any,
         )}
 
         {/* Projects */}
-        {projects?.length > 0 && (
+        {((projects?.length ?? 0) > 0) && (
           <section id="projects">
             <FadeIn>
               <p className="text-xs uppercase tracking-widest mb-8 font-medium" style={{ color: ac }}>Work</p>
               <div className="space-y-6">
-                {projects.map((proj: any, i: number) => (
+                {projects.map((proj: TemplateItem, i: number) => (
                   <SlideIn key={proj.id} delay={i * 0.1}>
                     <motion.div className="p-6 rounded-2xl border group cursor-pointer"
                       style={{ backgroundColor: cardBg, borderColor }}
@@ -249,12 +251,12 @@ export default function MinimalTemplate({ data, theme, isPreview }: { data: any,
         )}
 
         {/* Services */}
-        {services?.length > 0 && (
+        {((services?.length ?? 0) > 0) && (
           <section id="services">
             <FadeIn>
               <p className="text-xs uppercase tracking-widest mb-8 font-medium" style={{ color: ac }}>Services</p>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                {services.map((svc: any, i: number) => (
+                {services.map((svc: TemplateItem, i: number) => (
                   <motion.div key={svc.id}
                     className="p-6 rounded-2xl border"
                     style={{ backgroundColor: cardBg, borderColor }}
@@ -275,12 +277,12 @@ export default function MinimalTemplate({ data, theme, isPreview }: { data: any,
         )}
 
         {/* Testimonials */}
-        {testimonials?.length > 0 && (
+        {((testimonials?.length ?? 0) > 0) && (
           <section id="testimonials">
             <FadeIn>
               <p className="text-xs uppercase tracking-widest mb-8 font-medium" style={{ color: ac }}>Kind Words</p>
               <div className="space-y-6">
-                {testimonials.map((tm: any, i: number) => (
+                {testimonials.map((tm: TemplateItem, i: number) => (
                   <motion.div key={tm.id}
                     className="p-6 rounded-2xl border"
                     style={{ backgroundColor: cardBg, borderColor }}
@@ -311,7 +313,7 @@ export default function MinimalTemplate({ data, theme, isPreview }: { data: any,
         )}
 
         {/* Custom Sections */}
-        {custom?.length > 0 && custom.map((sec: any, si: number) => (
+        {((custom?.length ?? 0) > 0) && custom.map((sec: TemplateItem, si: number) => (
           <section key={sec.id} id={`custom-${(sec.title || sec.original_type || '').toLowerCase().replace(/\s+/g, '-')}`}>
             <FadeIn>
               <p className="text-xs uppercase tracking-widest mb-8 font-medium" style={{ color: ac }}>{sec.title}</p>
@@ -332,7 +334,7 @@ export default function MinimalTemplate({ data, theme, isPreview }: { data: any,
               )}
               {sec.type === 'cards' && (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {(sec.content?.cards || []).map((card: any, i: number) => (
+                  {(sec.content?.cards || []).map((card: TemplateItem, i: number) => (
                     <motion.div key={i} className="p-6 rounded-2xl border"
                       style={{ backgroundColor: cardBg, borderColor }}
                       whileHover={{ borderColor: ac, y: -3 }}>
@@ -345,7 +347,7 @@ export default function MinimalTemplate({ data, theme, isPreview }: { data: any,
               )}
               {sec.type === 'links' && (
                 <div className="flex flex-wrap gap-3">
-                  {(sec.content?.links || []).map((link: any, i: number) => (
+                  {(sec.content?.links || []).map((link: TemplateItem, i: number) => (
                     <motion.a key={i} href={link.url} target="_blank"
                       className="px-5 py-2.5 rounded-full text-sm font-medium border"
                       style={{ borderColor, color: subColor }}
@@ -355,7 +357,7 @@ export default function MinimalTemplate({ data, theme, isPreview }: { data: any,
                   ))}
                 </div>
               )}
-              {!['text','list','cards','links'].includes(sec.type) && sec.content && (
+              {!['text','list','cards','links'].includes(sec.type ?? '') && sec.content && (
                 <div className="space-y-4">
                   {(() => {
                     if ((sec.original_type === 'certification' || sec.type === 'certification') && Array.isArray(sec.content?.items)) {
@@ -402,12 +404,12 @@ export default function MinimalTemplate({ data, theme, isPreview }: { data: any,
         ))}
 
         {/* Certificates */}
-        {gallery?.length > 0 && (
+        {((gallery?.length ?? 0) > 0) && (
           <section id="gallery">
             <FadeIn>
               <p className="text-xs uppercase tracking-widest mb-8 font-medium" style={{ color: ac }}>Certificates</p>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {gallery.map((cert: any, i: number) => (
+                {gallery.map((cert: TemplateItem, i: number) => (
                   <SlideIn key={cert.id} delay={i * 0.1}>
                     <motion.div className="p-6 rounded-2xl border group"
                       style={{ backgroundColor: cardBg, borderColor }}
@@ -418,7 +420,7 @@ export default function MinimalTemplate({ data, theme, isPreview }: { data: any,
                           style={{ backgroundImage: `url(${cert.image_url || cert.file_url})` }}>
                           <img src={cert.image_url || cert.file_url} alt={cert.title}
                             className="w-full h-full object-cover"
-                            onError={(e: any) => { e.target.style.display = 'none' }} />
+                            onError={(e: SyntheticEvent<HTMLImageElement>) => { e.currentTarget.style.display = 'none' }} />
                         </div>
                       )}
                       <h3 className="font-bold text-base mb-1" style={{ color: textColor }}>{cert.title}</h3>

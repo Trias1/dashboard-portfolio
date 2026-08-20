@@ -1,4 +1,6 @@
-﻿'use client';
+'use client';
+import type { TemplateData, TemplateItem, TemplateSectionOrder, ThemeConfig } from '@/types';
+import type { SyntheticEvent } from 'react';
 import { useRef } from 'react';
 import { motion, useInView } from 'framer-motion';
 import TechBadge from '@/components/TechIcon';
@@ -18,8 +20,8 @@ const textColor = '#e8e6e3';
 const subColor = '#888490';
 const panelBg = '#1a181e';
 
-export default function DeveloperTemplate({ data, theme, isPreview }: { data: any; theme: any; isPreview?: boolean }) {
-  const { portfolio, hero, about, experience, projects, services, skills, testimonials, contact, gallery, custom } = data;
+export default function DeveloperTemplate({ data, theme, isPreview }: { data: TemplateData; theme: ThemeConfig; isPreview?: boolean }) {
+  const { portfolio, hero, about, experience = [], projects = [], services = [], skills = [], testimonials = [], contact, gallery = [], custom = [] } = data;
   const ac = theme.accent;
 
   return (
@@ -145,7 +147,7 @@ export default function DeveloperTemplate({ data, theme, isPreview }: { data: an
           )}
 
           {/* Experience */}
-          {experience?.length > 0 && (
+          {((experience?.length ?? 0) > 0) && (
             <section id="experience" className="py-24 px-6 md:px-16">
               <div className="max-w-5xl mx-auto">
                 <FadeUp>
@@ -153,7 +155,7 @@ export default function DeveloperTemplate({ data, theme, isPreview }: { data: an
                     <span style={{ color: '#50fa7b' }}>$</span> ls -la ~/experience/
                   </div>
                   <div className="space-y-4">
-                    {experience.map((exp: any, i: number) => (
+                    {experience.map((exp: TemplateItem, i: number) => (
                       <motion.div key={exp.id} initial={{ opacity: 0, x: -30 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }} transition={{ delay: i * 0.08 }}
                         className="rounded-xl border p-6 md:p-8" style={{ borderColor: `${ac}20`, backgroundColor: panelBg }}>
                         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-3">
@@ -171,7 +173,7 @@ export default function DeveloperTemplate({ data, theme, isPreview }: { data: an
           )}
 
           {/* Projects */}
-          {projects?.length > 0 && (
+          {((projects?.length ?? 0) > 0) && (
             <section id="projects" className="py-24 px-6 md:px-16">
               <div className="max-w-6xl mx-auto">
                 <FadeUp>
@@ -179,7 +181,7 @@ export default function DeveloperTemplate({ data, theme, isPreview }: { data: an
                     <span style={{ color: '#50fa7b' }}>$</span> ./scripts/deploy.sh
                   </div>
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {projects.map((proj: any) => (
+                    {projects.map((proj: TemplateItem) => (
                       <motion.div key={proj.id} whileHover={{ y: -4, borderColor: ac }}
                         className="rounded-xl border p-5" style={{ borderColor: `${ac}15`, backgroundColor: panelBg }}>
                         {proj.image_url && <div className="overflow-hidden rounded-lg mb-4"><motion.img whileHover={{ scale: 1.05 }} src={proj.image_url} alt={proj.title} className="w-full h-40 object-cover" /></div>}
@@ -199,7 +201,7 @@ export default function DeveloperTemplate({ data, theme, isPreview }: { data: an
           )}
 
           {/* Skills */}
-          {skills?.length > 0 && (
+          {((skills?.length ?? 0) > 0) && (
             <section id="skills" className="py-24 px-6 md:px-16">
               <div className="max-w-5xl mx-auto">
                 <FadeUp>
@@ -207,7 +209,7 @@ export default function DeveloperTemplate({ data, theme, isPreview }: { data: an
                     <span style={{ color: '#50fa7b' }}>$</span> which skills
                   </div>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {skills.map((skill: any) => (
+                    {skills.map((skill: TemplateItem) => (
                       <motion.div key={skill.id} initial={{ opacity: 0 }} whileInView={{ opacity: 1 }} viewport={{ once: true }} whileHover={{ borderColor: ac }}
                         className="rounded-xl border p-5" style={{ borderColor: `${ac}15`, backgroundColor: panelBg }}>
                         <div className="flex items-center gap-2 mb-4">
@@ -224,7 +226,7 @@ export default function DeveloperTemplate({ data, theme, isPreview }: { data: an
           )}
 
           {/* Services */}
-          {services?.length > 0 && (
+          {((services?.length ?? 0) > 0) && (
             <section id="services" className="py-24 px-6 md:px-16">
               <div className="max-w-5xl mx-auto">
                 <FadeUp>
@@ -232,7 +234,7 @@ export default function DeveloperTemplate({ data, theme, isPreview }: { data: an
                     <span style={{ color: '#50fa7b' }}>$</span> cat services.config.json
                   </div>
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    {services.map((svc: any) => (
+                    {services.map((svc: TemplateItem) => (
                       <motion.div key={svc.id} whileHover={{ y: -4 }} className="rounded-xl border p-6" style={{ borderColor: `${ac}15`, backgroundColor: panelBg }}>
                         <p className="text-2xl mb-3">{svc.icon || '✦'}</p>
                         <h3 className="font-mono font-black text-sm mb-2" style={{ color: textColor }}>{'>'} {svc.title}</h3>
@@ -246,7 +248,7 @@ export default function DeveloperTemplate({ data, theme, isPreview }: { data: an
           )}
 
           {/* Testimonials */}
-          {testimonials?.length > 0 && (
+          {((testimonials?.length ?? 0) > 0) && (
             <section id="testimonials" className="py-24 px-6 md:px-16">
               <div className="max-w-4xl mx-auto">
                 <FadeUp>
@@ -254,7 +256,7 @@ export default function DeveloperTemplate({ data, theme, isPreview }: { data: an
                     <span style={{ color: '#50fa7b' }}>$</span> cat ~/testimonials.log
                   </div>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {testimonials.map((t: any) => (
+                    {testimonials.map((t: TemplateItem) => (
                       <div key={t.id} className="rounded-xl border p-5" style={{ borderColor: `${ac}15`, backgroundColor: panelBg }}>
                         <div className="flex gap-1 mb-3">{[...Array(5)].map((_, i) => <span key={i} className="text-xs" style={{ color: '#f1fa8c' }}></span>)}</div>
                         <p className="font-mono text-xs italic mb-4" style={{ color: subColor }}>{t.message}</p>
@@ -271,7 +273,7 @@ export default function DeveloperTemplate({ data, theme, isPreview }: { data: an
           )}
 
           {/* Gallery */}
-          {gallery?.length > 0 && (
+          {((gallery?.length ?? 0) > 0) && (
             <section id="gallery" className="py-24 px-6 md:px-16">
               <div className="max-w-6xl mx-auto">
                 <FadeUp>
@@ -279,14 +281,14 @@ export default function DeveloperTemplate({ data, theme, isPreview }: { data: an
                     <span style={{ color: '#50fa7b' }}>$</span> open ~/certificates/
                   </div>
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    {gallery.map((cert: any) => (
+                    {gallery.map((cert: TemplateItem) => (
                       <div key={cert.id} className="rounded-xl border p-5" style={{ borderColor: `${ac}15`, backgroundColor: panelBg }}>
                         {(cert.image_url || cert.file_url) && (
                           <div className="w-full h-32 rounded-lg mb-4 overflow-hidden bg-cover bg-center"
                             style={{ backgroundImage: `url(${cert.image_url || cert.file_url})` }}>
                             <img src={cert.image_url || cert.file_url} alt={cert.title}
                               className="w-full h-full object-cover"
-                              onError={(e: any) => { e.target.style.display = 'none' }} />
+                              onError={(e: SyntheticEvent<HTMLImageElement>) => { e.currentTarget.style.display = 'none' }} />
                           </div>
                         )}
                         <h3 className="font-mono font-bold text-sm mb-1" style={{ color: textColor }}>{cert.title}</h3>
@@ -302,18 +304,18 @@ export default function DeveloperTemplate({ data, theme, isPreview }: { data: an
           )}
 
           {/* Custom */}
-          {custom?.length > 0 && custom.map((sec: any) => (
+          {((custom?.length ?? 0) > 0) && custom.map((sec: TemplateItem) => (
             <section key={sec.id} id={`custom-${(sec.title || sec.original_type || '').toLowerCase().replace(/\s+/g, '-')}`} className="py-24 px-6 md:px-16">
               <div className="max-w-5xl mx-auto">
                 <FadeUp>
                   <div className="font-mono text-xs mb-8" style={{ color: `${ac}50` }}>
-                    <span style={{ color: '#50fa7b' }}>$</span> ./custom_sections/{sec.title.toLowerCase().replace(/\s+/g, '_')}.sh
+                    <span style={{ color: '#50fa7b' }}>$</span> ./custom_sections/{(sec.title || sec.original_type || 'section').toLowerCase().replace(/\s+/g, '_')}.sh
                   </div>
                   <h2 className="font-mono text-2xl font-black mb-6" style={{ color: textColor }}>{'>'} {sec.title}</h2>
                   {sec.type === 'text' && <p className="font-mono text-sm leading-relaxed text-justify" style={{ color: subColor }}>{sec.content?.body}</p>}
                   {sec.type === 'list' && <div className="space-y-2">{(sec.content?.items || []).map((item: string, i: number) => <div key={i} className="flex gap-2 font-mono text-sm" style={{ color: subColor }}><span className="text-green-400">OK</span>{item}</div>)}</div>}
-                  {sec.type === 'links' && <div className="flex flex-wrap gap-3">{(sec.content?.links || []).map((link: any, i: number) => <motion.a key={i} href={link.url} target="_blank" whileHover={{ scale: 1.05 }} className="font-mono text-sm px-6 py-3 rounded font-bold" style={{ backgroundColor: ac, color: '#121016' }}>{link.label}</motion.a>)}</div>}
-                  {!['text','list','cards','links'].includes(sec.type) && sec.content && (
+                  {sec.type === 'links' && <div className="flex flex-wrap gap-3">{(sec.content?.links || []).map((link: TemplateItem, i: number) => <motion.a key={i} href={link.url} target="_blank" whileHover={{ scale: 1.05 }} className="font-mono text-sm px-6 py-3 rounded font-bold" style={{ backgroundColor: ac, color: '#121016' }}>{link.label}</motion.a>)}</div>}
+                  {!['text','list','cards','links'].includes(sec.type ?? '') && sec.content && (
                     <div className="space-y-4">
                       {(() => {
                         if ((sec.original_type === 'certification' || sec.type === 'certification') && Array.isArray(sec.content?.items)) {

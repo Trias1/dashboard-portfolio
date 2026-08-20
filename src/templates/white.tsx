@@ -1,4 +1,6 @@
 'use client';
+import type { TemplateData, TemplateItem, TemplateSectionOrder, ThemeConfig } from '@/types';
+import type { SyntheticEvent } from 'react';
 import { useRef } from 'react';
 import { motion, useInView } from 'framer-motion';
 import TechBadge from '@/components/TechIcon';
@@ -14,8 +16,8 @@ function FadeIn({ children, delay = 0 }: { children: React.ReactNode; delay?: nu
   );
 }
 
-export default function WhiteTemplate({ data, theme, isPreview }: { data: any; theme: any; isPreview?: boolean }) {
-  const { portfolio, hero, about, experience, projects, services, skills, testimonials, contact, gallery, custom } = data;
+export default function WhiteTemplate({ data, theme, isPreview }: { data: TemplateData; theme: ThemeConfig; isPreview?: boolean }) {
+  const { portfolio, hero, about, experience = [], projects = [], services = [], skills = [], testimonials = [], contact, gallery = [], custom = [] } = data;
   const ac = theme.accent;
 
   return (
@@ -100,7 +102,7 @@ export default function WhiteTemplate({ data, theme, isPreview }: { data: any; t
         )}
 
         {/* Projects */}
-        {projects?.length > 0 && (
+        {((projects?.length ?? 0) > 0) && (
           <section id="projects" className="py-24 px-6 md:px-16 bg-white">
             <div className="max-w-6xl mx-auto">
               <FadeIn>
@@ -109,7 +111,7 @@ export default function WhiteTemplate({ data, theme, isPreview }: { data: any; t
                   <h2 className="text-3xl sm:text-4xl font-light mt-1" style={{ color: '#111' }}>Selected Work</h2>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                  {projects.map((proj: any, i: number) => (
+                  {projects.map((proj: TemplateItem, i: number) => (
                     <motion.div key={proj.id} initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: i * 0.08 }}
                       whileHover={{ y: -8 }} className="group">
                       {proj.image_url && <div className="overflow-hidden mb-5"><motion.img whileHover={{ scale: 1.05 }} src={proj.image_url} alt={proj.title} className="w-full h-56 object-cover" /></div>}
@@ -129,7 +131,7 @@ export default function WhiteTemplate({ data, theme, isPreview }: { data: any; t
         )}
 
         {/* Experience */}
-        {experience?.length > 0 && (
+        {((experience?.length ?? 0) > 0) && (
           <section id="experience" className="py-24 px-6 md:px-16 bg-gray-50">
             <div className="max-w-4xl mx-auto">
               <FadeIn>
@@ -138,7 +140,7 @@ export default function WhiteTemplate({ data, theme, isPreview }: { data: any; t
                   <h2 className="text-3xl sm:text-4xl font-light mt-1" style={{ color: '#111' }}>Experience</h2>
                 </div>
                 <div className="space-y-8">
-                  {experience.map((exp: any, i: number) => (
+                  {experience.map((exp: TemplateItem, i: number) => (
                     <motion.div key={exp.id} initial={{ opacity: 0, x: -20 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }} transition={{ delay: i * 0.06 }}
                       className="flex gap-4">
                       <div className="w-px bg-gray-200 shrink-0 mt-2" />
@@ -157,7 +159,7 @@ export default function WhiteTemplate({ data, theme, isPreview }: { data: any; t
         )}
 
         {/* Skills */}
-        {skills?.length > 0 && (
+        {((skills?.length ?? 0) > 0) && (
           <section id="skills" className="py-24 px-6 md:px-16 bg-white">
             <div className="max-w-5xl mx-auto">
               <FadeIn>
@@ -166,7 +168,7 @@ export default function WhiteTemplate({ data, theme, isPreview }: { data: any; t
                   <h2 className="text-3xl sm:text-4xl font-light mt-1" style={{ color: '#111' }}>Skills</h2>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {skills.map((skill: any) => (
+                  {skills.map((skill: TemplateItem) => (
                     <motion.div key={skill.id} whileHover={{ x: 4 }}>
                       <h3 className="text-sm font-medium uppercase tracking-wider mb-3" style={{ color: '#333' }}>{skill.title}</h3>
                       <div className="flex flex-wrap gap-2">{skill.skills?.split(',').map((s: string) => <TechBadge key={s} name={s.trim()} accentColor={ac} />)}</div>
@@ -179,11 +181,11 @@ export default function WhiteTemplate({ data, theme, isPreview }: { data: any; t
         )}
 
         {/* Services & Testimonials */}
-        {services?.length > 0 && (
+        {((services?.length ?? 0) > 0) && (
           <section id="services" className="py-24 px-6 md:px-16 bg-gray-50">
             <div className="max-w-5xl mx-auto"><FadeIn>
               <div className="mb-14"><span className="text-xs font-semibold uppercase tracking-[0.25em]" style={{ color: ac }}>Services</span><h2 className="text-3xl sm:text-4xl font-light mt-1" style={{ color: '#111' }}>What I Do</h2></div>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">{services.map((svc: any) => (
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">{services.map((svc: TemplateItem) => (
                 <motion.div key={svc.id} whileHover={{ y: -4 }}>
                   <p className="text-3xl mb-4">{svc.icon || 'o'}</p>
                   <h3 className="text-lg font-light mb-2" style={{ color: '#111' }}>{svc.title}</h3>
@@ -194,11 +196,11 @@ export default function WhiteTemplate({ data, theme, isPreview }: { data: any; t
           </section>
         )}
 
-        {testimonials?.length > 0 && (
+        {((testimonials?.length ?? 0) > 0) && (
           <section id="testimonials" className="py-24 px-6 md:px-16 bg-white">
             <div className="max-w-4xl mx-auto"><FadeIn>
               <div className="mb-14"><span className="text-xs font-semibold uppercase tracking-[0.25em]" style={{ color: ac }}>Kind Words</span><h2 className="text-3xl sm:text-4xl font-light mt-1" style={{ color: '#111' }}>Testimonials</h2></div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">{testimonials.map((t: any) => (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">{testimonials.map((t: TemplateItem) => (
                 <div key={t.id}>
                   <p className="text-5xl font-thin leading-none mb-2" style={{ color: ac }}>"</p>
                   <p className="text-sm leading-relaxed italic mb-4" style={{ color: '#888' }}>{t.message}</p>
@@ -212,18 +214,18 @@ export default function WhiteTemplate({ data, theme, isPreview }: { data: any; t
           </section>
         )}
 
-        {gallery?.length > 0 && (
+        {((gallery?.length ?? 0) > 0) && (
           <section id="gallery" className="py-24 px-6 md:px-16 bg-gray-50">
             <div className="max-w-6xl mx-auto"><FadeIn>
               <div className="mb-14"><span className="text-xs font-semibold uppercase tracking-[0.25em]" style={{ color: ac }}>Credentials</span><h2 className="text-3xl sm:text-4xl font-light mt-1" style={{ color: '#111' }}>Certificates</h2></div>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">{gallery.map((cert: any) => (
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">{gallery.map((cert: TemplateItem) => (
                 <div key={cert.id}>
                   {(cert.image_url || cert.file_url) && (
                     <div className="w-full h-40 mb-4 overflow-hidden bg-cover bg-center"
                       style={{ backgroundImage: `url(${cert.image_url || cert.file_url})` }}>
                       <img src={cert.image_url || cert.file_url} alt={cert.title}
                         className="w-full h-full object-cover"
-                        onError={(e: any) => { e.target.style.display = 'none' }} />
+                        onError={(e: SyntheticEvent<HTMLImageElement>) => { e.currentTarget.style.display = 'none' }} />
                     </div>
                   )}
                   <h3 className="text-base font-light mb-1" style={{ color: '#111' }}>{cert.title}</h3>
@@ -236,14 +238,14 @@ export default function WhiteTemplate({ data, theme, isPreview }: { data: any; t
           </section>
         )}
 
-        {custom?.length > 0 && custom.map((sec: any) => (
+        {((custom?.length ?? 0) > 0) && custom.map((sec: TemplateItem) => (
           <section key={sec.id} id={`custom-${(sec.title || sec.original_type || '').toLowerCase().replace(/\s+/g, '-')}`} className="py-24 px-6 md:px-16 bg-white">
             <div className="max-w-5xl mx-auto"><FadeIn>
-              <h2 className="text-3xl sm:text-4xl font-light mb-8" style={{ color: '#111' }}>{sec.title}</h2>
+              <h2 className="text-3xl sm:text-4xl font-light mb-8" style={{ color: '#111' }}>{sec.title || sec.original_type || 'Section'}</h2>
               {sec.type === 'text' && <p className="text-base leading-relaxed" style={{ color: '#888' }}>{sec.content?.body}</p>}
               {sec.type === 'list' && <div className="space-y-3">{(sec.content?.items || []).map((item: string, i: number) => <div key={i} className="flex gap-3 text-base" style={{ color: '#888' }}><span style={{ color: ac }}> - </span>{item}</div>)}</div>}
-              {sec.type === 'links' && <div className="flex flex-wrap gap-3">{(sec.content?.links || []).map((link: any, i: number) => <motion.a key={i} href={link.url} target="_blank" whileHover={{ y: -2 }} className="text-sm font-medium tracking-wide px-6 py-3 text-white" style={{ backgroundColor: ac }}>{link.label}</motion.a>)}</div>}
-              {!['text','list','cards','links'].includes(sec.type) && sec.content && (
+              {sec.type === 'links' && <div className="flex flex-wrap gap-3">{(sec.content?.links || []).map((link: TemplateItem, i: number) => <motion.a key={i} href={link.url} target="_blank" whileHover={{ y: -2 }} className="text-sm font-medium tracking-wide px-6 py-3 text-white" style={{ backgroundColor: ac }}>{link.label}</motion.a>)}</div>}
+              {!['text','list','cards','links'].includes(sec.type ?? '') && sec.content && (
                 <div className="space-y-4">
                   {(() => {
                     if ((sec.original_type === 'certification' || sec.type === 'certification') && Array.isArray(sec.content?.items)) {

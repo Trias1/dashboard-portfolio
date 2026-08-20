@@ -1,4 +1,6 @@
-﻿'use client';
+'use client';
+import type { TemplateData, TemplateItem, TemplateSectionOrder, ThemeConfig } from '@/types';
+import type { SyntheticEvent } from 'react';
 import { useRef } from 'react';
 import { motion, useInView } from 'framer-motion';
 import TechBadge from '@/components/TechIcon';
@@ -31,8 +33,8 @@ function SectionTitle({ title, subtitle, ac }: { title: string; subtitle?: strin
 const textColor = '#f0f0f5';
 const subColor = '#a0a0b8';
 
-export default function GlassTemplate({ data, theme, isPreview }: { data: any; theme: any; isPreview?: boolean }) {
-  const { portfolio, hero, about, experience, projects, services, skills, testimonials, contact, gallery, custom } = data;
+export default function GlassTemplate({ data, theme, isPreview }: { data: TemplateData; theme: ThemeConfig; isPreview?: boolean }) {
+  const { portfolio, hero, about, experience = [], projects = [], services = [], skills = [], testimonials = [], contact, gallery = [], custom = [] } = data;
   const ac = theme.accent;
 
   return (
@@ -131,13 +133,13 @@ export default function GlassTemplate({ data, theme, isPreview }: { data: any; t
         )}
 
         {/* Skills */}
-        {skills?.length > 0 && (
+        {((skills?.length ?? 0) > 0) && (
           <section id="skills" className="py-20 md:py-28 px-4">
             <div className="max-w-5xl mx-auto">
               <SectionTitle title="Skills & Tools" subtitle="Expertise" ac={ac} />
               <GlassCard className="p-8">
                 <div className="space-y-8">
-                  {skills.map((skill: any) => (
+                  {skills.map((skill: TemplateItem) => (
                     <div key={skill.id}>
                       {skill.title && <h3 className="text-base font-medium mb-4" style={{ color: textColor }}>{skill.title}</h3>}
                       <div className="flex flex-wrap gap-3">
@@ -154,12 +156,12 @@ export default function GlassTemplate({ data, theme, isPreview }: { data: any; t
         )}
 
         {/* Experience */}
-        {experience?.length > 0 && (
+        {((experience?.length ?? 0) > 0) && (
           <section id="experience" className="py-20 md:py-28 px-4">
             <div className="max-w-4xl mx-auto">
               <SectionTitle title="Experience" subtitle="Career" ac={ac} />
               <div className="space-y-6">
-                {experience.map((exp: any) => (
+                {experience.map((exp: TemplateItem) => (
                   <GlassCard key={exp.id} className="p-6 md:p-8">
                     <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-3">
                       <h3 className="text-lg font-semibold" style={{ color: textColor }}>{exp.position}</h3>
@@ -187,12 +189,12 @@ export default function GlassTemplate({ data, theme, isPreview }: { data: any; t
         )}
 
         {/* Projects */}
-        {projects?.length > 0 && (
+        {((projects?.length ?? 0) > 0) && (
           <section id="projects" className="py-20 md:py-28 px-4">
             <div className="max-w-6xl mx-auto">
               <SectionTitle title="Projects" subtitle="Featured Work" ac={ac} />
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {projects.map((proj: any) => (
+                {projects.map((proj: TemplateItem) => (
                   <GlassCard key={proj.id} className="overflow-hidden">
                     {proj.image_url && <img src={proj.image_url} alt={proj.title} className="w-full h-44 object-cover" />}
                     <div className="p-6">
@@ -229,12 +231,12 @@ export default function GlassTemplate({ data, theme, isPreview }: { data: any; t
         )}
 
         {/* Services */}
-        {services?.length > 0 && (
+        {((services?.length ?? 0) > 0) && (
           <section id="services" className="py-20 md:py-28 px-4">
             <div className="max-w-5xl mx-auto">
               <SectionTitle title="Services" subtitle="What I Do" ac={ac} />
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {services.map((svc: any) => (
+                {services.map((svc: TemplateItem) => (
                   <GlassCard key={svc.id} className="p-8 text-center">
                     <div className="text-4xl mb-5 opacity-70">{svc.icon || '✦'}</div>
                     <h3 className="text-lg font-semibold mb-2" style={{ color: textColor }}>{svc.title}</h3>
@@ -247,12 +249,12 @@ export default function GlassTemplate({ data, theme, isPreview }: { data: any; t
         )}
 
         {/* Testimonials */}
-        {testimonials?.length > 0 && (
+        {((testimonials?.length ?? 0) > 0) && (
           <section id="testimonials" className="py-20 md:py-28 px-4">
             <div className="max-w-4xl mx-auto">
               <SectionTitle title="Testimonials" subtitle="Kind Words" ac={ac} />
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {testimonials.map((t: any) => (
+                {testimonials.map((t: TemplateItem) => (
                   <GlassCard key={t.id} className="p-6">
                     <p className="text-4xl font-thin leading-none mb-2 opacity-30" style={{ color: ac }}>"</p>
                     <p className="text-sm font-light italic mb-4 leading-relaxed text-justify" style={{ color: subColor }}>{t.message}</p>
@@ -271,19 +273,19 @@ export default function GlassTemplate({ data, theme, isPreview }: { data: any; t
         )}
 
         {/* Certificates */}
-        {gallery?.length > 0 && (
+        {((gallery?.length ?? 0) > 0) && (
           <section id="gallery" className="py-20 md:py-28 px-4">
             <div className="max-w-6xl mx-auto">
               <SectionTitle title="Certificates" subtitle="Credentials" ac={ac} />
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {gallery.map((cert: any) => (
+                {gallery.map((cert: TemplateItem) => (
                   <GlassCard key={cert.id} className="p-6">
                     {(cert.image_url || cert.file_url) && (
                       <div className="w-full h-32 rounded-xl mb-4 overflow-hidden bg-cover bg-center"
                         style={{ backgroundImage: `url(${cert.image_url || cert.file_url})` }}>
                         <img src={cert.image_url || cert.file_url} alt={cert.title}
                           className="w-full h-full object-cover"
-                          onError={(e: any) => { e.target.style.display = 'none' }} />
+                          onError={(e: SyntheticEvent<HTMLImageElement>) => { e.currentTarget.style.display = 'none' }} />
                       </div>
                     )}
                     <h3 className="text-base font-semibold mb-1" style={{ color: textColor }}>{cert.title}</h3>
@@ -303,10 +305,10 @@ export default function GlassTemplate({ data, theme, isPreview }: { data: any; t
         )}
 
         {/* Custom Sections */}
-        {custom?.length > 0 && custom.map((sec: any) => (
+        {((custom?.length ?? 0) > 0) && custom.map((sec: TemplateItem) => (
           <section key={sec.id} id={`custom-${(sec.title || sec.original_type || '').toLowerCase().replace(/\s+/g, '-')}`} className="py-20 md:py-28 px-4">
             <div className="max-w-5xl mx-auto">
-              <SectionTitle title={sec.title} ac={ac} />
+              <SectionTitle title={sec.title || sec.original_type || "Section"} ac={ac} />
               {sec.type === 'text' && <GlassCard className="p-8"><p className="text-base font-light leading-relaxed text-center text-justify" style={{ color: subColor }}>{sec.content?.body}</p></GlassCard>}
               {sec.type === 'list' && (
                 <ul className="space-y-3 max-w-2xl mx-auto">
@@ -321,7 +323,7 @@ export default function GlassTemplate({ data, theme, isPreview }: { data: any; t
               )}
               {sec.type === 'cards' && (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {(sec.content?.cards || []).map((card: any, i: number) => (
+                  {(sec.content?.cards || []).map((card: TemplateItem, i: number) => (
                     <GlassCard key={i} className="p-6 text-center">
                       {card.icon && <div className="text-3xl mb-3 opacity-70">{card.icon}</div>}
                       <h3 className="font-semibold text-lg mb-2" style={{ color: textColor }}>{card.title}</h3>
@@ -332,7 +334,7 @@ export default function GlassTemplate({ data, theme, isPreview }: { data: any; t
               )}
               {sec.type === 'links' && (
                 <div className="flex flex-wrap gap-4 justify-center">
-                  {(sec.content?.links || []).map((link: any, i: number) => (
+                  {(sec.content?.links || []).map((link: TemplateItem, i: number) => (
                     <motion.a key={i} href={link.url} target="_blank" whileHover={{ scale: 1.03 }}
                       className="px-8 py-3.5 rounded-xl font-medium backdrop-blur-xl border border-white/20 text-white"
                       style={{ backgroundColor: `${ac}50` }}>
@@ -341,7 +343,7 @@ export default function GlassTemplate({ data, theme, isPreview }: { data: any; t
                   ))}
                 </div>
               )}
-              {!['text','list','cards','links'].includes(sec.type) && sec.content && (
+              {!['text','list','cards','links'].includes(sec.type ?? '') && sec.content && (
                 <div className="space-y-4">
                   {(() => {
                     if ((sec.original_type === 'certification' || sec.type === 'certification') && Array.isArray(sec.content?.items)) {
@@ -388,7 +390,7 @@ export default function GlassTemplate({ data, theme, isPreview }: { data: any; t
         ))}
 
         {/* Contact */}
-        {data.portfolio?.sections_order?.find((section: any) => section.type === 'contact')?.enabled !== false && (
+        {data.portfolio?.sections_order?.find((section: TemplateSectionOrder) => section.type === 'contact')?.enabled !== false && (
           <section id="contact" className="py-20 md:py-28 px-4">
           <div className="max-w-3xl mx-auto text-center">
             <SectionTitle title="Get In Touch" subtitle="Contact" ac={ac} />

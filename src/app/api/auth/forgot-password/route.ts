@@ -1,38 +1,57 @@
-import { NextRequest } from 'next/server';
+﻿import { NextRequest } from 'next/server';
 import crypto from 'crypto';
 import { getSupabaseAdmin } from '@/lib/supabase/admin';
 import { sendResetPassword } from '@/lib/mailer';
 import { errorResponse, successResponse } from '@/lib/utils';
 import { checkRateLimit, getClientId } from '@/lib/rate-limit';
 
+const GENERIC_MESSAGE = 'Jika email terdaftar, link reset akan dikirim.';
+
 export async function POST(request: NextRequest) {
   try {
     const rl = await checkRateLimit(getClientId(request), 'auth');
     if (!rl.allowed) return errorResponse('Too many requests', 429);
 
-    const { email } = await request.json();
+    const body = await request.json();
+    const email = typeof body.email === 'string' ? body.email.trim().toLowerCase() : '';
     if (!email) return errorResponse('Email required', 400);
 
-    const { data: user } = await getSupabaseAdmin()
+    const supabase = getSupabaseAdmin();
+    const { data: user, error: lookupError } = await supabase
       .from('users')
       .select('id, name, email')
       .eq('email', email)
       .maybeSingle();
 
-    if (!user) return successResponse({ message: 'Jika email terdaftar, link reset akan dikirim.' });
+    if (lookupError) {
+      console.error('[forgot password] user lookup failed', { code: lookupError.code, message: lookupError.message });
+      return errorResponse('Unable to process request', 500);
+    }
+
+    if (!user) return successResponse({ message: GENERIC_MESSAGE });
 
     const token = crypto.randomBytes(32).toString('hex');
     const expires = new Date(Date.now() + 60 * 60 * 1000).toISOString();
-
-    await getSupabaseAdmin()
+    const { error: updateError } = await supabase
       .from('users')
       .update({ reset_token: token, reset_token_expires: expires })
       .eq('id', user.id);
 
-    await sendResetPassword(user.email, user.name, token);
+    if (updateError) {
+      console.error('[forgot password] token update failed', { code: updateError.code, message: updateError.message });
+      return errorResponse('Unable to process request', 500);
+    }
 
-    return successResponse({ message: 'Jika email terdaftar, link reset akan dikirim.' });
-  } catch (err: any) {
-    return errorResponse(err.message);
+    try {
+      await sendResetPassword(user.email, user.name, token);
+    } catch (error) {
+      console.error('[forgot password] email delivery failed', error instanceof Error ? { name: error.name, message: error.message } : error);
+      return errorResponse('Unable to send reset email', 502);
+    }
+
+    return successResponse({ message: GENERIC_MESSAGE });
+  } catch (error) {
+    console.error('[forgot password] unexpected error', error instanceof Error ? { name: error.name, message: error.message } : error);
+    return errorResponse('Unable to process request', 500);
   }
 }

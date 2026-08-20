@@ -1,4 +1,6 @@
-﻿'use client';
+'use client';
+import type { TemplateData, TemplateItem, TemplateSectionOrder, ThemeConfig } from '@/types';
+import type { SyntheticEvent } from 'react';
 import { useRef } from 'react';
 import { motion, useInView, useScroll, useTransform } from 'framer-motion';
 import TechBadge from '@/components/TechIcon';
@@ -30,11 +32,11 @@ function SectionTitle({ title, subtitle, ac }: { title: string; subtitle?: strin
 const textColor = '#f0f0f5';
 const subColor = '#9090a8';
 
-export default function ImmersiveTemplate({ data, theme, isPreview }: { data: any; theme: any; isPreview?: boolean }) {
-  const { portfolio, hero, about, experience, projects, services, skills, testimonials, contact, gallery, custom } = data;
+export default function ImmersiveTemplate({ data, theme, isPreview }: { data: TemplateData; theme: ThemeConfig; isPreview?: boolean }) {
+  const { portfolio, hero, about, experience = [], projects = [], services = [], skills = [], testimonials = [], contact, gallery = [], custom = [] } = data;
   const ac = theme.accent;
-  const customOrder = (portfolio.sections_order || []).filter((section: any) => section.type === 'custom').map((section: any) => section.label?.toLowerCase().replace(/\s+/g, '-'));
-  const orderedCustom = [...(custom || [])].sort((a: any, b: any) => {
+  const customOrder = (portfolio.sections_order || []).filter((section: TemplateSectionOrder) => section.type === 'custom').map((section: TemplateSectionOrder) => section.label?.toLowerCase().replace(/\s+/g, '-'));
+  const orderedCustom = [...(custom || [])].sort((a: TemplateItem, b: TemplateItem) => {
     const aIndex = customOrder.indexOf((a.title || a.original_type || '').toLowerCase().replace(/\s+/g, '-'));
     const bIndex = customOrder.indexOf((b.title || b.original_type || '').toLowerCase().replace(/\s+/g, '-'));
     return (aIndex < 0 ? 999 : aIndex) - (bIndex < 0 ? 999 : bIndex);
@@ -112,12 +114,12 @@ export default function ImmersiveTemplate({ data, theme, isPreview }: { data: an
         )}
 
         {/* Skills */}
-        {skills?.length > 0 && (
+        {((skills?.length ?? 0) > 0) && (
           <ParallaxSection speed={-0.1} className="py-28 px-4" id="skills">
             <div className="max-w-5xl mx-auto">
               <SectionTitle title="Skills" subtitle="Expertise" ac={ac} />
               <div className="space-y-8">
-                {skills.map((skill: any) => (
+                {skills.map((skill: TemplateItem) => (
                   <div key={skill.id}>
                     {skill.title && <h3 className="text-lg font-semibold mb-5" style={{ color: textColor }}>{skill.title}</h3>}
                     <div className="flex flex-wrap gap-3">
@@ -136,12 +138,12 @@ export default function ImmersiveTemplate({ data, theme, isPreview }: { data: an
         )}
 
         {/* Experience */}
-        {experience?.length > 0 && (
+        {((experience?.length ?? 0) > 0) && (
           <ParallaxSection speed={0.1} className="py-28 px-4" id="experience">
             <div className="max-w-4xl mx-auto">
               <SectionTitle title="Experience" subtitle="Timeline" ac={ac} />
               <div className="space-y-8">
-                {experience.map((exp: any, i: number) => (
+                {experience.map((exp: TemplateItem, i: number) => (
                   <motion.div key={exp.id} initial={{ opacity: 0, x: i % 2 === 0 ? -40 : 40 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }}
                     className={`flex flex-col md:flex-row gap-6 ${i % 2 === 0 ? '' : 'md:flex-row-reverse'}`}>
                     <div className="flex-1">
@@ -172,12 +174,12 @@ export default function ImmersiveTemplate({ data, theme, isPreview }: { data: an
         )}
 
         {/* Projects */}
-        {projects?.length > 0 && (
+        {((projects?.length ?? 0) > 0) && (
           <ParallaxSection speed={-0.15} className="py-28 px-4" id="projects">
             <div className="max-w-6xl mx-auto">
               <SectionTitle title="Projects" subtitle="Featured" ac={ac} />
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {projects.map((proj: any) => (
+                {projects.map((proj: TemplateItem) => (
                   <motion.div key={proj.id} whileHover={{ y: -10, scale: 1.02 }}
                     className="group rounded-2xl overflow-hidden backdrop-blur-sm border" style={{ borderColor: `${ac}15`, backgroundColor: `${ac}06` }}>
                     {proj.image_url && <div className="overflow-hidden"><img src={proj.image_url} alt={proj.title} className="w-full h-44 object-cover transition-transform duration-700 group-hover:scale-110" /></div>}
@@ -198,12 +200,12 @@ export default function ImmersiveTemplate({ data, theme, isPreview }: { data: an
         )}
 
         {/* Services */}
-        {services?.length > 0 && (
+        {((services?.length ?? 0) > 0) && (
           <ParallaxSection speed={0.1} className="py-28 px-4" id="services">
             <div className="max-w-5xl mx-auto">
               <SectionTitle title="Services" subtitle="What I Do" ac={ac} />
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                {services.map((svc: any) => (
+                {services.map((svc: TemplateItem) => (
                   <motion.div key={svc.id} whileHover={{ y: -8 }} className="p-8 rounded-2xl backdrop-blur-sm border text-center" style={{ borderColor: `${ac}15`, backgroundColor: `${ac}06` }}>
                     <div className="text-4xl mb-5">{svc.icon || '✦'}</div>
                     <h3 className="text-lg font-bold mb-2" style={{ color: textColor }}>{svc.title}</h3>
@@ -216,12 +218,12 @@ export default function ImmersiveTemplate({ data, theme, isPreview }: { data: an
         )}
 
         {/* Testimonials */}
-        {testimonials?.length > 0 && (
+        {((testimonials?.length ?? 0) > 0) && (
           <ParallaxSection speed={-0.1} className="py-28 px-4" id="testimonials">
             <div className="max-w-4xl mx-auto">
               <SectionTitle title="Testimonials" subtitle="Kind Words" ac={ac} />
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {testimonials.map((t: any) => (
+                {testimonials.map((t: TemplateItem) => (
                   <div key={t.id} className="p-6 rounded-2xl backdrop-blur-sm border" style={{ borderColor: `${ac}15`, backgroundColor: `${ac}06` }}>
                     <p className="text-4xl font-thin leading-none mb-2" style={{ color: `${ac}30` }}>"</p>
                     <p className="text-sm italic mb-4 font-light" style={{ color: subColor }}>{t.message}</p>
@@ -237,19 +239,19 @@ export default function ImmersiveTemplate({ data, theme, isPreview }: { data: an
         )}
 
         {/* Certificate */}
-        {gallery?.length > 0 && (
+        {((gallery?.length ?? 0) > 0) && (
           <ParallaxSection speed={0.1} className="py-28 px-4" id="gallery">
             <div className="max-w-6xl mx-auto">
               <SectionTitle title="Certificates" subtitle="Credentials" ac={ac} />
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                {gallery.map((cert: any) => (
+                {gallery.map((cert: TemplateItem) => (
                   <div key={cert.id} className="p-5 rounded-2xl backdrop-blur-sm border" style={{ borderColor: `${ac}15`, backgroundColor: `${ac}06` }}>
                     {(cert.image_url || cert.file_url) && (
                       <div className="w-full h-32 rounded-xl mb-4 overflow-hidden bg-cover bg-center"
                         style={{ backgroundImage: `url(${cert.image_url || cert.file_url})` }}>
                         <img src={cert.image_url || cert.file_url} alt={cert.title}
                           className="w-full h-full object-cover"
-                          onError={(e: any) => { e.target.style.display = 'none' }} />
+                          onError={(e: SyntheticEvent<HTMLImageElement>) => { e.currentTarget.style.display = 'none' }} />
                       </div>
                     )}
                     <h3 className="font-bold mb-1" style={{ color: textColor }}>{cert.title}</h3>
@@ -264,14 +266,14 @@ export default function ImmersiveTemplate({ data, theme, isPreview }: { data: an
         )}
 
         {/* Custom Sections */}
-        {orderedCustom.length > 0 && orderedCustom.map((sec: any) => (
+        {orderedCustom.length > 0 && orderedCustom.map((sec: TemplateItem) => (
           <ParallaxSection key={sec.id} id={`custom-${(sec.title || sec.original_type || '').toLowerCase().replace(/\s+/g, '-')}`} speed={0.1} className="py-28 px-4">
             <div className="max-w-5xl mx-auto">
-              <SectionTitle title={sec.title} ac={ac} />
+              <SectionTitle title={sec.title || sec.original_type || "Section"} ac={ac} />
               {sec.type === 'text' && <p className="text-lg text-center text-justify font-light max-w-3xl mx-auto" style={{ color: subColor }}>{sec.content?.body}</p>}
               {sec.type === 'list' && <ul className="space-y-3 max-w-2xl mx-auto">{(sec.content?.items || []).map((item: string, i: number) => <motion.li key={i} initial={{ opacity: 0, x: -20 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }} className="flex gap-3 text-sm font-light" style={{ color: subColor }}><span className="w-1.5 h-1.5 rounded-full mt-1.5 shrink-0" style={{ backgroundColor: ac }} />{item}</motion.li>)}</ul>}
-              {sec.type === 'links' && <div className="flex flex-wrap gap-4 justify-center">{(sec.content?.links || []).map((link: any, i: number) => <motion.a key={i} href={link.url} target="_blank" whileHover={{ scale: 1.05 }} className="px-8 py-3.5 rounded-full font-medium backdrop-blur-sm border" style={{ borderColor: ac, color: ac }}>{link.label}</motion.a>)}</div>}
-              {!['text','list','cards','links'].includes(sec.type) && sec.content && (
+              {sec.type === 'links' && <div className="flex flex-wrap gap-4 justify-center">{(sec.content?.links || []).map((link: TemplateItem, i: number) => <motion.a key={i} href={link.url} target="_blank" whileHover={{ scale: 1.05 }} className="px-8 py-3.5 rounded-full font-medium backdrop-blur-sm border" style={{ borderColor: ac, color: ac }}>{link.label}</motion.a>)}</div>}
+              {!['text','list','cards','links'].includes(sec.type ?? '') && sec.content && (
                 <div className="space-y-4">
                   {(() => {
                     if ((sec.original_type === 'certification' || sec.type === 'certification') && Array.isArray(sec.content?.items)) {
