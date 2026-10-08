@@ -8,7 +8,7 @@ const geistMono = Geist_Mono({ variable: "--font-geist-mono", subsets: ["latin"]
 const bricolage = Bricolage_Grotesque({ variable: "--font-bricolage", subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  metadataBase: new URL(process.env.NEXT_PUBLIC_BASE_URL || "https://portfolio.tzm.web.id"),
+  metadataBase: new URL(process.env.NEXT_PUBLIC_BASE_URL || "https://portfolio.west-solutions.web.id"),
   title: "PortfolioKit  -  Buat Portfolio Profesional Gratis",
   description: "Platform portfolio profesional untuk semua profesi. Designer, developer, marketer  -  tampilkan dirimu secara profesional dalam menit. Gratis selamanya.",
   keywords: ["portfolio", "portfolio gratis", "buat portfolio", "portfolio profesional", "portfoliokit"],
@@ -16,12 +16,12 @@ export const metadata: Metadata = {
   openGraph: {
     title: "PortfolioKit  -  Buat Portfolio Profesional Gratis",
     description: "Tampilkan dirimu secara profesional. Gratis selamanya.",
-    url: process.env.NEXT_PUBLIC_BASE_URL || "https://portfolio.tzm.web.id",
+    url: process.env.NEXT_PUBLIC_BASE_URL || "https://portfolio.west-solutions.web.id",
     siteName: "PortfolioKit",
     type: "website",
     images: [
       {
-        url: `${process.env.NEXT_PUBLIC_BASE_URL || "https://portfolio.tzm.web.id"}/og-image.png`,
+        url: `${process.env.NEXT_PUBLIC_BASE_URL || "https://portfolio.west-solutions.web.id"}/og-image.png`,
         width: 1200,
         height: 630,
         alt: "PortfolioKit  -  Buat Portfolio Profesional Gratis",
@@ -32,7 +32,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "PortfolioKit  -  Buat Portfolio Profesional Gratis",
     description: "Tampilkan dirimu secara profesional. Gratis selamanya.",
-    images: [`${process.env.NEXT_PUBLIC_BASE_URL || "https://portfolio.tzm.web.id"}/og-image.png`],
+    images: [`${process.env.NEXT_PUBLIC_BASE_URL || "https://portfolio.west-solutions.web.id"}/og-image.png`],
   },
   icons: {
     icon: "/favicon.svg",

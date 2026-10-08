@@ -22,7 +22,6 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
           sections_order: [],
           theme: request.nextUrl.searchParams.get('theme') || 'dark-space',
           is_published: true,
-          custom_domain: null,
         },
         hero: {
           headline: "Hi, I'm Alex Rivera",
@@ -181,7 +180,6 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
         id: portfolio.id, slug: portfolio.slug, title: portfolio.title,
          template: portfolio.template, sections_order: sectionsConfig,
         theme: portfolio.theme, is_published: portfolio.is_published,
-        custom_domain: portfolio.custom_domain,
       },
       hero: isEnabled('hero') ? (hero.data || null) : null,
       about: isEnabled('about') ? (about.data || null) : null,

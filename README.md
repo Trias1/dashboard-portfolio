@@ -2,8 +2,8 @@
 
 A portfolio builder: fill in your experience, projects and skills once, pick one of 17 layouts, and publish a page you can share with clients or recruiters.
 
-- Production: <https://portfolio.west-solutions.web.id> (previously `portfolio.tzm.web.id`)
-- Demo / staging: <https://demo-portfolio.tzm.web.id>
+- Production: <https://portfolio.west-solutions.web.id>
+- Demo / staging: <https://demo-portfolio.west-solutions.web.id>
 
 PortfolioKit is free and open-source software under the [MIT License](LICENSE).
 
@@ -11,8 +11,8 @@ PortfolioKit is free and open-source software under the [MIT License](LICENSE).
 
 - **Section builder** — drag to reorder, hide or add sections (hero, about, experience, projects, skills, education, certifications, languages, awards, organizations, services, gallery, testimonials, contact, custom).
 - **17 templates** and two colour themes (dark / light). Switching template keeps your content.
-- **Publish and share** — your own `/portfolio/<slug>` link, or a custom domain.
-- **CV tools** — import a PDF CV into your sections (works without AI via a keyword parser), and generate a printable CV/PDF from your portfolio in three layouts.
+- **Publish and share** — your own `/portfolio/<slug>` link.
+- **CV tools** — import a PDF CV into your sections (works without AI via a keyword parser), and generate a CV in four layouts. The default **ATS** layout is plain and single-column; "Unduh PDF" uses the browser's Save as PDF so the file keeps real text that applicant tracking systems can read. Published portfolios add their link to the CV header.
 - **GitHub import** — pull your profile and selected repositories into projects and skills.
 - **Statistics** — daily visits per portfolio.
 - **Contact form** — messages are emailed to the account owner.
@@ -21,7 +21,7 @@ PortfolioKit is free and open-source software under the [MIT License](LICENSE).
 
 ## Tech stack
 
-Next.js 16 (App Router, `src/proxy.ts`), React 19, TypeScript, Tailwind CSS v4, Supabase (Postgres + Storage, accessed server-side with the service-role key), `jose` JWTs, Nodemailer (Gmail SMTP), Recharts, dnd-kit, html2pdf.js.
+Next.js 16 (App Router), React 19, TypeScript, Tailwind CSS v4, Supabase (Postgres + Storage, accessed server-side with the service-role key), `jose` JWTs, Nodemailer (Gmail SMTP), Recharts, dnd-kit, html2pdf.js.
 
 ## Getting started
 
@@ -52,8 +52,7 @@ Put these in `.env.local` locally and in the Vercel project settings for deploym
 | `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY` | yes | Public Supabase URL/anon key. Row Level Security must stay enabled on every table. |
 | `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY` | yes | Server-side database and storage access. Server only. |
 | `SUPABASE_STORAGE_BUCKET` | yes | Bucket for uploads (photos, project images, CVs, gallery). |
-| `NEXT_PUBLIC_BASE_URL` | yes | Public origin of this deployment, e.g. `https://portfolio.west-solutions.web.id`. Used for links, SEO and to recognise the app's own host. |
-| `MAIN_DOMAINS` | no | Extra comma-separated hosts that serve the app itself (not users' custom domains). `NEXT_PUBLIC_BASE_URL`, `*.vercel.app`, localhost and `tzm.web.id` are already included. |
+| `NEXT_PUBLIC_BASE_URL` | yes | Public origin of this deployment, e.g. `https://portfolio.west-solutions.web.id`. Used for links, SEO, emails and the CV. |
 | `JWT_SECRET`, `JWT_REFRESH_SECRET` | yes | Signing keys, **at least 32 characters each**, different from each other and per environment. |
 | `JWT_EXPIRES_IN`, `JWT_REFRESH_EXPIRES_IN` | no | Token lifetimes (default `15m` / `7d`). |
 | `GMAIL_USER`, `GMAIL_APP_PASSWORD`, `MAIL_FROM_NAME` | yes | Outgoing mail: verification, login codes, password reset, contact messages. |
@@ -90,15 +89,6 @@ The demo and production currently share one Supabase database, so use a test acc
 
 A global pre-push hook runs `npm run lint` and `npm run build`; a push is rejected if either fails. Don't bypass it. Before pushing, also make sure no credentials are in the diff.
 
-## Custom domains
-
-Users can map their own domain to a published portfolio:
-
-1. In the dashboard, set the custom domain (stored without protocol, path, port or trailing dot).
-2. Add the same domain to the Vercel project and point its DNS to Vercel.
-
-Requests on that host are rewritten internally to `/portfolio/<slug>`; the address bar keeps the custom domain. Only published portfolios are served. `/login` and `/dashboard` on a custom domain redirect to the main site.
-
 ## Templates
 
 | Template | Idea |
@@ -132,8 +122,7 @@ src/
 ├─ hooks/           dashboard data hooks
 ├─ lib/             auth, rate limiting, mailer, Supabase clients, CV parser/document, upload validation
 ├─ templates/       the 17 portfolio templates
-├─ types/           shared TypeScript types
-└─ proxy.ts         host routing (custom domains, main domains)
+└─ types/           shared TypeScript types
 supabase/migrations SQL migrations
 public/             static assets
 ```

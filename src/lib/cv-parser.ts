@@ -443,17 +443,27 @@ export function extractByKeyword(rawText: string): KeywordCvResult {
     result.projects = groupBlocks(sections.projects).map(blockToProject).filter((p) => p.title);
   }
 
-  if (sections.skills?.length) {
+  // "Languages: Java, PHP • Frameworks: Spring, Laravel • Cloud: AWS" → one skill group per "Category:" chunk.
+  // A "Languages" category inside skills means programming languages; name it so it isn't read as spoken languages.
+  const skillCategories = (text: string, looseTitle: string): ParsedCvItem[] => {
     const cats: ParsedCvItem[] = [];
     const loose: string[] = [];
-    for (const l of lineItems(sectionText('skills'))) {
-      const cm = l.match(/^([\p{L}\s/&+-]{2,40}?)\s*[:：]\s*(.+)$/u);
-      if (cm) cats.push({ title: cm[1].trim(), skills: cm[2].replace(/\s*[;•|]\s*/g, ', ').trim() });
-      else loose.push(...l.split(/\s*[,;•|]\s*/).map((s) => s.trim()).filter(Boolean));
+    for (const l of lineItems(text)) {
+      const chunks = l.split(/\s*[•|]\s*/).filter(Boolean);
+      const parts = chunks.filter((c) => /[:：]/.test(c)).length >= 2 ? chunks : [l];
+      for (const part of parts) {
+        const cm = part.match(/^([\p{L}\s/&+-]{2,40}?)\s*[:：]\s*(.+)$/u);
+        if (cm) {
+          const title = /^(?:programming\s+)?languages?$|^bahasa(?:\s+pemrograman)?$/i.test(cm[1].trim()) ? 'Programming Languages' : cm[1].trim();
+          cats.push({ title, skills: cm[2].replace(/\s*[;•|]\s*/g, ', ').trim() });
+        } else loose.push(...part.split(/\s*[,;•|]\s*/).map((s) => s.trim()).filter(Boolean));
+      }
     }
-    if (loose.length) cats.push({ title: cats.length ? 'Other' : 'Skills', skills: [...new Set(loose)].join(', ') });
-    result.skills = cats;
-  }
+    if (loose.length) cats.push({ title: cats.length ? 'Other' : looseTitle, skills: [...new Set(loose)].join(', ') });
+    return cats;
+  };
+
+  if (sections.skills?.length) result.skills = skillCategories(sectionText('skills'), 'Skills');
 
   if (sections.certification?.length) {
     result.certifications = lineItems(sectionText('certification')).map((l) => {
@@ -463,7 +473,12 @@ export function extractByKeyword(rawText: string): KeywordCvResult {
     }).filter((c) => c.name);
   }
 
-  if (sections.languages?.length) {
+  // A "Languages" heading sometimes lists programming languages/tools. Only treat it as spoken languages
+  // when at least one item is a known spoken language; otherwise it becomes a skill group.
+  const SPOKEN_RX = /\b(english|inggris|indonesian?|bahasa\s+indonesia|indonesia|javanese|jawa|sundanese|sunda|malay|melayu|mandarin|chinese|cantonese|japanese|jepang|korean|korea|arabic|arab|german|jerman|french|perancis|prancis|spanish|spanyol|dutch|belanda|hindi|thai|vietnamese|portuguese|russian|italian|turkish|tagalog|filipino)\b/i;
+  if (sections.languages?.length && !SPOKEN_RX.test(sectionText('languages'))) {
+    result.skills = [...(result.skills || []), ...skillCategories(sectionText('languages'), 'Programming Languages')];
+  } else if (sections.languages?.length) {
     for (const l of lineItems(sectionText('languages'))) {
       for (const item of l.split(/\s*[,;•|]\s*/).filter(Boolean)) {
         const m = item.match(/^([\p{L}\s]+?)\s*(?:[:：–—-]|\()\s*([^)]+)\)?$/u);

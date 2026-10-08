@@ -2,7 +2,6 @@ import { NextRequest } from 'next/server';
 import { requireAuth } from '@/lib/auth';
 import { getSupabaseAdmin } from '@/lib/supabase/admin';
 import { errorResponse, successResponse } from '@/lib/utils';
-import { normalizeCustomDomain } from '@/lib/custom-domain';
 
 const authStatus = (err: unknown) => {
   const message = err instanceof Error ? err.message : '';
@@ -43,17 +42,6 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
       const { data: existing } = await getSupabaseAdmin().from('portfolios').select('id').eq('slug', cleanSlug).neq('id', id).maybeSingle();
       if (existing) return errorResponse('Slug sudah digunakan', 400);
       updates.slug = cleanSlug;
-    }
-    // Domain update
-    if (body.custom_domain !== undefined) {
-      if (body.custom_domain) {
-        const normalizedDomain = normalizeCustomDomain(body.custom_domain);
-        const domainRegex = /^[a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(\.[a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*\.[a-zA-Z]{2,}$/;
-        if (!domainRegex.test(normalizedDomain)) return errorResponse('Format domain tidak valid', 400);
-        const { data: existingDomain } = await getSupabaseAdmin().from('portfolios').select('id').eq('custom_domain', normalizedDomain).neq('id', id).maybeSingle();
-        if (existingDomain) return errorResponse('Domain sudah dipakai portfolio lain', 400);
-      }
-      updates.custom_domain = body.custom_domain ? normalizeCustomDomain(body.custom_domain) : null;
     }
     // Publish toggle
     if (body.publish !== undefined) {

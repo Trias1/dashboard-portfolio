@@ -181,6 +181,11 @@ export default function CVPanel({ portfolio, setSections, loadPreview }: Props) 
 
           <div className="space-y-3 border-t border-rule px-5 py-4">
             {cvError && <div role="alert" className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-[13px] text-red-800">{cvError}</div>}
+            {portfolio && !portfolio.is_published && (
+              <div role="status" className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-[13px] text-amber-900">
+                Portfolio kamu belum terbit, jadi <b className="font-medium">link portfolio tidak dimasukkan ke CV</b>. Terbitkan dulu lewat tombol <b className="font-medium">Terbitkan</b> di bagian atas kalau ingin link-nya ikut tercantum, lalu unduh ulang CV-nya.
+              </div>
+            )}
             <div className="flex flex-wrap items-center gap-2">
               <button type="button" onClick={downloadPdf} disabled={busy !== null}
                 className="rounded-md bg-ink px-3.5 py-2 text-sm font-medium text-paper transition-colors hover:bg-black disabled:cursor-not-allowed disabled:opacity-60">

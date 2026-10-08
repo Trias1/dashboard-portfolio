@@ -32,7 +32,6 @@ export interface Portfolio {
   theme?: JsonValue;
   sections_order?: JsonValue;
   is_published: boolean;
-  custom_domain?: string;
   created_at: string;
   updated_at: string;
 }
@@ -192,7 +191,6 @@ export interface TemplatePortfolio {
   theme?: JsonValue;
   sections_order?: TemplateSectionOrder[];
   is_published?: boolean;
-  custom_domain?: string;
   created_at?: string;
   updated_at?: string;
 }
@@ -271,7 +269,6 @@ export interface DashboardPortfolio {
   /** Stored as JSON; older rows may hold a serialized string. */
   sections_order?: DashboardSectionEntry[] | string | null;
   is_published: boolean;
-  custom_domain?: string | null;
   created_at?: string;
   updated_at?: string;
 }

@@ -33,9 +33,6 @@ export default function DashboardPortfolioControls({
   const [editingSlug, setEditingSlug] = useState(false);
   const [slug, setSlug] = useState("");
   const [slugError, setSlugError] = useState("");
-  const [editingDomain, setEditingDomain] = useState(false);
-  const [domain, setDomain] = useState("");
-  const [domainError, setDomainError] = useState("");
   const isAdmin = activeMenu !== "superadmin" && activeMenu !== "users";
   const saveSlug = async () => {
     if (!portfolio) return;
@@ -48,19 +45,6 @@ export default function DashboardPortfolioControls({
       setSlugError("");
     } catch (error) {
       setSlugError(getApiErrorMessage(error, "Unable to update slug"));
-    }
-  };
-  const saveDomain = async () => {
-    if (!portfolio) return;
-    try {
-      await api.patch(`/api/portfolios/${portfolio.id}`, {
-        custom_domain: domain,
-      });
-      setPortfolio({ ...portfolio, custom_domain: domain || null });
-      setEditingDomain(false);
-      setDomainError("");
-    } catch (error) {
-      setDomainError(getApiErrorMessage(error, "Unable to update domain"));
     }
   };
   return (
@@ -125,47 +109,6 @@ export default function DashboardPortfolioControls({
                 </button>
                 {slugError && (
                   <span role="alert" className="text-xs text-red-700">{slugError}</span>
-                )}
-              </div>
-            )}
-            {portfolio && !editingDomain && (
-              <button
-                type="button"
-                onClick={() => {
-                  setDomain(portfolio.custom_domain || "");
-                  setEditingDomain(true);
-                  setDomainError("");
-                }}
-                className={`max-w-48 ${portfolio.custom_domain ? "font-mono " : ""}${linkish}`}
-              >
-                {portfolio.custom_domain || (lang === "id" ? "Pasang domain" : "Add domain")}
-              </button>
-            )}
-            {editingDomain && (
-              <div className="flex flex-wrap items-center gap-1">
-                <label htmlFor="portfolio-domain" className="sr-only">Domain</label>
-                <input
-                  id="portfolio-domain"
-                  autoFocus
-                  value={domain}
-                  onChange={(event) =>
-                    setDomain(event.target.value.toLowerCase())
-                  }
-                  onKeyDown={(event) => {
-                    if (event.key === "Enter") saveDomain();
-                    if (event.key === "Escape") setEditingDomain(false);
-                  }}
-                  className={`w-40 ${quietInput}`}
-                  placeholder="domain.com"
-                />
-                <button type="button" onClick={saveDomain} className="rounded px-1.5 py-0.5 text-xs font-medium text-accent hover:bg-paper-deep hover:text-accent-dark">
-                  {lang === "id" ? "Simpan" : "Save"}
-                </button>
-                <button type="button" onClick={() => setEditingDomain(false)} className={textButton}>
-                  {lang === "id" ? "Batal" : "Cancel"}
-                </button>
-                {domainError && (
-                  <span role="alert" className="text-xs text-red-700">{domainError}</span>
                 )}
               </div>
             )}

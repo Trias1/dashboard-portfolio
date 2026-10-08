@@ -1,9 +1,8 @@
-const MAIN_URL = (process.env.NEXT_PUBLIC_BASE_URL || 'https://portfolio.tzm.web.id').replace(/\/$/, '');
+const MAIN_URL = (process.env.NEXT_PUBLIC_BASE_URL || 'https://portfolio.west-solutions.web.id').replace(/\/$/, '');
 
 type PortfolioSeoInput = {
   slug: string;
   title?: string | null;
-  customDomain?: string | null;
   name?: string | null;
   bio?: string | null;
   subheadline?: string | null;
@@ -12,8 +11,7 @@ type PortfolioSeoInput = {
 
 export function buildPortfolioSeo(input: PortfolioSeoInput) {
   const name = input.name || input.title || input.slug;
-  const customDomain = (input.customDomain || '').trim().toLowerCase().replace(/^https?:\/\//, '').split('/')[0].split(':')[0].replace(/\.$/, '');
-  const url = customDomain ? `https://${customDomain}` : `${MAIN_URL}/portfolio/${input.slug}`;
+  const url = `${MAIN_URL}/portfolio/${input.slug}`;
 
   return {
     title: `${name} \u2014 Portfolio`,

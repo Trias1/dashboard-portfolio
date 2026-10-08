@@ -15,6 +15,8 @@ export interface CvSourceData {
   projects?: Row[];
   certificates?: Row[];
   custom?: Row[];
+  /** Public portfolio URL, shown first among the links in the header. */
+  portfolioUrl?: string;
 }
 
 const TEMPLATES: Record<CvTemplate, { accent: string; font: string; headFont: string }> = {
@@ -113,6 +115,7 @@ function css(t: CvTemplate) {
 .cv-doc .cv-name{font-family:${headFont};font-size:${exec ? '24pt' : '22pt'};font-weight:${exec ? '400' : '700'};line-height:1.1;letter-spacing:${exec ? '0.06em' : '-0.01em'};${exec ? 'text-transform:uppercase;' : ''}color:#111}
 .cv-doc .cv-role{margin-top:3pt;font-size:11.5pt;color:${exec ? '#444' : accent};${exec ? 'font-style:italic;' : ''}}
 .cv-doc .cv-contact{margin-top:5pt;font-size:9pt;color:#333}
+.cv-doc .cv-contact a{color:inherit;text-decoration:none}
 .cv-doc .cv-contact span+span::before{content:"  |  ";white-space:pre;color:#999}
 .cv-doc .cv-summary{margin-top:10pt;font-size:10pt;color:#222;white-space:pre-line;${exec ? 'text-align:center;font-style:italic;' : ''}}
 .cv-doc .cv-section{margin-top:12pt}
@@ -154,9 +157,13 @@ export function buildCvHtml(data: CvSourceData, template: string): { html: strin
   const name = s(a.name) || 'Your Name';
   const role = s(a.title) || s(h.headline) || s(h.subheadline);
 
+  // Email and URLs are real links, so they stay clickable in the PDF; the visible text is the plain address.
+  const link = (href: string, text: string) => `<a href="${esc(href)}">${esc(text)}</a>`;
+  const urlPart = (u: unknown) => (s(u) ? link(/^https?:\/\//i.test(s(u)) ? s(u) : `https://${s(u)}`, cleanUrl(u)) : '');
   const contactParts = [
-    s(c.email), s(c.phone), s(c.location),
-    cleanUrl(c.linkedin_url), cleanUrl(c.github_url),
+    s(c.email) ? link(`mailto:${s(c.email)}`, s(c.email)) : '',
+    esc(s(c.phone)), esc(s(c.location)),
+    urlPart(data.portfolioUrl), urlPart(c.linkedin_url), urlPart(c.github_url),
   ].filter(Boolean);
 
   // --- custom sections, grouped like the public page does ---
@@ -261,7 +268,7 @@ export function buildCvHtml(data: CvSourceData, template: string): { html: strin
   const header = `<header class="cv-header">
     <div class="cv-name">${esc(name)}</div>
     ${role ? `<div class="cv-role">${esc(role)}</div>` : ''}
-    ${contactParts.length ? `<div class="cv-contact">${contactParts.map((p) => `<span>${esc(p)}</span>`).join('')}</div>` : ''}
+    ${contactParts.length ? `<div class="cv-contact">${contactParts.map((p) => `<span>${p}</span>`).join('')}</div>` : ''}
   </header>
   ${s(a.bio) ? (t === 'ats' ? `<section class="cv-section"><h2 class="cv-h2">Summary</h2><p class="cv-text">${esc(a.bio)}</p></section>` : `<p class="cv-summary">${esc(a.bio)}</p>`) : ''}`;
 

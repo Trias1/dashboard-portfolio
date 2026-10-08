@@ -6,7 +6,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   const { slug } = await params;
   const { data: portfolio } = await getSupabaseAdmin()
     .from('portfolios')
-    .select('owner_id, title, slug, custom_domain')
+    .select('owner_id, title, slug')
     .eq('slug', slug)
     .eq('is_published', true)
     .maybeSingle();
@@ -20,7 +20,6 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   const seo = buildPortfolioSeo({
     slug: portfolio.slug,
     title: portfolio.title,
-    customDomain: portfolio.custom_domain,
     name: about?.name,
     bio: about?.bio,
     subheadline: hero?.subheadline,
