@@ -1,15 +1,20 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
+import { isInternalHostname } from '@/lib/custom-domain';
 
-const MAIN_DOMAINS = ['localhost', '127.0.0.1', 'portfolio.tzm.web.id', 'www.tzm.web.id', 'tzm.web.id', 'portfolio-vercel.vercel.app'];
+// Hosts that serve the app itself (not a user's custom domain), on top of NEXT_PUBLIC_BASE_URL,
+// *.vercel.app and localhost (see isInternalHostname). Each entry also covers its subdomains.
+// tzm.web.id is the original domain; extra ones can be added per deployment via MAIN_DOMAINS="a.com,b.com".
+const MAIN_DOMAINS = ['tzm.web.id', ...(process.env.MAIN_DOMAINS || '').split(',').map(d => d.trim().toLowerCase()).filter(Boolean)];
 
 const WILDCARD_PARENT = 'tzm.web.id';
 
 export async function proxy(request: NextRequest) {
   const hostname = request.headers.get('host') || '';
-  const domain = hostname.split(':')[0];
+  const domain = hostname.split(':')[0].toLowerCase();
 
-  if (MAIN_DOMAINS.some(d => domain === d || domain.endsWith('.' + d))) return NextResponse.next();
+  // Without this, a main host missing from the list would redirect /login to NEXT_PUBLIC_BASE_URL — itself — forever.
+  if (isInternalHostname(domain) || MAIN_DOMAINS.some(d => domain === d || domain.endsWith('.' + d))) return NextResponse.next();
 
   const pathname = request.nextUrl.pathname;
   if (pathname.startsWith('/_next') || pathname.includes('.')) return NextResponse.next();
