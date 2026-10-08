@@ -150,7 +150,7 @@ export default function CVPanel({ portfolio, setSections, loadPreview }: Props) 
         <section className="mt-6 rounded-lg border border-rule bg-white" aria-labelledby="cv-generate-title">
           <div className="border-b border-rule px-5 py-4">
             <h3 id="cv-generate-title" className="text-sm font-semibold text-ink">Buat CV dari portfolio</h3>
-            <p className="mt-0.5 text-[13px] text-ink-soft">CV dibuat dari data yang sudah tersimpan. Lengkapi dulu bagian yang masih kosong.</p>
+            <p className="mt-0.5 text-[13px] text-ink-soft">CV dibuat dari data yang sudah tersimpan. Lengkapi dulu bagian yang masih kosong. Bahasa judul CV mengikuti bahasa isi portfolio kamu (English atau Indonesia), jadi tulis isinya dalam satu bahasa.</p>
           </div>
 
           <div className="grid gap-6 px-5 py-4 md:grid-cols-[minmax(0,1fr)_minmax(0,14rem)]">
