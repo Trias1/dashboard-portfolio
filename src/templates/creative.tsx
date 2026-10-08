@@ -4,6 +4,7 @@ import type { ReactNode, SyntheticEvent } from 'react';
 import TechBadge from '@/components/TechIcon';
 import ContactForm from '@/components/ContactForm';
 import CertificationSection from '@/components/CertificationSection';
+import SafeImg from '@/components/SafeImg';
 
 /* ------------------------------------------------------------------ */
 /* Colour helpers: derive readable text / rule colours from theme.bg   */
@@ -166,7 +167,7 @@ export default function CreativeTemplate({ data, theme, isPreview }: { data: Tem
     <div className="min-h-screen overflow-x-clip font-sans antialiased" style={{ backgroundColor: p.paper, color: p.text }} data-preview={isPreview ? 'true' : undefined}>
       {/* Sidebar — like the cover flap of a printed folio */}
       <aside className="fixed inset-y-0 left-0 hidden w-72 flex-col overflow-y-auto border-r px-8 py-10 lg:flex" style={{ backgroundColor: p.bg, borderColor: p.rule }}>
-        {about?.photo_url && <img src={about.photo_url} alt={about?.name || ''} className="mb-6 h-24 w-20 rounded-[2px] object-cover" />}
+        {about?.photo_url && <SafeImg src={about.photo_url} alt={about?.name || ''} className="mb-6 h-24 w-20 rounded-[2px] object-cover" />}
         <p className="font-display text-2xl leading-tight font-semibold tracking-tight">{name}</p>
         {about?.title && <p className="mt-1 text-sm" style={{ color: p.muted }}>{about.title}</p>}
 
@@ -199,7 +200,7 @@ export default function CreativeTemplate({ data, theme, isPreview }: { data: Tem
         {/* Mobile masthead */}
         <div className="border-b px-5 py-5 lg:hidden" style={{ backgroundColor: p.bg, borderColor: p.rule }}>
           <div className="flex items-center gap-4">
-            {about?.photo_url && <img src={about.photo_url} alt="" className="h-14 w-12 rounded-[2px] object-cover" />}
+            {about?.photo_url && <SafeImg src={about.photo_url} alt="" className="h-14 w-12 rounded-[2px] object-cover" />}
             <div className="min-w-0">
               <p className="font-display text-lg font-semibold leading-tight">{name}</p>
               {about?.title && <p className="text-sm" style={{ color: p.muted }}>{about.title}</p>}
@@ -216,7 +217,7 @@ export default function CreativeTemplate({ data, theme, isPreview }: { data: Tem
           <section id="hero" className="relative">
             {hero?.background_url && (
               <figure className="mb-10">
-                <img src={hero.background_url} alt="" className="aspect-[21/9] w-full rounded-[2px] object-cover" />
+                <SafeImg src={hero.background_url} alt="" className="aspect-[21/9] w-full rounded-[2px] object-cover" />
               </figure>
             )}
             <p className="font-mono text-xs uppercase tracking-[0.16em]" style={{ color: p.muted }}>{hero?.greeting || 'Portfolio'}</p>
@@ -295,7 +296,7 @@ export default function CreativeTemplate({ data, theme, isPreview }: { data: Tem
                   return (
                     <figure key={proj.id ?? i} className={`min-w-0 ${L.span} ${L.offset}`}>
                       {proj.image_url ? (
-                        <img src={proj.image_url} alt={proj.title || ''} className={`${L.aspect} w-full rounded-[2px] object-cover`} />
+                        <SafeImg src={proj.image_url} alt={proj.title || ''} className={`${L.aspect} w-full rounded-[2px] object-cover`} />
                       ) : (
                         <div className={`${L.ph} flex w-full items-end rounded-[2px] p-5`} style={{ backgroundColor: p.plate }}>
                           <span className="font-display text-[clamp(1.5rem,4vw,2.75rem)] leading-none font-semibold tracking-tight break-words" style={{ color: p.muted }}>{proj.title}</span>
@@ -351,7 +352,7 @@ export default function CreativeTemplate({ data, theme, isPreview }: { data: Tem
                   <figure key={tm.id ?? i} className="border-l-2 pl-5" style={{ borderColor: p.accent }}>
                     <blockquote className="text-lg leading-relaxed">{tm.message}</blockquote>
                     <figcaption className="mt-4 flex items-center gap-3 text-sm">
-                      {tm.photo_url && <img src={tm.photo_url} alt={tm.name || ''} className="h-9 w-9 rounded-full object-cover" />}
+                      {tm.photo_url && <SafeImg src={tm.photo_url} alt={tm.name || ''} className="h-9 w-9 rounded-full object-cover" />}
                       <span><span className="font-medium">{tm.name}</span>{tm.position && <span style={{ color: p.muted }}> — {tm.position}</span>}</span>
                     </figcaption>
                   </figure>
@@ -377,7 +378,7 @@ export default function CreativeTemplate({ data, theme, isPreview }: { data: Tem
                   <figure key={cert.id ?? i} className="min-w-0">
                     {(cert.image_url || cert.file_url) && (
                       <div className="mb-3 aspect-[4/3] overflow-hidden rounded-[2px]" style={{ backgroundColor: p.plate }}>
-                        <img src={cert.image_url || cert.file_url} alt={cert.title || ''} className="h-full w-full object-cover"
+                        <SafeImg src={cert.image_url || cert.file_url} alt={cert.title || ''} className="h-full w-full object-cover"
                           onError={(e: SyntheticEvent<HTMLImageElement>) => { e.currentTarget.style.display = 'none'; }} />
                       </div>
                     )}

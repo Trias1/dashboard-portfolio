@@ -4,6 +4,7 @@ import type { SyntheticEvent } from 'react';
 import TechBadge from '@/components/TechIcon';
 import ContactForm from '@/components/ContactForm';
 import CertificationSection from '@/components/CertificationSection';
+import SafeImg from '@/components/SafeImg';
 
 /* ------------------------------------------------------------------ */
 /* Colour helpers — text/rules derived from the user's theme.bg        */
@@ -134,7 +135,7 @@ export default function WhiteTemplate({ data, theme, isPreview }: { data: Templa
             </div>
             {hero?.background_url && (
               <figure className="mt-20">
-                <img src={hero.background_url} alt="" className="w-full aspect-[21/9] object-cover" />
+                <SafeImg src={hero.background_url} alt="" className="w-full aspect-[21/9] object-cover" />
               </figure>
             )}
           </div>
@@ -145,7 +146,7 @@ export default function WhiteTemplate({ data, theme, isPreview }: { data: Templa
           <Department id="about" kicker="About" title={about.name} p={p} wide>
             <div className="grid grid-cols-1 md:grid-cols-[minmax(0,1fr)_minmax(0,2fr)] gap-10 md:gap-16">
               <div>
-                {about.photo_url && <img src={about.photo_url} alt={about.name} className="w-full max-w-[260px] aspect-[4/5] object-cover" />}
+                {about.photo_url && <SafeImg src={about.photo_url} alt={about.name} className="w-full max-w-[260px] aspect-[4/5] object-cover" />}
                 {about.title && <p className="mt-4 text-sm" style={{ color: p.sub }}>{about.title}</p>}
               </div>
               {about.bio && (
@@ -161,7 +162,7 @@ export default function WhiteTemplate({ data, theme, isPreview }: { data: Templa
             <div className="space-y-20 sm:space-y-24">
               {projects.map((proj: TemplateItem, i: number) => (
                 <article key={proj.id ?? i}>
-                  {proj.image_url && <img src={proj.image_url} alt={proj.title} className="w-full aspect-[16/9] object-cover mb-8" />}
+                  {proj.image_url && <SafeImg src={proj.image_url} alt={proj.title} className="w-full aspect-[16/9] object-cover mb-8" />}
                   <div className="grid grid-cols-1 md:grid-cols-[minmax(0,1fr)_minmax(0,2fr)] gap-4 md:gap-16">
                     <div>
                       <p className="text-[11px] uppercase tracking-[0.22em] tabular-nums" style={{ color: p.sub }}>No. {String(i + 1).padStart(2, '0')}</p>
@@ -252,7 +253,7 @@ export default function WhiteTemplate({ data, theme, isPreview }: { data: Templa
                     “{t.message}”
                   </blockquote>
                   <figcaption className="mt-6 flex items-center gap-3 text-sm">
-                    {t.photo_url && <img src={t.photo_url} alt={t.name} className="w-9 h-9 rounded-full object-cover" />}
+                    {t.photo_url && <SafeImg src={t.photo_url} alt={t.name} className="w-9 h-9 rounded-full object-cover" />}
                     <span>
                       <span style={{ color: p.text }}>{t.name}</span>
                       {t.position && <span style={{ color: p.sub }}> — {t.position}</span>}
@@ -272,7 +273,7 @@ export default function WhiteTemplate({ data, theme, isPreview }: { data: Templa
                 <li key={cert.id ?? i} className="min-w-0">
                   {(cert.image_url || cert.file_url) && (
                     <div className="w-full aspect-[4/3] mb-5 overflow-hidden bg-cover bg-center" style={{ backgroundColor: p.tint, backgroundImage: `url(${cert.image_url || cert.file_url})` }}>
-                      <img src={cert.image_url || cert.file_url} alt={cert.title} className="w-full h-full object-cover"
+                      <SafeImg src={cert.image_url || cert.file_url} alt={cert.title} className="w-full h-full object-cover"
                         onError={(e: SyntheticEvent<HTMLImageElement>) => { e.currentTarget.style.display = 'none'; }} />
                     </div>
                   )}

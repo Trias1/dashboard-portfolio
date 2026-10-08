@@ -4,6 +4,7 @@ import type { SyntheticEvent } from 'react';
 import TechBadge from '@/components/TechIcon';
 import ContactForm from '@/components/ContactForm';
 import CertificationSection from '@/components/CertificationSection';
+import SafeImg from '@/components/SafeImg';
 
 /* ------------------------------------------------------------------ */
 /* Colour helpers — text/rules derived from the user's theme.bg        */
@@ -148,7 +149,7 @@ export default function SwissTemplate({ data, theme, isPreview }: { data: Templa
 
             {hero?.background_url && (
               <div className="mt-16 grid grid-cols-1 md:grid-cols-12 gap-x-6">
-                <img src={hero.background_url} alt="" className="md:col-start-4 md:col-span-9 w-full aspect-[16/7] object-cover grayscale" />
+                <SafeImg src={hero.background_url} alt="" className="md:col-start-4 md:col-span-9 w-full aspect-[16/7] object-cover grayscale" />
               </div>
             )}
           </div>
@@ -159,7 +160,7 @@ export default function SwissTemplate({ data, theme, isPreview }: { data: Templa
           <Frame id="about" label="About" p={p}>
             <div className="grid grid-cols-1 sm:grid-cols-9 gap-x-6 gap-y-8">
               {about.photo_url && (
-                <img src={about.photo_url} alt={about.name} className="sm:col-span-3 w-40 sm:w-full aspect-[3/4] object-cover grayscale" />
+                <SafeImg src={about.photo_url} alt={about.name} className="sm:col-span-3 w-40 sm:w-full aspect-[3/4] object-cover grayscale" />
               )}
               <div className={about.photo_url ? 'sm:col-span-6' : 'sm:col-span-9'}>
                 <p className="text-3xl sm:text-4xl font-bold tracking-[-0.03em] leading-[1.05]">{about.name}</p>
@@ -193,7 +194,7 @@ export default function SwissTemplate({ data, theme, isPreview }: { data: Templa
                     )}
                   </div>
                   {proj.image_url && (
-                    <img src={proj.image_url} alt={proj.title} className="col-start-2 sm:col-start-auto sm:col-span-4 mt-6 sm:mt-0 w-full aspect-[4/3] object-cover" />
+                    <SafeImg src={proj.image_url} alt={proj.title} className="col-start-2 sm:col-start-auto sm:col-span-4 mt-6 sm:mt-0 w-full aspect-[4/3] object-cover" />
                   )}
                 </li>
               ))}
@@ -271,7 +272,7 @@ export default function SwissTemplate({ data, theme, isPreview }: { data: Templa
                     <span aria-hidden="true" style={{ color: ac }}>“</span>{t.message}<span aria-hidden="true" style={{ color: ac }}>”</span>
                   </blockquote>
                   <figcaption className="mt-5 flex items-center gap-3 text-sm">
-                    {t.photo_url && <img src={t.photo_url} alt={t.name} className="w-10 h-10 object-cover grayscale" />}
+                    {t.photo_url && <SafeImg src={t.photo_url} alt={t.name} className="w-10 h-10 object-cover grayscale" />}
                     <span><span className="font-bold">{t.name}</span>{t.position && <span style={{ color: p.sub }}>, {t.position}</span>}</span>
                   </figcaption>
                 </figure>
@@ -288,7 +289,7 @@ export default function SwissTemplate({ data, theme, isPreview }: { data: Templa
                 <li key={cert.id ?? i} className="min-w-0">
                   {(cert.image_url || cert.file_url) && (
                     <div className="w-full aspect-[4/3] mb-4 overflow-hidden bg-cover bg-center" style={{ backgroundColor: p.rule, backgroundImage: `url(${cert.image_url || cert.file_url})` }}>
-                      <img src={cert.image_url || cert.file_url} alt={cert.title} className="w-full h-full object-cover"
+                      <SafeImg src={cert.image_url || cert.file_url} alt={cert.title} className="w-full h-full object-cover"
                         onError={(e: SyntheticEvent<HTMLImageElement>) => { e.currentTarget.style.display = 'none'; }} />
                     </div>
                   )}

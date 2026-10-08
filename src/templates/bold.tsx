@@ -4,6 +4,7 @@ import type { ReactNode, SyntheticEvent } from 'react';
 import TechBadge from '@/components/TechIcon';
 import ContactForm from '@/components/ContactForm';
 import CertificationSection from '@/components/CertificationSection';
+import SafeImg from '@/components/SafeImg';
 
 /* ------------------------------------------------------------------ */
 /* Colour helpers: derive readable text / rule colours from theme.bg   */
@@ -185,7 +186,7 @@ export default function BoldTemplate({ data, theme, isPreview }: { data: Templat
 
         <div className="grid items-end gap-8 border-t-2 pt-6 md:grid-cols-[1fr_auto]" style={{ borderColor: p.onBlock }}>
           <div className="flex items-end gap-6">
-            {hero?.background_url && <img src={hero.background_url} alt="" className="hidden h-28 w-40 flex-shrink-0 object-cover sm:block" />}
+            {hero?.background_url && <SafeImg src={hero.background_url} alt="" className="hidden h-28 w-40 flex-shrink-0 object-cover sm:block" />}
             {hero?.subheadline && <p className="max-w-[34ch] text-xl leading-snug font-semibold md:text-2xl">{hero.subheadline}</p>}
           </div>
           <div className="flex flex-wrap gap-3">
@@ -205,7 +206,7 @@ export default function BoldTemplate({ data, theme, isPreview }: { data: Templat
           <div className="mt-12 grid gap-10 md:grid-cols-[minmax(0,20rem)_1fr]">
             {about.photo_url && (
               <div className="w-full max-w-[20rem] p-3" style={{ backgroundColor: p.block }}>
-                <img src={about.photo_url} alt={about.name} className="aspect-square w-full object-cover" />
+                <SafeImg src={about.photo_url} alt={about.name} className="aspect-square w-full object-cover" />
               </div>
             )}
             <div className="min-w-0">
@@ -273,7 +274,7 @@ export default function BoldTemplate({ data, theme, isPreview }: { data: Templat
                 </span>
                 <div className="min-w-0">
                   <h3 className="font-display text-4xl leading-[0.95] font-extrabold uppercase tracking-tight break-words md:text-5xl">{proj.title}</h3>
-                  {proj.image_url && <img src={proj.image_url} alt={proj.title || ''} className="mt-6 aspect-[16/9] w-full object-cover" />}
+                  {proj.image_url && <SafeImg src={proj.image_url} alt={proj.title || ''} className="mt-6 aspect-[16/9] w-full object-cover" />}
                   {proj.description && <p className="mt-5 max-w-[58ch] text-xl leading-relaxed">{proj.description}</p>}
                   {proj.tech_stack && (
                     <div className="mt-5 flex flex-wrap gap-2">
@@ -320,7 +321,7 @@ export default function BoldTemplate({ data, theme, isPreview }: { data: Templat
               <figure key={t.id ?? i} className="max-w-5xl">
                 <blockquote className="font-display text-3xl leading-[1.1] font-bold tracking-tight md:text-5xl">“{t.message}”</blockquote>
                 <figcaption className="mt-6 flex items-center gap-4">
-                  {t.photo_url && <img src={t.photo_url} alt={t.name || ''} className="h-12 w-12 object-cover" />}
+                  {t.photo_url && <SafeImg src={t.photo_url} alt={t.name || ''} className="h-12 w-12 object-cover" />}
                   <span className="text-sm font-bold uppercase tracking-wide">{t.name}{t.position && <span style={{ color: p.accent }}> / {t.position}</span>}</span>
                 </figcaption>
               </figure>
@@ -346,7 +347,7 @@ export default function BoldTemplate({ data, theme, isPreview }: { data: Templat
               <div key={cert.id ?? i} className="border-2" style={{ borderColor: p.text }}>
                 {(cert.image_url || cert.file_url) && (
                   <div className="aspect-[4/3] overflow-hidden border-b-2" style={{ borderColor: p.text, backgroundColor: p.block }}>
-                    <img src={cert.image_url || cert.file_url} alt={cert.title || ''} className="h-full w-full object-cover"
+                    <SafeImg src={cert.image_url || cert.file_url} alt={cert.title || ''} className="h-full w-full object-cover"
                       onError={(e: SyntheticEvent<HTMLImageElement>) => { e.currentTarget.style.display = 'none'; }} />
                   </div>
                 )}

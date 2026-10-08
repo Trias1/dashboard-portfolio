@@ -4,6 +4,7 @@ import type { TemplateData, TemplateItem, TemplateSectionOrder, ThemeConfig } fr
 import TechBadge from '@/components/TechIcon';
 import ContactForm from '@/components/ContactForm';
 import CertificationSection from '@/components/CertificationSection';
+import SafeImg from '@/components/SafeImg';
 
 // Nature: a field notebook. Sage-tinted paper, serif entries, a margin column
 // for dates and figure numbers, and hand-drawn vine rules between chapters.
@@ -238,7 +239,7 @@ export default function NatureTemplate({ data, theme, isPreview }: { data: Templ
         <section id="hero" className="relative">
           {hero?.background_url && (
             <div className="mx-auto max-w-5xl px-5 pt-10">
-              <img src={hero.background_url} alt="" className="h-48 w-full rounded-sm object-cover md:h-64" style={{ border: `1px solid ${p.rule}` }} />
+              <SafeImg src={hero.background_url} alt="" className="h-48 w-full rounded-sm object-cover md:h-64" style={{ border: `1px solid ${p.rule}` }} />
             </div>
           )}
           <div className="mx-auto grid max-w-5xl gap-12 px-5 pb-16 pt-16 md:grid-cols-[1fr_auto] md:items-end md:pt-24">
@@ -259,7 +260,7 @@ export default function NatureTemplate({ data, theme, isPreview }: { data: Templ
             </div>
             {about?.photo_url && (
               <figure className="w-44 sm:w-52">
-                <img src={about.photo_url} alt={name} className="aspect-[3/4] w-full rounded-sm object-cover" style={{ border: `1px solid ${p.rule}`, padding: 6, backgroundColor: mix(paper, ink, 0.04) }} />
+                <SafeImg src={about.photo_url} alt={name} className="aspect-[3/4] w-full rounded-sm object-cover" style={{ border: `1px solid ${p.rule}`, padding: 6, backgroundColor: mix(paper, ink, 0.04) }} />
                 <figcaption className="mt-2 font-mono text-[11px]" style={{ color: p.moss }}>Fig. 1 — {name}</figcaption>
               </figure>
             )}
@@ -317,7 +318,7 @@ export default function NatureTemplate({ data, theme, isPreview }: { data: Templ
                 <Entry key={proj.id ?? i} p={p} margin={`Fig. ${i + 2}`}>
                   <div className={proj.image_url ? 'grid gap-6 lg:grid-cols-[1.1fr_1fr]' : ''}>
                     {proj.image_url && (
-                      <img src={proj.image_url} alt={proj.title} className="aspect-[4/3] w-full rounded-sm object-cover" style={{ border: `1px solid ${p.rule}` }} />
+                      <SafeImg src={proj.image_url} alt={proj.title} className="aspect-[4/3] w-full rounded-sm object-cover" style={{ border: `1px solid ${p.rule}` }} />
                     )}
                     <div className="min-w-0">
                       <h3 className="font-serif text-2xl" style={{ color: ink }}>{proj.title}</h3>
@@ -360,7 +361,7 @@ export default function NatureTemplate({ data, theme, isPreview }: { data: Templ
           <Chapter id="testimonials" title="Notes from others" p={p}>
             <div className="space-y-12">
               {testimonials.map((t: TemplateItem, i: number) => (
-                <Entry key={t.id ?? i} p={p} margin={t.photo_url ? <img src={t.photo_url} alt={t.name} className="h-12 w-12 rounded-full object-cover" /> : undefined}>
+                <Entry key={t.id ?? i} p={p} margin={t.photo_url ? <SafeImg src={t.photo_url} alt={t.name} className="h-12 w-12 rounded-full object-cover" /> : undefined}>
                   <figure className="border-l pl-6" style={{ borderColor: p.leaf }}>
                     <blockquote className="max-w-[56ch] font-serif text-xl italic leading-relaxed md:text-2xl" style={{ color: ink }}>
                       &ldquo;{t.message}&rdquo;
@@ -383,7 +384,7 @@ export default function NatureTemplate({ data, theme, isPreview }: { data: Templ
                 <figure key={cert.id ?? i} className="min-w-0">
                   {(cert.image_url || cert.file_url) && (
                     <div className="mb-3 aspect-[4/3] overflow-hidden rounded-sm p-1.5" style={{ border: `1px solid ${p.rule}` }}>
-                      <img src={cert.image_url || cert.file_url} alt={cert.title || 'Certificate'} className="h-full w-full object-cover"
+                      <SafeImg src={cert.image_url || cert.file_url} alt={cert.title || 'Certificate'} className="h-full w-full object-cover"
                         onError={(e: SyntheticEvent<HTMLImageElement>) => { e.currentTarget.style.display = 'none'; }} />
                     </div>
                   )}

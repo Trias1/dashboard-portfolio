@@ -6,6 +6,7 @@ import { useSearchParams } from 'next/navigation';
 import TechBadge from '@/components/TechIcon';
 import ContactForm from '@/components/ContactForm';
 import CertificationSection from '@/components/CertificationSection';
+import SafeImg from '@/components/SafeImg';
 
 /* ------------------------------------------------------------------ */
 /* Colour helpers: derive readable text / rule colours from theme.bg   */
@@ -197,7 +198,7 @@ export default function ModernTemplate({ data, theme, isPreview }: { data: Templ
         <section id="hero" className="relative border-b" style={{ borderColor: p.rule }}>
           {hasBgImage && (
             <>
-              <img src={hero?.background_url} alt="" className="absolute inset-0 h-full w-full object-cover" />
+              <SafeImg src={hero?.background_url} alt="" className="absolute inset-0 h-full w-full object-cover" />
               <div className="absolute inset-0 bg-black/65" />
             </>
           )}
@@ -240,7 +241,7 @@ export default function ModernTemplate({ data, theme, isPreview }: { data: Templ
           <Block id="about" label="About" p={p}>
             <div className="flex flex-col gap-8 sm:flex-row">
               {about.photo_url && (
-                <img src={about.photo_url} alt={about.name} className="h-40 w-32 flex-shrink-0 rounded-[4px] object-cover" />
+                <SafeImg src={about.photo_url} alt={about.name} className="h-40 w-32 flex-shrink-0 rounded-[4px] object-cover" />
               )}
               <div>
                 <p className="font-display text-2xl font-semibold tracking-tight">{about.name}</p>
@@ -317,7 +318,7 @@ export default function ModernTemplate({ data, theme, isPreview }: { data: Templ
                     )}
                   </div>
                   {proj.image_url && (
-                    <img src={proj.image_url} alt={proj.title || ''} className="aspect-[4/3] w-full rounded-[4px] border object-cover" style={{ borderColor: p.rule }} />
+                    <SafeImg src={proj.image_url} alt={proj.title || ''} className="aspect-[4/3] w-full rounded-[4px] border object-cover" style={{ borderColor: p.rule }} />
                   )}
                 </li>
               ))}
@@ -350,7 +351,7 @@ export default function ModernTemplate({ data, theme, isPreview }: { data: Templ
                 <figure key={t.id ?? i}>
                   <blockquote className="max-w-[40ch] font-display text-2xl leading-snug tracking-tight md:text-3xl">“{t.message}”</blockquote>
                   <figcaption className="mt-5 flex items-center gap-3 text-sm">
-                    {t.photo_url && <img src={t.photo_url} alt={t.name || ''} className="h-9 w-9 rounded-full object-cover" />}
+                    {t.photo_url && <SafeImg src={t.photo_url} alt={t.name || ''} className="h-9 w-9 rounded-full object-cover" />}
                     <span><span className="font-medium">{t.name}</span>{t.position && <span style={{ color: p.muted }}>, {t.position}</span>}</span>
                   </figcaption>
                 </figure>
@@ -374,7 +375,7 @@ export default function ModernTemplate({ data, theme, isPreview }: { data: Templ
                 <figure key={cert.id ?? i} className="min-w-0">
                   {(cert.image_url || cert.file_url) && (
                     <div className="mb-3 aspect-[4/3] overflow-hidden rounded-[4px] border" style={{ borderColor: p.rule, backgroundColor: p.surface }}>
-                      <img src={cert.image_url || cert.file_url} alt={cert.title || ''} className="h-full w-full object-cover"
+                      <SafeImg src={cert.image_url || cert.file_url} alt={cert.title || ''} className="h-full w-full object-cover"
                         onError={(e: SyntheticEvent<HTMLImageElement>) => { e.currentTarget.style.display = 'none'; }} />
                     </div>
                   )}

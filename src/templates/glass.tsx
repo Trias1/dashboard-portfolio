@@ -4,6 +4,7 @@ import type { TemplateData, TemplateItem, TemplateSectionOrder, ThemeConfig } fr
 import TechBadge from '@/components/TechIcon';
 import ContactForm from '@/components/ContactForm';
 import CertificationSection from '@/components/CertificationSection';
+import SafeImg from '@/components/SafeImg';
 
 // Glass: one frosted header floating over a full-bleed photograph (or a solid
 // colour field). Everything below is flat, light-weight type on hairline rules.
@@ -223,7 +224,7 @@ export default function GlassTemplate({ data, theme, isPreview }: { data: Templa
         <section id="hero" className="relative flex min-h-[88svh] items-end overflow-hidden" style={{ backgroundColor: field }}>
           {backdropImg && (
             <>
-              <img src={backdropImg} alt="" className="absolute inset-0 h-full w-full object-cover" />
+              <SafeImg src={backdropImg} alt="" className="absolute inset-0 h-full w-full object-cover" />
               <div className="absolute inset-0" style={{ backgroundColor: 'rgba(8,8,12,0.55)' }} />
             </>
           )}
@@ -265,7 +266,7 @@ export default function GlassTemplate({ data, theme, isPreview }: { data: Templa
                 {about.bio && <p className="mt-6 max-w-[62ch] text-base leading-relaxed whitespace-pre-line" style={{ color: p.muted }}>{about.bio}</p>}
               </div>
               {about.photo_url && (
-                <img src={about.photo_url} alt={about.name} className="aspect-[4/5] w-40 shrink-0 rounded-md object-cover sm:w-48" style={{ border: `1px solid ${p.rule}` }} />
+                <SafeImg src={about.photo_url} alt={about.name} className="aspect-[4/5] w-40 shrink-0 rounded-md object-cover sm:w-48" style={{ border: `1px solid ${p.rule}` }} />
               )}
             </div>
           </Block>
@@ -318,7 +319,7 @@ export default function GlassTemplate({ data, theme, isPreview }: { data: Templa
               {projects.map((proj: TemplateItem, i: number) => (
                 <article key={proj.id ?? i} className="min-w-0">
                   {proj.image_url ? (
-                    <img src={proj.image_url} alt={proj.title} className="mb-5 aspect-[4/3] w-full rounded-md object-cover" style={{ border: `1px solid ${p.rule}` }} />
+                    <SafeImg src={proj.image_url} alt={proj.title} className="mb-5 aspect-[4/3] w-full rounded-md object-cover" style={{ border: `1px solid ${p.rule}` }} />
                   ) : (
                     <div className="mb-5 h-px w-full" style={{ backgroundColor: p.rule }} />
                   )}
@@ -365,7 +366,7 @@ export default function GlassTemplate({ data, theme, isPreview }: { data: Templa
                     &ldquo;{t.message}&rdquo;
                   </blockquote>
                   <figcaption className="mt-5 flex items-center gap-3 text-sm">
-                    {t.photo_url && <img src={t.photo_url} alt={t.name} className="h-9 w-9 rounded-full object-cover" />}
+                    {t.photo_url && <SafeImg src={t.photo_url} alt={t.name} className="h-9 w-9 rounded-full object-cover" />}
                     <span style={{ color: ink }}>{t.name}</span>
                     {t.position && <span style={{ color: p.muted }}>{t.position}</span>}
                   </figcaption>
@@ -383,7 +384,7 @@ export default function GlassTemplate({ data, theme, isPreview }: { data: Templa
                 <figure key={cert.id ?? i} className="min-w-0">
                   {(cert.image_url || cert.file_url) && (
                     <div className="mb-3 aspect-[4/3] overflow-hidden rounded-md" style={{ backgroundColor: p.surface, border: `1px solid ${p.rule}` }}>
-                      <img src={cert.image_url || cert.file_url} alt={cert.title || 'Certificate'} className="h-full w-full object-cover"
+                      <SafeImg src={cert.image_url || cert.file_url} alt={cert.title || 'Certificate'} className="h-full w-full object-cover"
                         onError={(e: SyntheticEvent<HTMLImageElement>) => { e.currentTarget.style.display = 'none'; }} />
                     </div>
                   )}

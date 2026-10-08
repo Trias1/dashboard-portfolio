@@ -4,6 +4,7 @@ import type { SyntheticEvent } from 'react';
 import TechBadge from '@/components/TechIcon';
 import ContactForm from '@/components/ContactForm';
 import CertificationSection from '@/components/CertificationSection';
+import SafeImg from '@/components/SafeImg';
 
 /* ------------------------------------------------------------------ */
 /* Colour helpers — text/rules derived from the user's theme.bg        */
@@ -146,7 +147,7 @@ export default function AgencyTemplate({ data, theme, isPreview }: { data: Templ
             </div>
           </div>
           {hero?.background_url && (
-            <img src={hero.background_url} alt="" className="w-full aspect-[16/7] object-cover mb-4 rounded-[4px]" />
+            <SafeImg src={hero.background_url} alt="" className="w-full aspect-[16/7] object-cover mb-4 rounded-[4px]" />
           )}
         </section>
 
@@ -156,7 +157,7 @@ export default function AgencyTemplate({ data, theme, isPreview }: { data: Templ
             <div className="grid grid-cols-1 md:grid-cols-12 gap-10 md:gap-8 border-t pt-10" style={{ borderColor: p.rule }}>
               <div className="md:col-span-4">
                 <p className="text-sm" style={{ color: p.sub }}>About</p>
-                {about.photo_url && <img src={about.photo_url} alt={about.name} className="mt-6 w-full max-w-[300px] aspect-square object-cover rounded-[4px]" />}
+                {about.photo_url && <SafeImg src={about.photo_url} alt={about.name} className="mt-6 w-full max-w-[300px] aspect-square object-cover rounded-[4px]" />}
                 <p className="mt-5 font-semibold">{about.name}</p>
                 {about.title && <p className="text-sm" style={{ color: p.sub }}>{about.title}</p>}
               </div>
@@ -194,7 +195,7 @@ export default function AgencyTemplate({ data, theme, isPreview }: { data: Templ
                   <article key={proj.id ?? i} className="grid grid-cols-1 md:grid-cols-12 gap-8 py-10 sm:py-14 border-b" style={{ borderColor: p.rule }}>
                     {proj.image_url && (
                       <div className={`md:col-span-7 ${flip ? 'md:order-2' : ''}`}>
-                        <img src={proj.image_url} alt={proj.title} className="w-full aspect-[16/10] object-cover rounded-[4px]" />
+                        <SafeImg src={proj.image_url} alt={proj.title} className="w-full aspect-[16/10] object-cover rounded-[4px]" />
                       </div>
                     )}
                     <div className={`${proj.image_url ? 'md:col-span-5' : 'md:col-span-12 md:grid md:grid-cols-12 md:gap-8'} flex flex-col`}>
@@ -276,7 +277,7 @@ export default function AgencyTemplate({ data, theme, isPreview }: { data: Templ
                       “{t.message}”
                     </blockquote>
                     <figcaption className="md:col-span-3 md:pt-2 flex md:flex-col items-center md:items-start gap-3 text-sm">
-                      {t.photo_url && <img src={t.photo_url} alt={t.name} className="w-12 h-12 rounded-full object-cover" />}
+                      {t.photo_url && <SafeImg src={t.photo_url} alt={t.name} className="w-12 h-12 rounded-full object-cover" />}
                       <span>
                         <span className="block font-semibold">{t.name}</span>
                         {t.position && <span className="block" style={{ color: p.sub }}>{t.position}</span>}
@@ -298,7 +299,7 @@ export default function AgencyTemplate({ data, theme, isPreview }: { data: Templ
                 <li key={cert.id ?? i} className="min-w-0">
                   {(cert.image_url || cert.file_url) && (
                     <div className="w-full aspect-[4/3] mb-5 overflow-hidden rounded-[4px] bg-cover bg-center" style={{ backgroundColor: p.band, backgroundImage: `url(${cert.image_url || cert.file_url})` }}>
-                      <img src={cert.image_url || cert.file_url} alt={cert.title} className="w-full h-full object-cover"
+                      <SafeImg src={cert.image_url || cert.file_url} alt={cert.title} className="w-full h-full object-cover"
                         onError={(e: SyntheticEvent<HTMLImageElement>) => { e.currentTarget.style.display = 'none'; }} />
                     </div>
                   )}

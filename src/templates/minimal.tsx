@@ -4,6 +4,7 @@ import type { ReactNode, SyntheticEvent } from 'react';
 import TechBadge from '@/components/TechIcon';
 import ContactForm from '@/components/ContactForm';
 import CertificationSection from '@/components/CertificationSection';
+import SafeImg from '@/components/SafeImg';
 
 /* ------------------------------------------------------------------ */
 /* Colour helpers: derive readable text / rule colours from theme.bg   */
@@ -160,9 +161,9 @@ export default function MinimalTemplate({ data, theme, isPreview }: { data: Temp
           {/* Intro (doubles as the About section) */}
           <section id="about">
             {hero?.background_url && (
-              <img src={hero.background_url} alt="" className="mb-10 aspect-[3/1] w-full rounded-[3px] object-cover" />
+              <SafeImg src={hero.background_url} alt="" className="mb-10 aspect-[3/1] w-full rounded-[3px] object-cover" />
             )}
-            {about?.photo_url && <img src={about.photo_url} alt={about?.name || ''} className="mb-8 h-14 w-14 rounded-full object-cover" />}
+            {about?.photo_url && <SafeImg src={about.photo_url} alt={about?.name || ''} className="mb-8 h-14 w-14 rounded-full object-cover" />}
             <h1 className="text-[1.75rem] leading-tight font-semibold tracking-tight break-words sm:text-[2rem]">
               {hero?.headline || about?.name || portfolio.title}
             </h1>
@@ -225,7 +226,7 @@ export default function MinimalTemplate({ data, theme, isPreview }: { data: Temp
               <ul className="space-y-10">
                 {projects.map((proj, i) => (
                   <li key={proj.id ?? i}>
-                    {proj.image_url && <img src={proj.image_url} alt={proj.title || ''} className="mb-4 aspect-[16/9] w-full rounded-[3px] object-cover" />}
+                    {proj.image_url && <SafeImg src={proj.image_url} alt={proj.title || ''} className="mb-4 aspect-[16/9] w-full rounded-[3px] object-cover" />}
                     <h3 className="font-medium">
                       {proj.demo_url ? <L href={proj.demo_url} p={p} external>{proj.title}</L> : proj.title}
                     </h3>
@@ -273,7 +274,7 @@ export default function MinimalTemplate({ data, theme, isPreview }: { data: Temp
                   <figure key={tm.id ?? i}>
                     <blockquote className="leading-relaxed">“{tm.message}”</blockquote>
                     <figcaption className="mt-2 flex items-center gap-2 text-sm" style={{ color: p.muted }}>
-                      {tm.photo_url && <img src={tm.photo_url} alt={tm.name || ''} className="h-6 w-6 rounded-full object-cover" />}
+                      {tm.photo_url && <SafeImg src={tm.photo_url} alt={tm.name || ''} className="h-6 w-6 rounded-full object-cover" />}
                       <span>— {tm.name}{tm.position ? `, ${tm.position}` : ''}</span>
                     </figcaption>
                   </figure>
@@ -298,7 +299,7 @@ export default function MinimalTemplate({ data, theme, isPreview }: { data: Temp
                 {gallery.map((cert, i) => (
                   <li key={cert.id ?? i} className="flex gap-4">
                     {(cert.image_url || cert.file_url) && (
-                      <img src={cert.image_url || cert.file_url} alt={cert.title || ''} className="h-14 w-20 flex-shrink-0 rounded-[3px] border object-cover"
+                      <SafeImg src={cert.image_url || cert.file_url} alt={cert.title || ''} className="h-14 w-20 flex-shrink-0 rounded-[3px] border object-cover"
                         style={{ borderColor: p.rule }}
                         onError={(e: SyntheticEvent<HTMLImageElement>) => { e.currentTarget.style.display = 'none'; }} />
                     )}

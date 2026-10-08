@@ -4,6 +4,7 @@ import type { TemplateData, TemplateItem, TemplateSectionOrder, ThemeConfig } fr
 import TechBadge from '@/components/TechIcon';
 import ContactForm from '@/components/ContactForm';
 import CertificationSection from '@/components/CertificationSection';
+import SafeImg from '@/components/SafeImg';
 
 // Vibrant: a colour-block layout built from exactly three flat colours
 // (the theme accent, lemon and mint) plus ink. Square corners, heavy display
@@ -249,7 +250,7 @@ export default function VibrantTemplate({ data, theme, isPreview }: { data: Temp
             <div className="grid gap-3 sm:grid-cols-2 md:col-span-4 md:grid-cols-1">
               <div className="relative min-h-[14rem] overflow-hidden" style={{ backgroundColor: L.fill }}>
                 {about?.photo_url ? (
-                  <img src={about.photo_url} alt={name} className="absolute inset-4 h-[calc(100%-2rem)] w-[calc(100%-2rem)] object-cover" />
+                  <SafeImg src={about.photo_url} alt={name} className="absolute inset-4 h-[calc(100%-2rem)] w-[calc(100%-2rem)] object-cover" />
                 ) : (
                   <span className="absolute bottom-3 left-4 font-display text-[7rem] font-extrabold leading-none" style={{ color: L.text }} aria-hidden="true">
                     {name.charAt(0)}
@@ -334,7 +335,7 @@ export default function VibrantTemplate({ data, theme, isPreview }: { data: Temp
                   <article key={proj.id ?? i} className="flex min-w-0 flex-col border-2" style={{ borderColor: ink }}>
                     <div className="relative aspect-[16/10] overflow-hidden border-b-2" style={{ backgroundColor: sw.fill, borderColor: ink }}>
                       {proj.image_url ? (
-                        <img src={proj.image_url} alt={proj.title} className="h-full w-full object-cover" />
+                        <SafeImg src={proj.image_url} alt={proj.title} className="h-full w-full object-cover" />
                       ) : (
                         <span className="absolute bottom-3 left-5 font-display text-6xl font-extrabold leading-none tracking-tight sm:text-7xl" style={{ color: sw.text }} aria-hidden="true">
                           {String(i + 1).padStart(2, '0')}
@@ -393,7 +394,7 @@ export default function VibrantTemplate({ data, theme, isPreview }: { data: Temp
                   <figure key={t.id ?? i} className="p-6 sm:p-8" style={{ backgroundColor: sw.fill, color: sw.text }}>
                     <blockquote className="font-display text-2xl font-bold leading-snug tracking-tight">&ldquo;{t.message}&rdquo;</blockquote>
                     <figcaption className="mt-6 flex items-center gap-3 text-sm">
-                      {t.photo_url && <img src={t.photo_url} alt={t.name} className="h-10 w-10 object-cover" />}
+                      {t.photo_url && <SafeImg src={t.photo_url} alt={t.name} className="h-10 w-10 object-cover" />}
                       <span><strong>{t.name}</strong>{t.position ? ` — ${t.position}` : ''}</span>
                     </figcaption>
                   </figure>
@@ -411,7 +412,7 @@ export default function VibrantTemplate({ data, theme, isPreview }: { data: Temp
                 <figure key={cert.id ?? i} className="min-w-0 border-2" style={{ borderColor: ink }}>
                   {(cert.image_url || cert.file_url) && (
                     <div className="aspect-[4/3] overflow-hidden border-b-2" style={{ borderColor: ink, backgroundColor: p.swatches[i % 3].fill }}>
-                      <img src={cert.image_url || cert.file_url} alt={cert.title || 'Certificate'} className="h-full w-full object-cover"
+                      <SafeImg src={cert.image_url || cert.file_url} alt={cert.title || 'Certificate'} className="h-full w-full object-cover"
                         onError={(e: SyntheticEvent<HTMLImageElement>) => { e.currentTarget.style.display = 'none'; }} />
                     </div>
                   )}

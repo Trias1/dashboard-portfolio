@@ -4,6 +4,7 @@ import type { TemplateData, TemplateItem, TemplateSectionOrder, ThemeConfig } fr
 import TechBadge from '@/components/TechIcon';
 import ContactForm from '@/components/ContactForm';
 import CertificationSection from '@/components/CertificationSection';
+import SafeImg from '@/components/SafeImg';
 
 // Playful: a sticker book. Friendly rounded display type, outlined cards with
 // a flat offset shadow, little tilted sticker labels and a hand-drawn squiggle
@@ -268,7 +269,7 @@ export default function PlayfulTemplate({ data, theme, isPreview }: { data: Temp
             {(hero?.background_url || about?.photo_url) && (
               <div className="relative mx-auto w-56 sm:w-64 md:w-full md:max-w-xs">
                 <div className="rotate-2 overflow-hidden rounded-[1.25rem] border-2" style={{ borderColor: p.edge, boxShadow: `6px 6px 0 ${p.shadow}`, backgroundColor: S2.fill }}>
-                  <img src={about?.photo_url || hero?.background_url} alt={name} className="aspect-square w-full object-cover" />
+                  <SafeImg src={about?.photo_url || hero?.background_url} alt={name} className="aspect-square w-full object-cover" />
                 </div>
                 {about?.title && <Tag s={S3} p={p} tilt="-rotate-6" className="absolute -bottom-4 -left-3 text-sm">{about.title}</Tag>}
               </div>
@@ -340,7 +341,7 @@ export default function PlayfulTemplate({ data, theme, isPreview }: { data: Temp
                 <Card key={proj.id ?? i} p={p} className={`flex flex-col overflow-hidden ${i % 2 === 0 ? 'md:rotate-[-0.6deg]' : 'md:rotate-[0.6deg]'}`}>
                   <div className="relative aspect-[16/10] border-b-2" style={{ borderColor: p.edge, backgroundColor: p.stickers[i % 4].fill }}>
                     {proj.image_url ? (
-                      <img src={proj.image_url} alt={proj.title} className="h-full w-full object-cover" />
+                      <SafeImg src={proj.image_url} alt={proj.title} className="h-full w-full object-cover" />
                     ) : (
                       <span className="absolute inset-0 flex items-center justify-center px-6 text-center text-3xl font-extrabold" style={{ color: p.stickers[i % 4].text, fontFamily: ROUNDED }} aria-hidden="true">
                         {proj.title}
@@ -397,7 +398,7 @@ export default function PlayfulTemplate({ data, theme, isPreview }: { data: Temp
                     <span className="absolute -bottom-[11px] left-8 h-5 w-5 rotate-45 border-b-2 border-r-2" style={{ backgroundColor: card, borderColor: p.edge }} aria-hidden="true" />
                   </Card>
                   <figcaption className="mt-6 flex items-center gap-3 pl-4">
-                    {t.photo_url && <img src={t.photo_url} alt={t.name} className="h-10 w-10 rounded-full border-2 object-cover" style={{ borderColor: p.edge }} />}
+                    {t.photo_url && <SafeImg src={t.photo_url} alt={t.name} className="h-10 w-10 rounded-full border-2 object-cover" style={{ borderColor: p.edge }} />}
                     <span className="text-sm" style={{ color: legible(mix(bg, ink, 0.7), bg) }}>
                       <strong style={{ color: ink }}>{t.name}</strong>{t.position ? ` · ${t.position}` : ''}
                     </span>
@@ -416,7 +417,7 @@ export default function PlayfulTemplate({ data, theme, isPreview }: { data: Temp
                 <Card key={cert.id ?? i} p={p} className={`p-3 pb-5 ${MD_TILTS[i % 4]}`}>
                   {(cert.image_url || cert.file_url) && (
                     <div className="aspect-[4/3] overflow-hidden rounded-md border-2" style={{ borderColor: p.edge, backgroundColor: p.stickers[i % 4].fill }}>
-                      <img src={cert.image_url || cert.file_url} alt={cert.title || 'Certificate'} className="h-full w-full object-cover"
+                      <SafeImg src={cert.image_url || cert.file_url} alt={cert.title || 'Certificate'} className="h-full w-full object-cover"
                         onError={(e: SyntheticEvent<HTMLImageElement>) => { e.currentTarget.style.display = 'none'; }} />
                     </div>
                   )}

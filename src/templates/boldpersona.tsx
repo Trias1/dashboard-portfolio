@@ -4,6 +4,7 @@ import type { SyntheticEvent } from 'react';
 import TechBadge from '@/components/TechIcon';
 import ContactForm from '@/components/ContactForm';
 import CertificationSection from '@/components/CertificationSection';
+import SafeImg from '@/components/SafeImg';
 
 /* ------------------------------------------------------------------ */
 /* Colour helpers — text/rules derived from the user's theme.bg        */
@@ -130,7 +131,7 @@ export default function BoldPersonaTemplate({ data, theme, isPreview }: { data: 
             {about?.photo_url && (
               <div className="md:col-span-4 relative w-[min(72%,300px)] md:w-full justify-self-start md:justify-self-end">
                 <span aria-hidden="true" className="absolute inset-0 translate-x-3 translate-y-3 sm:translate-x-4 sm:translate-y-4" style={{ backgroundColor: ac }} />
-                <img src={about.photo_url} alt={about.name || name} className="relative w-full aspect-[4/5] object-cover" />
+                <SafeImg src={about.photo_url} alt={about.name || name} className="relative w-full aspect-[4/5] object-cover" />
               </div>
             )}
           </div>
@@ -152,7 +153,7 @@ export default function BoldPersonaTemplate({ data, theme, isPreview }: { data: 
           </div>
 
           {hero?.background_url && (
-            <img src={hero.background_url} alt="" className="mt-16 w-full aspect-[16/7] object-cover" />
+            <SafeImg src={hero.background_url} alt="" className="mt-16 w-full aspect-[16/7] object-cover" />
           )}
         </section>
 
@@ -164,7 +165,7 @@ export default function BoldPersonaTemplate({ data, theme, isPreview }: { data: 
               {projects.map((proj: TemplateItem, i: number) => (
                 <li key={proj.id ?? i} className="grid grid-cols-1 md:grid-cols-12 gap-6 md:gap-8">
                   <div className={proj.image_url ? 'md:col-span-6 md:order-2' : 'hidden'}>
-                    {proj.image_url && <img src={proj.image_url} alt={proj.title} className="w-full aspect-[4/3] object-cover" />}
+                    {proj.image_url && <SafeImg src={proj.image_url} alt={proj.title} className="w-full aspect-[4/3] object-cover" />}
                   </div>
                   <div className={proj.image_url ? 'md:col-span-6' : 'md:col-span-9'}>
                     <p className="font-display text-sm font-bold tabular-nums" style={{ color: p.accentText }}>{String(i + 1).padStart(2, '0')}</p>
@@ -269,7 +270,7 @@ export default function BoldPersonaTemplate({ data, theme, isPreview }: { data: 
                     <span aria-hidden="true" style={{ color: p.accentText }}>“</span>{t.message}<span aria-hidden="true" style={{ color: p.accentText }}>”</span>
                   </blockquote>
                   <figcaption className="mt-6 flex items-center gap-3 text-sm font-semibold">
-                    {t.photo_url && <img src={t.photo_url} alt={t.name} className="w-11 h-11 object-cover" />}
+                    {t.photo_url && <SafeImg src={t.photo_url} alt={t.name} className="w-11 h-11 object-cover" />}
                     <span>{t.name}{t.position && <span className="font-normal" style={{ color: p.sub }}> — {t.position}</span>}</span>
                   </figcaption>
                 </figure>
@@ -287,7 +288,7 @@ export default function BoldPersonaTemplate({ data, theme, isPreview }: { data: 
                 <li key={cert.id ?? i} className="min-w-0">
                   {(cert.image_url || cert.file_url) && (
                     <div className="w-full aspect-[4/3] mb-4 overflow-hidden bg-cover bg-center" style={{ backgroundColor: p.surface, backgroundImage: `url(${cert.image_url || cert.file_url})` }}>
-                      <img src={cert.image_url || cert.file_url} alt={cert.title} className="w-full h-full object-cover"
+                      <SafeImg src={cert.image_url || cert.file_url} alt={cert.title} className="w-full h-full object-cover"
                         onError={(e: SyntheticEvent<HTMLImageElement>) => { e.currentTarget.style.display = 'none'; }} />
                     </div>
                   )}

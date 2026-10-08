@@ -5,6 +5,7 @@ import type { TemplateData, TemplateItem, TemplateSectionOrder, ThemeConfig } fr
 import TechBadge from '@/components/TechIcon';
 import ContactForm from '@/components/ContactForm';
 import CertificationSection from '@/components/CertificationSection';
+import SafeImg from '@/components/SafeImg';
 
 // Immersive: full-bleed bands, edge-to-edge imagery and very large type.
 // The only motion is a slow parallax on the hero photograph (off when the
@@ -214,7 +215,7 @@ export default function ImmersiveTemplate({ data, theme, isPreview }: { data: Te
         <section id="hero" className="relative flex min-h-[100svh] flex-col overflow-hidden" style={{ backgroundColor: heroField }}>
           {heroImg && (
             <motion.div className="absolute inset-x-0 -top-[10%] h-[120%]" style={{ y: heroShift }} aria-hidden="true">
-              <img src={heroImg} alt="" className="h-full w-full object-cover" />
+              <SafeImg src={heroImg} alt="" className="h-full w-full object-cover" />
               <div className="absolute inset-0" style={{ backgroundColor: 'rgba(8,8,10,0.5)' }} />
             </motion.div>
           )}
@@ -251,7 +252,7 @@ export default function ImmersiveTemplate({ data, theme, isPreview }: { data: Te
             <div className={about.photo_url ? 'grid md:min-h-[85svh] md:grid-cols-2' : ''}>
               {about.photo_url && (
                 <div className="relative aspect-[4/5] md:aspect-auto">
-                  <img src={about.photo_url} alt={about.name} className="absolute inset-0 h-full w-full object-cover" />
+                  <SafeImg src={about.photo_url} alt={about.name} className="absolute inset-0 h-full w-full object-cover" />
                 </div>
               )}
               <div className={`flex flex-col justify-center px-5 py-20 md:px-14 md:py-28 ${about.photo_url ? '' : 'mx-auto max-w-7xl md:px-10'}`}>
@@ -316,7 +317,7 @@ export default function ImmersiveTemplate({ data, theme, isPreview }: { data: Te
               {projects.map((proj: TemplateItem, i: number) => (
                 <article key={proj.id ?? i} className="border-t" style={{ borderColor: p.rule }}>
                   {proj.image_url && (
-                    <img src={proj.image_url} alt={proj.title} className="aspect-[4/3] max-h-[82svh] w-full object-cover sm:aspect-video" />
+                    <SafeImg src={proj.image_url} alt={proj.title} className="aspect-[4/3] max-h-[82svh] w-full object-cover sm:aspect-video" />
                   )}
                   <div className="mx-auto grid max-w-7xl gap-6 px-5 py-12 md:grid-cols-[5rem_1fr_1fr] md:gap-10 md:px-10 md:py-16">
                     <p className="font-mono text-sm tabular-nums" style={{ color: p.muted }}>{String(i + 1).padStart(2, '0')}</p>
@@ -364,7 +365,7 @@ export default function ImmersiveTemplate({ data, theme, isPreview }: { data: Te
                 <figure key={t.id ?? i}>
                   <blockquote className="max-w-[26ch] font-display text-4xl font-bold leading-[1.05] tracking-[-0.03em] md:text-6xl">&ldquo;{t.message}&rdquo;</blockquote>
                   <figcaption className="mt-8 flex items-center gap-4 text-base">
-                    {t.photo_url && <img src={t.photo_url} alt={t.name} className="h-12 w-12 rounded-full object-cover" />}
+                    {t.photo_url && <SafeImg src={t.photo_url} alt={t.name} className="h-12 w-12 rounded-full object-cover" />}
                     <span><strong className="font-semibold">{t.name}</strong>{t.position ? ` — ${t.position}` : ''}</span>
                   </figcaption>
                 </figure>
@@ -381,7 +382,7 @@ export default function ImmersiveTemplate({ data, theme, isPreview }: { data: Te
                 <figure key={cert.id ?? i} className="min-w-0">
                   {(cert.image_url || cert.file_url) && (
                     <div className="mb-5 aspect-[4/3] overflow-hidden" style={{ backgroundColor: p.surface }}>
-                      <img src={cert.image_url || cert.file_url} alt={cert.title || 'Certificate'} className="h-full w-full object-cover"
+                      <SafeImg src={cert.image_url || cert.file_url} alt={cert.title || 'Certificate'} className="h-full w-full object-cover"
                         onError={(e: SyntheticEvent<HTMLImageElement>) => { e.currentTarget.style.display = 'none'; }} />
                     </div>
                   )}

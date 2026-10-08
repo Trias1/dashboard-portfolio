@@ -4,6 +4,7 @@ import type { CSSProperties, ReactNode, SyntheticEvent } from 'react';
 import TechBadge from '@/components/TechIcon';
 import ContactForm from '@/components/ContactForm';
 import CertificationSection from '@/components/CertificationSection';
+import SafeImg from '@/components/SafeImg';
 
 /* ------------------------------------------------------------------ */
 /* Colour helpers: derive readable text / rule colours from theme.bg   */
@@ -194,7 +195,7 @@ export default function NeonTemplate({ data, theme, isPreview }: { data: Templat
         <section id="hero" className="relative">
           {hero?.background_url && (
             <>
-              <img src={hero.background_url} alt="" className="absolute inset-0 h-full w-full object-cover" />
+              <SafeImg src={hero.background_url} alt="" className="absolute inset-0 h-full w-full object-cover" />
               <div className="absolute inset-0" style={{ backgroundColor: p.bg, opacity: 0.82 }} />
             </>
           )}
@@ -245,7 +246,7 @@ export default function NeonTemplate({ data, theme, isPreview }: { data: Templat
             <SignTitle p={p} kicker="Profile">About</SignTitle>
             <div className="grid gap-10 md:grid-cols-[16rem_1fr]">
               {about.photo_url && (
-                <img src={about.photo_url} alt={about.name} className="aspect-[4/5] w-full max-w-[16rem] border object-cover" style={{ borderColor: p.neon }} />
+                <SafeImg src={about.photo_url} alt={about.name} className="aspect-[4/5] w-full max-w-[16rem] border object-cover" style={{ borderColor: p.neon }} />
               )}
               <div className="min-w-0">
                 <h3 className="text-2xl font-bold uppercase tracking-wide">{about.name}</h3>
@@ -325,7 +326,7 @@ export default function NeonTemplate({ data, theme, isPreview }: { data: Templat
                       </p>
                     )}
                   </div>
-                  {proj.image_url && <img src={proj.image_url} alt={proj.title || ''} className="aspect-[4/3] w-full border object-cover" style={{ borderColor: p.neon }} />}
+                  {proj.image_url && <SafeImg src={proj.image_url} alt={proj.title || ''} className="aspect-[4/3] w-full border object-cover" style={{ borderColor: p.neon }} />}
                 </li>
               ))}
             </ol>
@@ -357,7 +358,7 @@ export default function NeonTemplate({ data, theme, isPreview }: { data: Templat
                 <figure key={t.id ?? i}>
                   <blockquote className="text-2xl leading-snug font-semibold">“{t.message}”</blockquote>
                   <figcaption className="mt-5 flex items-center gap-3">
-                    {t.photo_url && <img src={t.photo_url} alt={t.name || ''} className="h-10 w-10 border object-cover" style={{ borderColor: p.neon }} />}
+                    {t.photo_url && <SafeImg src={t.photo_url} alt={t.name || ''} className="h-10 w-10 border object-cover" style={{ borderColor: p.neon }} />}
                     <span className="font-mono text-xs uppercase tracking-[0.14em]">{t.name}{t.position && <span style={{ color: p.muted }}> / {t.position}</span>}</span>
                   </figcaption>
                 </figure>
@@ -375,7 +376,7 @@ export default function NeonTemplate({ data, theme, isPreview }: { data: Templat
                 <figure key={cert.id ?? i} className="min-w-0">
                   {(cert.image_url || cert.file_url) && (
                     <div className="mb-4 aspect-[4/3] overflow-hidden border" style={{ borderColor: p.neon }}>
-                      <img src={cert.image_url || cert.file_url} alt={cert.title || ''} className="h-full w-full object-cover"
+                      <SafeImg src={cert.image_url || cert.file_url} alt={cert.title || ''} className="h-full w-full object-cover"
                         onError={(e: SyntheticEvent<HTMLImageElement>) => { e.currentTarget.style.display = 'none'; }} />
                     </div>
                   )}

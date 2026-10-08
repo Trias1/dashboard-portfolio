@@ -4,6 +4,7 @@ import type { TemplateData, TemplateItem, ThemeConfig } from '@/types';
 import TechBadge from '@/components/TechIcon';
 import ContactForm from '@/components/ContactForm';
 import CertificationSection from '@/components/CertificationSection';
+import SafeImg from '@/components/SafeImg';
 
 // Retro: a photocopied zine / early-web page. Monospace throughout, a boxed
 // page with a double rule, reverse-video section labels, dotted leaders,
@@ -209,7 +210,7 @@ export default function RetroTemplate({ data, theme, isPreview }: { data: Templa
           {/* Hero */}
           <section id="hero" className="border-b px-5 py-12 sm:px-10 md:py-16" style={{ borderColor: p.rule }}>
             {hero?.background_url && (
-              <img src={hero.background_url} alt="" className="mb-10 h-40 w-full border object-cover sm:h-56" style={{ ...PHOTOCOPY, borderColor: ink }} />
+              <SafeImg src={hero.background_url} alt="" className="mb-10 h-40 w-full border object-cover sm:h-56" style={{ ...PHOTOCOPY, borderColor: ink }} />
             )}
             <div className="grid gap-8 sm:grid-cols-[1fr_auto] sm:items-start">
               <div className="min-w-0">
@@ -226,7 +227,7 @@ export default function RetroTemplate({ data, theme, isPreview }: { data: Templa
               </div>
               {about?.photo_url && (
                 <figure className="w-36 sm:w-40">
-                  <img src={about.photo_url} alt={name} className="aspect-square w-full border-2 object-cover" style={{ ...PHOTOCOPY, borderColor: ink }} />
+                  <SafeImg src={about.photo_url} alt={name} className="aspect-square w-full border-2 object-cover" style={{ ...PHOTOCOPY, borderColor: ink }} />
                   <figcaption className="mt-1.5 text-[11px] uppercase tracking-wider" style={{ color: p.muted }}>fig. 1 — the author</figcaption>
                 </figure>
               )}
@@ -292,7 +293,7 @@ export default function RetroTemplate({ data, theme, isPreview }: { data: Templa
                       <span className="shrink-0 text-[11px] tabular-nums" style={{ color: p.muted }}>no.{String(i + 1).padStart(2, '0')}</span>
                     </div>
                     <div className={proj.image_url ? 'grid gap-4 p-4 sm:grid-cols-[12rem_1fr]' : 'p-4'}>
-                      {proj.image_url && <img src={proj.image_url} alt={proj.title} className="aspect-[4/3] w-full border object-cover" style={{ ...PHOTOCOPY, borderColor: p.rule }} />}
+                      {proj.image_url && <SafeImg src={proj.image_url} alt={proj.title} className="aspect-[4/3] w-full border object-cover" style={{ ...PHOTOCOPY, borderColor: p.rule }} />}
                       <div className="min-w-0">
                         {proj.description && <p className="text-sm leading-6" style={{ color: ink }}>{proj.description}</p>}
                         {proj.tech_stack && (
@@ -340,7 +341,7 @@ export default function RetroTemplate({ data, theme, isPreview }: { data: Templa
                   <figure key={t.id ?? i} className="border-l-4 border-double pl-4" style={{ borderColor: ink }}>
                     <blockquote className="max-w-[62ch] text-sm leading-7" style={{ color: ink }}>&ldquo;{t.message}&rdquo;</blockquote>
                     <figcaption className="mt-3 flex items-center gap-3 text-xs uppercase tracking-wider" style={{ color: p.muted }}>
-                      {t.photo_url && <img src={t.photo_url} alt={t.name} className="h-8 w-8 border object-cover" style={{ ...PHOTOCOPY, borderColor: ink }} />}
+                      {t.photo_url && <SafeImg src={t.photo_url} alt={t.name} className="h-8 w-8 border object-cover" style={{ ...PHOTOCOPY, borderColor: ink }} />}
                       <span>— {t.name}{t.position ? `, ${t.position}` : ''}</span>
                     </figcaption>
                   </figure>
@@ -357,7 +358,7 @@ export default function RetroTemplate({ data, theme, isPreview }: { data: Templa
                   <figure key={cert.id ?? i} className="min-w-0 text-sm">
                     {(cert.image_url || cert.file_url) && (
                       <div className="mb-2 aspect-[4/3] overflow-hidden border" style={{ borderColor: ink }}>
-                        <img src={cert.image_url || cert.file_url} alt={cert.title || 'Certificate'} className="h-full w-full object-cover" style={PHOTOCOPY}
+                        <SafeImg src={cert.image_url || cert.file_url} alt={cert.title || 'Certificate'} className="h-full w-full object-cover" style={PHOTOCOPY}
                           onError={(e: SyntheticEvent<HTMLImageElement>) => { e.currentTarget.style.display = 'none'; }} />
                       </div>
                     )}

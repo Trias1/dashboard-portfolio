@@ -4,6 +4,7 @@ import type { ReactNode, SyntheticEvent } from 'react';
 import TechBadge from '@/components/TechIcon';
 import ContactForm from '@/components/ContactForm';
 import CertificationSection from '@/components/CertificationSection';
+import SafeImg from '@/components/SafeImg';
 
 /* ------------------------------------------------------------------ */
 /* Colour helpers: derive readable text / rule colours from theme.bg   */
@@ -173,14 +174,14 @@ export default function ClassicTemplate({ data, theme, isPreview }: { data: Temp
       <main className="mx-auto max-w-[52rem] px-5 pb-16 sm:px-8">
         {/* Letterhead */}
         <section id="hero" className="pt-12 pb-2 sm:pt-16">
-          {hero?.background_url && <img src={hero.background_url} alt="" className="mb-8 aspect-[4/1] w-full rounded-[2px] object-cover" />}
+          {hero?.background_url && <SafeImg src={hero.background_url} alt="" className="mb-8 aspect-[4/1] w-full rounded-[2px] object-cover" />}
           <div className="flex flex-col-reverse gap-6 sm:flex-row sm:items-start sm:justify-between">
             <div className="min-w-0">
               {hero?.greeting && <p className="mb-2 text-sm" style={{ color: p.muted }}>{hero.greeting}</p>}
               <h1 className="text-4xl leading-tight font-semibold tracking-tight break-words sm:text-5xl">{name}</h1>
               {about?.title && <p className="mt-1 text-lg" style={{ color: p.muted }}>{about.title}</p>}
             </div>
-            {about?.photo_url && <img src={about.photo_url} alt={about?.name || ''} className="h-28 w-24 flex-shrink-0 rounded-[2px] border object-cover" style={{ borderColor: p.rule }} />}
+            {about?.photo_url && <SafeImg src={about.photo_url} alt={about?.name || ''} className="h-28 w-24 flex-shrink-0 rounded-[2px] border object-cover" style={{ borderColor: p.rule }} />}
           </div>
           <p className="mt-5 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">
             {[
@@ -254,7 +255,7 @@ export default function ClassicTemplate({ data, theme, isPreview }: { data: Temp
           <CvSection id="projects" title="Selected projects" p={p}>
             {projects.map((proj, i) => (
               <Row key={proj.id ?? i} p={p} meta={proj.image_url
-                ? <img src={proj.image_url} alt={proj.title || ''} className="aspect-[4/3] w-full max-w-[12rem] rounded-[2px] border object-cover" style={{ borderColor: p.rule }} />
+                ? <SafeImg src={proj.image_url} alt={proj.title || ''} className="aspect-[4/3] w-full max-w-[12rem] rounded-[2px] border object-cover" style={{ borderColor: p.rule }} />
                 : <span className="tabular-nums">No. {i + 1}</span>}>
                 <h3 className="font-semibold">{proj.title}</h3>
                 {proj.description && <p className="mt-1 max-w-[68ch] leading-relaxed">{proj.description}</p>}
@@ -293,7 +294,7 @@ export default function ClassicTemplate({ data, theme, isPreview }: { data: Temp
             {testimonials.map((t, i) => (
               <Row key={t.id ?? i} p={p} meta={
                 <span className="flex items-center gap-2">
-                  {t.photo_url && <img src={t.photo_url} alt={t.name || ''} className="h-8 w-8 rounded-full object-cover" />}
+                  {t.photo_url && <SafeImg src={t.photo_url} alt={t.name || ''} className="h-8 w-8 rounded-full object-cover" />}
                   <span><span className="block font-medium" style={{ color: p.text }}>{t.name}</span>{t.position}</span>
                 </span>
               }>
@@ -315,7 +316,7 @@ export default function ClassicTemplate({ data, theme, isPreview }: { data: Temp
                     {cert.file_url && <p className="mt-1 text-sm"><A href={cert.file_url} p={p} external>View certificate</A></p>}
                   </div>
                   {(cert.image_url || cert.file_url) && (
-                    <img src={cert.image_url || cert.file_url} alt={cert.title || ''} className="hidden h-16 w-24 flex-shrink-0 rounded-[2px] border object-cover sm:block"
+                    <SafeImg src={cert.image_url || cert.file_url} alt={cert.title || ''} className="hidden h-16 w-24 flex-shrink-0 rounded-[2px] border object-cover sm:block"
                       style={{ borderColor: p.rule }}
                       onError={(e: SyntheticEvent<HTMLImageElement>) => { e.currentTarget.style.display = 'none'; }} />
                   )}

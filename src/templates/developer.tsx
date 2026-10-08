@@ -4,6 +4,7 @@ import type { SyntheticEvent } from 'react';
 import TechBadge from '@/components/TechIcon';
 import ContactForm from '@/components/ContactForm';
 import CertificationSection from '@/components/CertificationSection';
+import SafeImg from '@/components/SafeImg';
 
 /* ------------------------------------------------------------------ */
 /* Colour helpers: derive readable ink/rules from whatever bg the      */
@@ -147,7 +148,7 @@ export default function DeveloperTemplate({ data, theme, isPreview }: { data: Te
           {/* Hero — README header */}
           <section id="hero" className="pt-14 pb-16 sm:pt-20">
             {hero?.background_url && (
-              <img src={hero.background_url} alt="" className="w-full h-40 sm:h-56 object-cover border mb-10 rounded-md" style={{ borderColor: p.rule }} />
+              <SafeImg src={hero.background_url} alt="" className="w-full h-40 sm:h-56 object-cover border mb-10 rounded-md" style={{ borderColor: p.rule }} />
             )}
             <p className="font-mono text-[13px] mb-6" style={{ color: p.sub }}>
               README.md {hero?.greeting && <span>· {hero.greeting}</span>}
@@ -190,7 +191,7 @@ export default function DeveloperTemplate({ data, theme, isPreview }: { data: Te
               <Prompt p={p} cmd="cat about.md" />
               <div className="flex flex-col sm:flex-row gap-8 items-start">
                 {about.photo_url && (
-                  <img src={about.photo_url} alt={about.name} className="w-28 h-28 sm:w-32 sm:h-32 rounded-md object-cover border shrink-0" style={{ borderColor: p.rule }} />
+                  <SafeImg src={about.photo_url} alt={about.name} className="w-28 h-28 sm:w-32 sm:h-32 rounded-md object-cover border shrink-0" style={{ borderColor: p.rule }} />
                 )}
                 <div className="min-w-0">
                   <h2 className="font-mono text-xl font-semibold" style={{ color: p.text }}>{about.name}</h2>
@@ -255,7 +256,7 @@ export default function DeveloperTemplate({ data, theme, isPreview }: { data: Te
                         )}
                         {proj.description && <p className="font-sans mt-2 text-[15px] leading-relaxed max-w-[64ch]" style={{ color: p.sub }}>{proj.description}</p>}
                         {proj.image_url && (
-                          <img src={proj.image_url} alt={proj.title} className="mt-4 w-full max-w-xl aspect-[16/9] object-cover rounded-md border" style={{ borderColor: p.rule }} />
+                          <SafeImg src={proj.image_url} alt={proj.title} className="mt-4 w-full max-w-xl aspect-[16/9] object-cover rounded-md border" style={{ borderColor: p.rule }} />
                         )}
                         {proj.tech_stack && (
                           <div className="flex flex-wrap gap-1.5 mt-4">
@@ -323,7 +324,7 @@ export default function DeveloperTemplate({ data, theme, isPreview }: { data: Te
                   <figure key={t.id ?? i} className="border-l-2 pl-5" style={{ borderColor: ac }}>
                     <blockquote className="text-base sm:text-[17px] leading-relaxed max-w-[64ch]" style={{ color: p.text }}>{t.message}</blockquote>
                     <figcaption className="mt-4 flex items-center gap-3 font-mono text-[13px]">
-                      {t.photo_url && <img src={t.photo_url} alt={t.name} className="w-8 h-8 rounded object-cover" />}
+                      {t.photo_url && <SafeImg src={t.photo_url} alt={t.name} className="w-8 h-8 rounded object-cover" />}
                       <span style={{ color: p.text }}>{t.name}</span>
                       {t.position && <span style={{ color: p.sub }}>· {t.position}</span>}
                     </figcaption>
@@ -343,7 +344,7 @@ export default function DeveloperTemplate({ data, theme, isPreview }: { data: Te
                   <li key={cert.id ?? i} className="min-w-0">
                     {(cert.image_url || cert.file_url) && (
                       <div className="w-full aspect-[4/3] mb-4 overflow-hidden rounded-md border bg-cover bg-center" style={{ borderColor: p.rule, backgroundColor: p.panel, backgroundImage: `url(${cert.image_url || cert.file_url})` }}>
-                        <img src={cert.image_url || cert.file_url} alt={cert.title} className="w-full h-full object-cover"
+                        <SafeImg src={cert.image_url || cert.file_url} alt={cert.title} className="w-full h-full object-cover"
                           onError={(e: SyntheticEvent<HTMLImageElement>) => { e.currentTarget.style.display = 'none'; }} />
                       </div>
                     )}
