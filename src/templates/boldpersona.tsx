@@ -5,6 +5,7 @@ import TechBadge from '@/components/TechIcon';
 import ContactForm from '@/components/ContactForm';
 import CertificationSection from '@/components/CertificationSection';
 import SafeImg from '@/components/SafeImg';
+import DescText, { DescItems } from '@/components/DescText';
 
 /* ------------------------------------------------------------------ */
 /* Colour helpers — text/rules derived from the user's theme.bg        */
@@ -170,7 +171,7 @@ export default function BoldPersonaTemplate({ data, theme, isPreview }: { data: 
                   <div className={proj.image_url ? 'md:col-span-6' : 'md:col-span-9'}>
                     <p className="font-display text-sm font-bold tabular-nums" style={{ color: p.accentText }}>{String(i + 1).padStart(2, '0')}</p>
                     <h3 className="mt-2 font-display text-3xl sm:text-5xl font-extrabold tracking-[-0.04em] leading-[0.95] break-words">{proj.title}</h3>
-                    {proj.description && <p className="mt-5 text-lg leading-relaxed max-w-[44ch]" style={{ color: p.sub }}>{proj.description}</p>}
+                    <DescText text={proj.description} className="mt-5 text-lg leading-relaxed max-w-[44ch]" style={{ color: p.sub }} />
                     {proj.tech_stack && (
                       <div className="flex flex-wrap gap-2 mt-6">
                         {proj.tech_stack.split(',').filter(t => t.trim()).map((t: string) => <TechBadge key={t} name={t.trim()} accentColor={ac} textColor={p.text} size="md" variant="pill" />)}
@@ -217,7 +218,7 @@ export default function BoldPersonaTemplate({ data, theme, isPreview }: { data: 
                     </h3>
                     {descLines(exp.description).length > 0 && (
                       <div className="mt-3 space-y-1.5 text-base leading-relaxed max-w-[60ch]" style={{ color: p.sub }}>
-                        {descLines(exp.description).map((s, si) => <p key={si}>{s}</p>)}
+                        <DescItems items={descLines(exp.description)} />
                       </div>
                     )}
                   </div>

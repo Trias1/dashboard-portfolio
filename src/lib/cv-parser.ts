@@ -10,7 +10,7 @@ export const CV_LIST_KEYS: CvListKey[] = [
 /* PDF text → lines                                                    */
 /* ------------------------------------------------------------------ */
 
-export interface PdfTextRun { x: number; y: number; R?: { T: string }[] }
+export interface PdfTextRun { x: number; y: number; w?: number; R?: { T: string }[] }
 export interface PdfPageLike { Texts?: PdfTextRun[] }
 
 // pdf2json <3 URI-encoded every run, v4 returns raw text. Raw text may contain a literal "%"
@@ -29,21 +29,50 @@ export function cleanExtractedText(text: string) {
     .replace(/\r\n?/g, '\n');
 }
 
-/** Rebuild visual lines from pdf2json runs (group by y, order by x). The old code joined a whole page into one line. */
+// pdf2json reports a run's width (w) in units 16× smaller than its x position.
+const PDF_W_PER_X = 16;
+// Runs closer than this (in x units; a space is ~0.12+) are pieces of the same word.
+const TOUCHING_GAP = 0.05;
+
+/**
+ * Rebuild visual lines from pdf2json runs (group by y, order by x). The old code joined a whole page into one line.
+ * Word processors often split a word into several runs ("P" + "rofile", "Full" + "-" + "Time"); runs that touch
+ * are joined without a space, the others with one.
+ */
 export function pagesToText(pages: PdfPageLike[]): string {
   return pages.map((page) => {
     const runs = (page.Texts || [])
-      .map((t) => ({ x: Number(t.x) || 0, y: Number(t.y) || 0, text: safeDecode((t.R || []).map((r) => r.T).join('')) }))
+      .map((t) => {
+        const x = Number(t.x) || 0;
+        const w = Number(t.w);
+        return { x, y: Number(t.y) || 0, end: Number.isFinite(w) && w > 0 ? x + w / PDF_W_PER_X : null, text: safeDecode((t.R || []).map((r) => r.T).join('')) };
+      })
       .filter((r) => r.text.trim());
     runs.sort((a, b) => a.y - b.y || a.x - b.x);
-    const lines: { y: number; parts: { x: number; text: string }[] }[] = [];
+    const lines: { y: number; parts: typeof runs }[] = [];
     for (const r of runs) {
       const last = lines[lines.length - 1];
       if (last && Math.abs(r.y - last.y) < 0.35) last.parts.push(r);
       else lines.push({ y: r.y, parts: [r] });
     }
     return lines
-      .map((l) => l.parts.sort((a, b) => a.x - b.x).map((p) => p.text).join(' ').replace(/[ \t]+/g, ' ').trim())
+      .map((l) => {
+        const parts = l.parts.sort((a, b) => a.x - b.x);
+        let out = '';
+        const touches = (a: (typeof parts)[number] | undefined, b: (typeof parts)[number] | undefined) =>
+          !!a && !!b && a.end != null && b.x - a.end < TOUCHING_GAP;
+        parts.forEach((p, i) => {
+          const prev = parts[i - 1];
+          if (i === 0) { out = p.text; return; }
+          // A heading's first letter set apart: " C " + "ertificate".
+          if (touches(prev, p) && /^[A-Z]$/.test(prev.text.trim()) && /^[a-z]/.test(p.text)) { out = out.trimEnd() + p.text; return; }
+          // On justified lines widths drift, but a hyphen glued to the next word belongs to the previous one too
+          // ("cloud" + "-" + "native").
+          if (p.text === '-' && touches(p, parts[i + 1]) && !/\s$/.test(prev.text)) { out += p.text; return; }
+          out += touches(prev, p) ? p.text : ` ${p.text}`;
+        });
+        return out.replace(/[ \t]+/g, ' ').trim();
+      })
       .filter(Boolean)
       .join('\n');
   }).join('\n');
@@ -166,7 +195,7 @@ const SECTION_HEADERS: { rx: RegExp; name: string }[] = [
   { rx: /^(?:career\s+objective|objective|professional\s+summary|summary|profile|about\s+me|profil|ringkasan|tentang\s+saya)/i, name: 'summary' },
   { rx: /^(?:contact(?:\s+info(?:rmation)?)?|personal\s+(?:data|details|information)|data\s+(?:diri|pribadi)|kontak|informasi\s+pribadi)/i, name: 'contact' },
 ];
-const HEADER_EXTRA_WORD = /^(?:&|and|dan|\/|-|history|experiences?|skills?|tools|summary|background|qualifications?|kerja|formal|profesional|professional|technical|teknis|keahlian|key|core|relevant|selected|personal|work|career|riwayat|information|info|details|me|saya|areas?|highlights|certifications?|courses?)$/i;
+const HEADER_EXTRA_WORD = /^(?:&|and|dan|\/|-|history|experiences?|skills?|tools|summary|background|qualifications?|kerja|formal|profesional|professional|technical|teknis|keahlian|key|core|relevant|selected|personal|work|career|riwayat|information|info|details|me|saya|areas?|highlights|certifications?|courses?|abilities|competenc(?:ies|e)|expertise)$/i;
 
 /** Returns the canonical section name if `line` is a section heading, else null. */
 export function matchHeader(line: string): string | null {
@@ -319,6 +348,67 @@ function blockToEducation(b: Block): ParsedCvItem {
   };
 }
 
+/**
+ * "Company, City | Fulltime" / "Role as a Full-Time Employee, April 2023 – Present" / bullets / next role…
+ * One company line above one or more dated role lines. Returns null when the section isn't laid out that way.
+ */
+function companyRoleEntries(lines: string[]): ParsedCvItem[] | null {
+  const items = lines.map((raw) => ({ bullet: BULLET_RX.test(raw), line: raw.replace(BULLET_RX, '').trim() })).filter((it) => it.line);
+  const isRole = (it?: { bullet: boolean; line: string }) =>
+    !!it && !it.bullet && it.line.length <= 120 && DATE_RANGE_RX.test(it.line) && !!stripDates(it.line);
+  const isCompany = (i: number) =>
+    !items[i].bullet && !DATE_RANGE_RX.test(items[i].line) && !/[.!?]$/.test(items[i].line) && items[i].line.length <= 100 && isRole(items[i + 1]);
+  if (!items.length || !isCompany(0)) return null;
+  const out: ParsedCvItem[] = [];
+  let company = '';
+  let cur: ParsedCvItem | null = null;
+  items.forEach((it, i) => {
+    if (isCompany(i)) {
+      // "PT Inovasi Informatika Indonesia, South Jakarta (Hybrid) | Fulltime" → the name before the location/type.
+      const first = it.line.split(/\s*\|\s*/)[0];
+      const [name, ...rest] = first.split(/,\s+/);
+      company = rest.length && /^(?:inc|ltd|llc|tbk|corp)\b/i.test(rest[0]) ? `${name}, ${rest[0]}` : name;
+      return;
+    }
+    if (isRole(it)) {
+      const dm = it.line.match(DATE_RANGE_RX)!;
+      const position = stripDates(it.line).replace(/[,|–—-]\s*$/, '').split(/\s+as\s+(?:an?\s+)?(?=[\w-]*\s*(?:full|part|contract|intern|freelance|employee|staff|kontrak|magang|karyawan))/i)[0].trim();
+      cur = { position, company, start_date: dm[1].trim(), end_date: dm[2].trim(), description: '' };
+      out.push(cur);
+      return;
+    }
+    if (cur) cur.description = cur.description ? `${cur.description}\n${it.line}` : it.line;
+  });
+  return out.length ? out : null;
+}
+
+/**
+ * "Backend REST API (Java Spring Boot & MySQL)" / "• Developed…" / "• Implemented…" / next title…
+ * Every plain line is a title with bullets under it. Returns null when the section isn't laid out that way.
+ */
+function titledBulletProjects(lines: string[]): ParsedCvItem[] | null {
+  const items = lines.map((raw) => ({ bullet: BULLET_RX.test(raw), line: raw.replace(BULLET_RX, '').trim() })).filter((it) => it.line);
+  if (!items.length || items[0].bullet || !items.some((it) => it.bullet)) return null;
+  if (!items.every((it, i) => it.bullet || (items[i + 1]?.bullet ?? false))) return null;
+  const out: ParsedCvItem[] = [];
+  for (const it of items) {
+    if (!it.bullet) {
+      // A trailing "(Tech, Tech & Tech)" is the stack.
+      const m = it.line.match(/^(.*\S)\s*\(([^()]+)\)\.?$/);
+      const looksLikeTech = !!m && /[,&]|\band\b/.test(m[2]);
+      out.push({
+        title: looksLikeTech ? m![1].trim() : it.line.replace(/\.$/, ''), customer: '', assignmentBy: '', startDate: '', endDate: '', status: '',
+        description: '', tech_stack: looksLikeTech ? m![2].split(/\s*(?:,|&|\band\b)\s*/).map((s) => s.trim()).filter(Boolean).join(', ') : '',
+        demo_url: '', github_url: '',
+      });
+    } else {
+      const p = out[out.length - 1];
+      p.description = p.description ? `${p.description}\n${it.line}` : it.line;
+    }
+  }
+  return out;
+}
+
 function blockToProject(b: Block): ParsedCvItem {
   const head = b.head.map(stripDates).filter(Boolean);
   const [title, customer] = splitPair(head[0] || b.desc[0] || '');
@@ -384,7 +474,25 @@ export function extractContact(rawText: string, name?: string) {
 }
 
 export function extractByKeyword(rawText: string): KeywordCvResult {
-  const lines = rawText.split('\n').map((l) => l.replace(/\s+/g, ' ').trim()).filter(Boolean);
+  const lines: string[] = [];
+  // A bullet that wraps onto the next line is one item: "• Manage clusters in production" / "environments for clients."
+  // The wrapped part starts in lower case, or the bullet stops mid-phrase (a comma, "and", "for"…).
+  const WRAPS_RX = /(?:[,;:&/(–-]|\b(?:and|or|of|the|to|a|an|with|for|in|on|at|by|as|from|into|dan|atau|di|ke|untuk|dengan|yang|serta|pada|dari))$/i;
+  const rawLines = rawText.split('\n').map((r) => r.replace(/\s+/g, ' ').trim()).filter(Boolean);
+  for (const [i, l] of rawLines.entries()) {
+    const prev = lines[lines.length - 1];
+    const next = rawLines[i + 1];
+    // An unfinished bullet whose next line is followed by more text (not a new bullet) also wraps:
+    // "• …into structured Product" / "Requirement Documents (PRDs), …" / "plans." — while a line followed
+    // by bullets is the next entry's title.
+    const unfinished = !!prev && !/[.!?;:)]$/.test(prev) && !!next && !BULLET_RX.test(next) && !matchHeader(next)
+      && !DATE_RANGE_RX.test(l) && (/^[a-z]/.test(next) || WRAPS_RX.test(l));
+    if (prev && BULLET_RX.test(prev) && !BULLET_RX.test(l) && !matchHeader(l) && (/^[a-z(]/.test(l) || WRAPS_RX.test(prev) || unfinished)) {
+      lines[lines.length - 1] = `${prev} ${l}`;
+      continue;
+    }
+    lines.push(l);
+  }
   const result: KeywordCvResult = {
     experiences: [], education: [], skills: [], projects: [],
     certifications: [], specializationAreas: [], languages: [],
@@ -472,12 +580,16 @@ export function extractByKeyword(rawText: string): KeywordCvResult {
   const sectionText = (k: string) => (sections[k] || []).join('\n');
 
   if (sections.experience?.length) {
-    result.experiences = groupBlocks(sections.experience).map(blockToExperience).filter((e) => e.position || e.company);
+    result.experiences = (companyRoleEntries(sections.experience) ?? groupBlocks(sections.experience).map(blockToExperience))
+      .filter((e) => e.position || e.company);
   }
   if (sections.education?.length) {
     result.education = groupBlocks(sections.education).map(blockToEducation).filter((e) => e.institution || e.degree);
   }
-  if (sections.projects?.length) {
+  const titledProjects = sections.projects?.length ? titledBulletProjects(sections.projects) : null;
+  if (titledProjects) {
+    result.projects = titledProjects;
+  } else if (sections.projects?.length) {
     // PortfolioKit's own CV: "Title" / description / "Tech · Tech" / "demo.com | github.com/x".
     const projLines = sections.projects.map((l) => l.replace(BULLET_RX, '').trim()).filter(Boolean);
     const isLinkLine = (l: string) => l.split(/\s*\|\s*/).every((seg) => /^(?:https?:\/\/)?(?:[a-z0-9-]+\.)+[a-z]{2,}(?:\/\S*)?$/i.test(seg));
@@ -587,6 +699,9 @@ export function extractByKeyword(rawText: string): KeywordCvResult {
   } else if (sections.certification?.length) {
     result.certifications = lineItems(sectionText('certification')).map((l) => {
       const d = datedLine(l);
+      // "HackerRank : Java (Basic) Certificate" — a short issuer before the colon.
+      const colon = d.rest.match(/^([^:]{2,40}?)\s*:\s+(.+)$/);
+      if (colon && colon[1].trim().split(/\s+/).length <= 4) return { name: colon[2].trim(), issuer: colon[1].trim(), date: d.date, credential_url: '' };
       const [name, issuer] = splitTitleIssuer(d.rest);
       return { name, issuer, date: d.date, credential_url: '' };
     }).filter((c) => c.name);

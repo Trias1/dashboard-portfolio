@@ -5,6 +5,7 @@ import TechBadge from '@/components/TechIcon';
 import ContactForm from '@/components/ContactForm';
 import CertificationSection from '@/components/CertificationSection';
 import SafeImg from '@/components/SafeImg';
+import DescText from '@/components/DescText';
 
 /* ------------------------------------------------------------------ */
 /* Colour helpers: derive readable ink/rules from whatever bg the      */
@@ -254,7 +255,7 @@ export default function DeveloperTemplate({ data, theme, isPreview }: { data: Te
                         {proj.title && slugify(proj.title) !== proj.title && (
                           <p className="font-sans text-sm mt-0.5" style={{ color: p.text }}>{proj.title}</p>
                         )}
-                        {proj.description && <p className="font-sans mt-2 text-[15px] leading-relaxed max-w-[64ch]" style={{ color: p.sub }}>{proj.description}</p>}
+                        <DescText text={proj.description} className="font-sans mt-2 text-[15px] leading-relaxed max-w-[64ch]" style={{ color: p.sub }} />
                         {proj.image_url && (
                           <SafeImg src={proj.image_url} alt={proj.title} className="mt-4 w-full max-w-xl aspect-[16/9] object-cover rounded-md border" style={{ borderColor: p.rule }} />
                         )}

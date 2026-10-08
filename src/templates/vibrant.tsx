@@ -5,6 +5,7 @@ import TechBadge from '@/components/TechIcon';
 import ContactForm from '@/components/ContactForm';
 import CertificationSection from '@/components/CertificationSection';
 import SafeImg from '@/components/SafeImg';
+import DescText, { DescItems } from '@/components/DescText';
 
 // Vibrant: a colour-block layout built from exactly three flat colours
 // (the theme accent, lemon and mint) plus ink. Square corners, heavy display
@@ -314,7 +315,7 @@ export default function VibrantTemplate({ data, theme, isPreview }: { data: Temp
                       <p className="mt-1 font-bold" style={{ color: p.acText }}>{exp.company}</p>
                       {lines(exp.description).length > 0 && (
                         <div className="mt-3 max-w-[64ch] space-y-1.5 leading-relaxed" style={{ color: p.muted }}>
-                          {lines(exp.description).map((l, li) => <p key={li}>{l}</p>)}
+                          <DescItems items={lines(exp.description)} />
                         </div>
                       )}
                     </div>
@@ -344,7 +345,7 @@ export default function VibrantTemplate({ data, theme, isPreview }: { data: Temp
                     </div>
                     <div className="flex flex-1 flex-col p-6">
                       <h3 className="font-display text-2xl font-extrabold tracking-tight" style={{ color: ink }}>{proj.title}</h3>
-                      {proj.description && <p className="mt-2 leading-relaxed" style={{ color: p.muted }}>{proj.description}</p>}
+                      <DescText text={proj.description} className="mt-2 leading-relaxed" style={{ color: p.muted }} />
                       {proj.tech_stack && (
                         <div className="mt-4 flex flex-wrap gap-1.5">
                           {splitList(proj.tech_stack).map((t) => <TechBadge key={t} name={t} accentColor={p.acText} textColor={ink} />)}

@@ -5,6 +5,7 @@ import TechBadge from '@/components/TechIcon';
 import ContactForm from '@/components/ContactForm';
 import CertificationSection from '@/components/CertificationSection';
 import SafeImg from '@/components/SafeImg';
+import DescText from '@/components/DescText';
 
 /* ------------------------------------------------------------------ */
 /* Colour helpers: derive readable text / rule colours from theme.bg   */
@@ -311,7 +312,7 @@ export default function NeonTemplate({ data, theme, isPreview }: { data: Templat
                   <span aria-hidden="true" className="text-6xl leading-none md:text-7xl" style={outline(p)}>{String(i + 1).padStart(2, '0')}</span>
                   <div className="min-w-0">
                     <h3 className="text-2xl font-extrabold uppercase tracking-wide md:text-3xl">{proj.title}</h3>
-                    {proj.description && <p className="mt-3 max-w-[56ch] leading-relaxed" style={{ color: p.muted }}>{proj.description}</p>}
+                    <DescText text={proj.description} className="mt-3 max-w-[56ch] leading-relaxed" style={{ color: p.muted }} />
                     {proj.tech_stack && (
                       <div className="mt-4 flex flex-wrap gap-1.5">
                         {proj.tech_stack.split(',').filter((t) => t.trim()).map((t) => (

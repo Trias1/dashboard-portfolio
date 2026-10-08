@@ -5,6 +5,7 @@ import TechBadge from '@/components/TechIcon';
 import ContactForm from '@/components/ContactForm';
 import CertificationSection from '@/components/CertificationSection';
 import SafeImg from '@/components/SafeImg';
+import DescText, { DescItems } from '@/components/DescText';
 
 // Glass: one frosted header floating over a full-bleed photograph (or a solid
 // colour field). Everything below is flat, light-weight type on hairline rules.
@@ -302,7 +303,7 @@ export default function GlassTemplate({ data, theme, isPreview }: { data: Templa
                     <p className="mt-0.5 text-sm" style={{ color: p.acText }}>{exp.company}</p>
                     {lines(exp.description).length > 0 && (
                       <div className="mt-3 max-w-[62ch] space-y-1.5 text-sm leading-relaxed" style={{ color: p.muted }}>
-                        {lines(exp.description).map((l, li) => <p key={li}>{l}</p>)}
+                        <DescItems items={lines(exp.description)} />
                       </div>
                     )}
                   </div>
@@ -324,7 +325,7 @@ export default function GlassTemplate({ data, theme, isPreview }: { data: Templa
                     <div className="mb-5 h-px w-full" style={{ backgroundColor: p.rule }} />
                   )}
                   <h3 className="text-xl font-light tracking-tight" style={{ color: ink }}>{proj.title}</h3>
-                  {proj.description && <p className="mt-2 text-sm leading-relaxed" style={{ color: p.muted }}>{proj.description}</p>}
+                  <DescText text={proj.description} className="mt-2 text-sm leading-relaxed" style={{ color: p.muted }} />
                   {proj.tech_stack && (
                     <div className="mt-4 flex flex-wrap gap-1.5">
                       {splitList(proj.tech_stack).map((t) => <TechBadge key={t} name={t} accentColor={p.acText} />)}

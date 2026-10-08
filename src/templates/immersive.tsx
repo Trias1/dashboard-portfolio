@@ -6,6 +6,7 @@ import TechBadge from '@/components/TechIcon';
 import ContactForm from '@/components/ContactForm';
 import CertificationSection from '@/components/CertificationSection';
 import SafeImg from '@/components/SafeImg';
+import DescText, { DescItems } from '@/components/DescText';
 
 // Immersive: full-bleed bands, edge-to-edge imagery and very large type.
 // The only motion is a slow parallax on the hero photograph (off when the
@@ -296,7 +297,7 @@ export default function ImmersiveTemplate({ data, theme, isPreview }: { data: Te
                     <p className="mt-2 text-lg" style={{ color: p.acText }}>{exp.company}</p>
                     {lines(exp.description).length > 0 && (
                       <div className="mt-4 max-w-[60ch] space-y-2 text-base leading-relaxed" style={{ color: p.muted }}>
-                        {lines(exp.description).map((l, li) => <p key={li}>{l}</p>)}
+                        <DescItems items={lines(exp.description)} />
                       </div>
                     )}
                   </div>
@@ -323,7 +324,7 @@ export default function ImmersiveTemplate({ data, theme, isPreview }: { data: Te
                     <p className="font-mono text-sm tabular-nums" style={{ color: p.muted }}>{String(i + 1).padStart(2, '0')}</p>
                     <h3 className="font-display text-4xl font-bold leading-[0.95] tracking-[-0.03em] md:text-6xl" style={{ color: ink }}>{proj.title}</h3>
                     <div className="min-w-0">
-                      {proj.description && <p className="text-lg leading-relaxed" style={{ color: p.muted }}>{proj.description}</p>}
+                      <DescText text={proj.description} className="text-lg leading-relaxed" style={{ color: p.muted }} />
                       {proj.tech_stack && (
                         <div className="mt-5 flex flex-wrap gap-1.5">
                           {splitList(proj.tech_stack).map((t) => <TechBadge key={t} name={t} accentColor={p.acText} textColor={ink} />)}

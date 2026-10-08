@@ -5,6 +5,7 @@ import TechBadge from '@/components/TechIcon';
 import ContactForm from '@/components/ContactForm';
 import CertificationSection from '@/components/CertificationSection';
 import SafeImg from '@/components/SafeImg';
+import DescText from '@/components/DescText';
 
 /* ------------------------------------------------------------------ */
 /* Colour helpers: derive readable text / rule colours from theme.bg   */
@@ -275,7 +276,7 @@ export default function BoldTemplate({ data, theme, isPreview }: { data: Templat
                 <div className="min-w-0">
                   <h3 className="font-display text-4xl leading-[0.95] font-extrabold uppercase tracking-tight break-words md:text-5xl">{proj.title}</h3>
                   {proj.image_url && <SafeImg src={proj.image_url} alt={proj.title || ''} className="mt-6 aspect-[16/9] w-full object-cover" />}
-                  {proj.description && <p className="mt-5 max-w-[58ch] text-xl leading-relaxed">{proj.description}</p>}
+                  <DescText text={proj.description} className="mt-5 max-w-[58ch] text-xl leading-relaxed" />
                   {proj.tech_stack && (
                     <div className="mt-5 flex flex-wrap gap-2">
                       {proj.tech_stack.split(',').filter((t) => t.trim()).map((t) => (

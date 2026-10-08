@@ -5,6 +5,7 @@ import TechBadge from '@/components/TechIcon';
 import ContactForm from '@/components/ContactForm';
 import CertificationSection from '@/components/CertificationSection';
 import SafeImg from '@/components/SafeImg';
+import DescText, { DescItems } from '@/components/DescText';
 
 /* ------------------------------------------------------------------ */
 /* Colour helpers — text/rules derived from the user's theme.bg        */
@@ -204,7 +205,7 @@ export default function AgencyTemplate({ data, theme, isPreview }: { data: Templ
                         <h3 className="mt-3 text-3xl sm:text-5xl font-semibold tracking-[-0.04em] leading-[0.98] break-words">{proj.title}</h3>
                       </div>
                       <div className={proj.image_url ? 'mt-6' : 'mt-6 md:mt-0 md:col-span-5'}>
-                        {proj.description && <p className="text-base leading-relaxed max-w-[48ch]" style={{ color: p.sub }}>{proj.description}</p>}
+                        <DescText text={proj.description} className="text-base leading-relaxed max-w-[48ch]" style={{ color: p.sub }} />
                         {proj.tech_stack && (
                           <div className="flex flex-wrap gap-1.5 mt-5">
                             {proj.tech_stack.split(',').filter(t => t.trim()).map((t: string) => <TechBadge key={t} name={t.trim()} accentColor={ac} textColor={p.text} size="sm" variant="pill" />)}
@@ -239,7 +240,7 @@ export default function AgencyTemplate({ data, theme, isPreview }: { data: Templ
                   </div>
                   {descLines(exp.description).length > 0 && (
                     <div className="md:col-span-6 space-y-2 text-base leading-relaxed max-w-[56ch]" style={{ color: p.sub }}>
-                      {descLines(exp.description).map((s, si) => <p key={si}>{s}</p>)}
+                      <DescItems items={descLines(exp.description)} />
                     </div>
                   )}
                 </li>

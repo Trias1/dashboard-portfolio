@@ -5,6 +5,7 @@ import TechBadge from '@/components/TechIcon';
 import ContactForm from '@/components/ContactForm';
 import CertificationSection from '@/components/CertificationSection';
 import SafeImg from '@/components/SafeImg';
+import DescText, { DescItems } from '@/components/DescText';
 
 /* ------------------------------------------------------------------ */
 /* Colour helpers — text/rules derived from the user's theme.bg        */
@@ -169,7 +170,7 @@ export default function WhiteTemplate({ data, theme, isPreview }: { data: Templa
                       <h3 className="mt-2 text-2xl font-light tracking-[-0.01em] leading-snug">{proj.title}</h3>
                     </div>
                     <div>
-                      {proj.description && <p className="text-base sm:text-[17px] leading-[1.7] max-w-[58ch]" style={{ color: p.sub }}>{proj.description}</p>}
+                      <DescText text={proj.description} className="text-base sm:text-[17px] leading-[1.7] max-w-[58ch]" style={{ color: p.sub }} />
                       {proj.tech_stack && (
                         <div className="flex flex-wrap gap-1.5 mt-5">
                           {proj.tech_stack.split(',').filter(t => t.trim()).map((t: string) => <TechBadge key={t} name={t.trim()} accentColor={p.accentText} size="sm" variant="outline" />)}
@@ -204,7 +205,7 @@ export default function WhiteTemplate({ data, theme, isPreview }: { data: Templa
                   {exp.company && <p className="mt-1 text-[15px]" style={{ color: p.accentText }}>{exp.company}</p>}
                   {descLines(exp.description).length > 0 && (
                     <div className="mt-4 space-y-2 text-base leading-[1.7]" style={{ color: p.sub }}>
-                      {descLines(exp.description).map((s, si) => <p key={si}>{s}</p>)}
+                      <DescItems items={descLines(exp.description)} />
                     </div>
                   )}
                 </li>

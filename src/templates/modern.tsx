@@ -7,6 +7,7 @@ import TechBadge from '@/components/TechIcon';
 import ContactForm from '@/components/ContactForm';
 import CertificationSection from '@/components/CertificationSection';
 import SafeImg from '@/components/SafeImg';
+import DescText from '@/components/DescText';
 
 /* ------------------------------------------------------------------ */
 /* Colour helpers: derive readable text / rule colours from theme.bg   */
@@ -302,7 +303,7 @@ export default function ModernTemplate({ data, theme, isPreview }: { data: Templ
                 <li key={proj.id ?? i} className="grid gap-6 border-t py-8 first:border-t-0 first:pt-0 md:grid-cols-[1fr_15rem]" style={{ borderColor: p.rule }}>
                   <div className="min-w-0">
                     <h3 className="font-display text-2xl font-semibold tracking-tight md:text-3xl">{proj.title}</h3>
-                    {proj.description && <p className="mt-3 max-w-[60ch] leading-relaxed" style={{ color: p.muted }}>{proj.description}</p>}
+                    <DescText text={proj.description} className="mt-3 max-w-[60ch] leading-relaxed" style={{ color: p.muted }} />
                     {proj.tech_stack && (
                       <div className="mt-4 flex flex-wrap gap-1.5">
                         {proj.tech_stack.split(',').filter((t) => t.trim()).map((t) => (

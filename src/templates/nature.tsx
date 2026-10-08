@@ -5,6 +5,7 @@ import TechBadge from '@/components/TechIcon';
 import ContactForm from '@/components/ContactForm';
 import CertificationSection from '@/components/CertificationSection';
 import SafeImg from '@/components/SafeImg';
+import DescText, { DescItems } from '@/components/DescText';
 
 // Nature: a field notebook. Sage-tinted paper, serif entries, a margin column
 // for dates and figure numbers, and hand-drawn vine rules between chapters.
@@ -301,7 +302,7 @@ export default function NatureTemplate({ data, theme, isPreview }: { data: Templ
                   <p className="mt-1 text-sm" style={{ color: p.moss }}>{exp.company}</p>
                   {lines(exp.description).length > 0 && (
                     <div className="mt-3 max-w-[64ch] space-y-2 leading-relaxed" style={{ color: p.muted }}>
-                      {lines(exp.description).map((l, li) => <p key={li}>{l}</p>)}
+                      <DescItems items={lines(exp.description)} />
                     </div>
                   )}
                 </Entry>
@@ -322,7 +323,7 @@ export default function NatureTemplate({ data, theme, isPreview }: { data: Templ
                     )}
                     <div className="min-w-0">
                       <h3 className="font-serif text-2xl" style={{ color: ink }}>{proj.title}</h3>
-                      {proj.description && <p className="mt-2 max-w-[60ch] leading-relaxed" style={{ color: p.muted }}>{proj.description}</p>}
+                      <DescText text={proj.description} className="mt-2 max-w-[60ch] leading-relaxed" style={{ color: p.muted }} />
                       {proj.tech_stack && (
                         <div className="mt-4 flex flex-wrap gap-1.5">
                           {splitList(proj.tech_stack).map((t) => <TechBadge key={t} name={t} accentColor={p.moss} textColor={ink} />)}

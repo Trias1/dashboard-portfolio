@@ -5,6 +5,7 @@ import TechBadge from '@/components/TechIcon';
 import ContactForm from '@/components/ContactForm';
 import CertificationSection from '@/components/CertificationSection';
 import SafeImg from '@/components/SafeImg';
+import DescText from '@/components/DescText';
 
 /* ------------------------------------------------------------------ */
 /* Colour helpers: derive readable text / rule colours from theme.bg   */
@@ -258,7 +259,7 @@ export default function ClassicTemplate({ data, theme, isPreview }: { data: Temp
                 ? <SafeImg src={proj.image_url} alt={proj.title || ''} className="aspect-[4/3] w-full max-w-[12rem] rounded-[2px] border object-cover" style={{ borderColor: p.rule }} />
                 : <span className="tabular-nums">No. {i + 1}</span>}>
                 <h3 className="font-semibold">{proj.title}</h3>
-                {proj.description && <p className="mt-1 max-w-[68ch] leading-relaxed">{proj.description}</p>}
+                <DescText text={proj.description} className="mt-1 max-w-[68ch] leading-relaxed" />
                 {proj.tech_stack && (
                   <div className="mt-2 flex flex-wrap gap-1.5">
                     {proj.tech_stack.split(',').filter((t) => t.trim()).map((t) => (

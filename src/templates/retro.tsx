@@ -5,6 +5,7 @@ import TechBadge from '@/components/TechIcon';
 import ContactForm from '@/components/ContactForm';
 import CertificationSection from '@/components/CertificationSection';
 import SafeImg from '@/components/SafeImg';
+import DescText from '@/components/DescText';
 
 // Retro: a photocopied zine / early-web page. Monospace throughout, a boxed
 // page with a double rule, reverse-video section labels, dotted leaders,
@@ -295,7 +296,7 @@ export default function RetroTemplate({ data, theme, isPreview }: { data: Templa
                     <div className={proj.image_url ? 'grid gap-4 p-4 sm:grid-cols-[12rem_1fr]' : 'p-4'}>
                       {proj.image_url && <SafeImg src={proj.image_url} alt={proj.title} className="aspect-[4/3] w-full border object-cover" style={{ ...PHOTOCOPY, borderColor: p.rule }} />}
                       <div className="min-w-0">
-                        {proj.description && <p className="text-sm leading-6" style={{ color: ink }}>{proj.description}</p>}
+                        <DescText text={proj.description} className="text-sm leading-6" style={{ color: ink }} />
                         {proj.tech_stack && (
                           <div className="mt-3 flex flex-wrap gap-1.5">
                             {splitList(proj.tech_stack).map((t) => <TechBadge key={t} name={t} accentColor={ink} textColor={ink} variant="outline" />)}

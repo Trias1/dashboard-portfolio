@@ -5,6 +5,7 @@ import TechBadge from '@/components/TechIcon';
 import ContactForm from '@/components/ContactForm';
 import CertificationSection from '@/components/CertificationSection';
 import SafeImg from '@/components/SafeImg';
+import DescText from '@/components/DescText';
 
 /* ------------------------------------------------------------------ */
 /* Colour helpers — text/rules derived from the user's theme.bg        */
@@ -180,7 +181,7 @@ export default function SwissTemplate({ data, theme, isPreview }: { data: Templa
                   <span className="sm:col-span-1 text-4xl sm:text-5xl font-bold tracking-[-0.04em] leading-none tabular-nums" style={{ color: ac }} aria-hidden="true">{pad(i + 1)}</span>
                   <div className={`${proj.image_url ? 'sm:col-span-4' : 'sm:col-span-8'} min-w-0`}>
                     <h3 className="text-2xl font-bold tracking-[-0.02em] leading-tight">{proj.title}</h3>
-                    {proj.description && <p className="mt-3 text-base leading-[1.55] max-w-[52ch]" style={{ color: p.sub }}>{proj.description}</p>}
+                    <DescText text={proj.description} className="mt-3 text-base leading-[1.55] max-w-[52ch]" style={{ color: p.sub }} />
                     {proj.tech_stack && (
                       <div className="flex flex-wrap gap-1.5 mt-5">
                         {proj.tech_stack.split(',').filter(t => t.trim()).map((t: string) => <TechBadge key={t} name={t.trim()} accentColor={ac} textColor={p.text} size="sm" variant="pill" />)}

@@ -5,6 +5,7 @@ import TechBadge from '@/components/TechIcon';
 import ContactForm from '@/components/ContactForm';
 import CertificationSection from '@/components/CertificationSection';
 import SafeImg from '@/components/SafeImg';
+import DescText from '@/components/DescText';
 
 /* ------------------------------------------------------------------ */
 /* Colour helpers: derive readable text / rule colours from theme.bg   */
@@ -305,7 +306,7 @@ export default function CreativeTemplate({ data, theme, isPreview }: { data: Tem
                       <figcaption className="mt-4">
                         <p className="font-mono text-[11px] uppercase tracking-[0.14em]" style={{ color: p.accent }}>Fig. {String(i + 1).padStart(2, '0')}</p>
                         <h3 className="mt-1 text-xl font-semibold tracking-tight">{proj.title}</h3>
-                        {proj.description && <p className="mt-2 max-w-[56ch] text-sm leading-relaxed" style={{ color: p.muted }}>{proj.description}</p>}
+                        <DescText text={proj.description} className="mt-2 max-w-[56ch] text-sm leading-relaxed" style={{ color: p.muted }} />
                         {proj.tech_stack && (
                           <div className="mt-3 flex flex-wrap gap-1.5">
                             {proj.tech_stack.split(',').filter((t) => t.trim()).map((t) => (
