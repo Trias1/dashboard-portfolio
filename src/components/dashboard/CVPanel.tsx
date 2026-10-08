@@ -1,11 +1,16 @@
 ﻿'use client';
 import { useState } from 'react';
 import CVUpload from '@/components/builder/CVUpload';
-import api from '@/lib/api';
+import type { CvAppliedSection } from '@/components/builder/CVUpload';
+import api, { getApiErrorMessage } from '@/lib/api';
 import { Section, SECTION_ORDER } from '@/lib/sections';
+import { getErrorMessage } from '@/lib/utils';
+import type { DashboardPortfolio } from '@/types';
+
+const isCustomSectionKey = (key: CvAppliedSection): key is `custom:${string}` => key.startsWith('custom:');
 
 interface Props {
-  portfolio: any;
+  portfolio: DashboardPortfolio | null;
   setSections: (fn: (prev: Section[]) => Section[]) => void;
   loadPreview: () => void;
 }
@@ -14,20 +19,20 @@ export default function CVPanel({ portfolio, setSections, loadPreview }: Props) 
   const [cvTemplate, setCvTemplate] = useState('professional');
   const [cvLoading, setCvLoading] = useState(false);
 
-  const handleApplied = async (newSections?: string[]) => {
+  const handleApplied = async (newSections?: CvAppliedSection[]) => {
     setSections(prev => prev.map(s => s.type === 'hero' ? { ...s, enabled: true } : s));
     loadPreview();
     if (newSections && newSections.length > 0 && portfolio) {
       setSections(prev => {
-        let updated = [...prev];
+        const updated = [...prev];
         newSections.forEach(s => {
-          const exists = s.startsWith('custom:')
+          const exists = isCustomSectionKey(s)
             ? updated.find(sec => sec.label === s.replace('custom:', ''))
             : updated.find(sec => sec.type === s);
           if (exists) return;
-          const section = s.startsWith('custom:')
-            ? { id: `custom-${Date.now()}-${Math.random().toString(36).slice(2,6)}`, type: 'custom' as any, label: s.replace('custom:', ''), icon: '✦', enabled: true, deletable: true }
-            : { id: `${s}-${Date.now()}`, type: s as any, label: s.charAt(0).toUpperCase() + s.slice(1), icon: '✦', enabled: true, deletable: true };
+          const section: Section = isCustomSectionKey(s)
+            ? { id: `custom-${Date.now()}-${Math.random().toString(36).slice(2,6)}`, type: 'custom', label: s.replace('custom:', ''), icon: '✦', enabled: true, deletable: true }
+            : { id: `${s}-${Date.now()}`, type: s, label: s.charAt(0).toUpperCase() + s.slice(1), icon: '✦', enabled: true, deletable: true };
           const orderKey = s.startsWith('custom:')
             ? 'custom-' + s.replace('custom:', '').toLowerCase().replace(/\s+/g, '-')
             : s;
@@ -36,8 +41,8 @@ export default function CVPanel({ portfolio, setSections, loadPreview }: Props) 
           for (let i = targetIdx + 1; i < SECTION_ORDER.length; i++) {
             const key = SECTION_ORDER[i];
             const idx = key.startsWith('custom-')
-              ? updated.findIndex((item: any) => item.type === 'custom' && ('custom-' + item.label.toLowerCase().replace(/\s+/g, '-')) === key)
-              : updated.findIndex((item: any) => item.type === key);
+              ? updated.findIndex((item) => item.type === 'custom' && ('custom-' + item.label.toLowerCase().replace(/\s+/g, '-')) === key)
+              : updated.findIndex((item) => item.type === key);
             if (idx !== -1) { updated.splice(idx, 0, section); return; }
           }
           updated.push(section);
@@ -110,7 +115,7 @@ export default function CVPanel({ portfolio, setSections, loadPreview }: Props) 
           let pdfIframe: HTMLIFrameElement | null = null;
           setCvLoading(true);
           try {
-            const res = await api.get(`/api/cv/generate?template=${cvTemplate}`, {
+            const res = await api.get<Blob>(`/api/cv/generate?template=${cvTemplate}`, {
               responseType: 'blob', timeout: 30000
             });
             const html = await res.data.text();
@@ -141,8 +146,8 @@ export default function CVPanel({ portfolio, setSections, loadPreview }: Props) 
               })
               .from(pdfIframe.contentDocument!.body)
               .save();
-          } catch (err: any) {
-            alert(' Gagal generate CV: ' + (err.response?.data?.message || err.message));
+          } catch (err) {
+            alert(' Gagal generate CV: ' + getApiErrorMessage(err, getErrorMessage(err)));
           } finally {
             if (pdfIframe?.parentNode) pdfIframe.parentNode.removeChild(pdfIframe);
             setCvLoading(false);

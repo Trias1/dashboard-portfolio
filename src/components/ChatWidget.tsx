@@ -1,5 +1,5 @@
 'use client';
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useSyncExternalStore } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 function ChatIcon({ size = 'sm' }: { size?: 'sm' | 'lg' }) {
@@ -19,6 +19,10 @@ interface Message {
   content: string;
 }
 
+const subscribeNoop = () => () => {};
+const getIsIframe = () => window.self !== window.top;
+const getIsIframeServer = () => false;
+
 interface ChatWidgetProps {
   slug: string;
   accentColor: string;
@@ -35,9 +39,8 @@ export default function ChatWidget({ slug, accentColor, ownerName }: ChatWidgetP
   const [loading, setLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
-  const [isIframe, setIsIframe] = useState(false);
-
-  useEffect(() => { setIsIframe(window.self !== window.top); }, []);
+  // Client-only check; the server snapshot (false) matches the initial client render during hydration.
+  const isIframe = useSyncExternalStore(subscribeNoop, getIsIframe, getIsIframeServer);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });

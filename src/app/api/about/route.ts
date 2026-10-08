@@ -1,7 +1,7 @@
 import { NextRequest } from 'next/server';
 import { requireAuth, getAuthUser } from '@/lib/auth';
 import { getSupabaseAdmin } from '@/lib/supabase/admin';
-import { errorResponse, successResponse } from '@/lib/utils';
+import { errorResponse, successResponse, getErrorMessage } from '@/lib/utils';
 import { uploadFile } from '@/lib/supabase/storage';
 
 export async function GET(request: NextRequest) {
@@ -30,5 +30,5 @@ export async function PUT(request: NextRequest) {
       result = await getSupabaseAdmin().from('about').insert({ name, title, bio, photo_url, cv_url, owner_id: auth.id }).select().single();
     }
     return successResponse(result.data);
-  } catch (err: any) { return errorResponse(err.message, 401); }
+  } catch (err) { return errorResponse(getErrorMessage(err), 401); }
 }

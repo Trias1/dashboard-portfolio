@@ -1,7 +1,7 @@
 'use client';
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import api from '@/lib/api';
+import api, { getApiErrorMessage } from '@/lib/api';
 
 export default function ContactForm({ slug, accentColor, textColor = '#f1f5f9', subColor = '#94a3b8' }: {
   slug: string;
@@ -23,9 +23,9 @@ export default function ContactForm({ slug, accentColor, textColor = '#f1f5f9', 
       setStatus('sent');
       setForm({ name: '', email: '', message: '' });
       setTimeout(() => setStatus('idle'), 4000);
-    } catch (err: any) {
+    } catch (err: unknown) {
       setStatus('error');
-      setErrorMsg(err.response?.data?.message || 'Failed to send message');
+      setErrorMsg(getApiErrorMessage(err, 'Failed to send message'));
     }
   };
 

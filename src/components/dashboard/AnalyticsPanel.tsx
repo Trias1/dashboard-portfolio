@@ -2,11 +2,12 @@
 import { useState } from 'react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import api from '@/lib/api';
+import type { VisitChartPoint, VisitStats } from '@/types';
 
-function VisitorChart({ data }: { data: any[] }) {
-  const chartData = data.map((d: any) => ({
+function VisitorChart({ data }: { data: VisitChartPoint[] }) {
+  const chartData = data.map((d) => ({
     date: new Date(d.date).toLocaleDateString('id-ID', { day: '2-digit', month: 'short' }),
-    visitor: parseInt(d.count),
+    visitor: parseInt(String(d.count)),
   }));
   return (
     <ResponsiveContainer width="100%" height={220}>
@@ -23,7 +24,7 @@ function VisitorChart({ data }: { data: any[] }) {
         <Tooltip
           contentStyle={{ backgroundColor: '#0f0f2a', border: '1px solid #4c1d95', borderRadius: '8px', color: '#fff' }}
           labelStyle={{ color: '#a855f7', fontWeight: 'bold' }}
-          formatter={(value: any) => [value, 'Visitor']}
+          formatter={(value) => [value, 'Visitor']}
         />
         <Area type="monotone" dataKey="visitor" stroke="#a855f7" strokeWidth={2} fill="url(#colorVisitor)" dot={{ fill: '#a855f7', r: 4 }} activeDot={{ r: 6 }} />
       </AreaChart>
@@ -32,8 +33,8 @@ function VisitorChart({ data }: { data: any[] }) {
 }
 
 interface Props {
-  visits: any;
-  setVisits: (v: any) => void;
+  visits: VisitStats | null;
+  setVisits: (v: VisitStats | null) => void;
   dateFrom: string;
   dateTo: string;
   setDateFrom: (v: string) => void;
@@ -44,7 +45,7 @@ export default function AnalyticsPanel({ visits, setVisits, dateFrom, dateTo, se
   const fetchVisits = async (from?: string, to?: string) => {
     const f = from || dateFrom;
     const t = to || dateTo;
-    const res = await api.get(`/api/portfolios/visits?from=${f}&to=${t}`);
+    const res = await api.get<VisitStats>(`/api/portfolios/visits?from=${f}&to=${t}`);
     setVisits(res.data);
   };
 
@@ -75,7 +76,7 @@ export default function AnalyticsPanel({ visits, setVisits, dateFrom, dateTo, se
               const f = from.toISOString().slice(0, 10);
               const t = new Date().toISOString().slice(0, 10);
               setDateFrom(f); setDateTo(t);
-              const res = await api.get(`/api/portfolios/visits?from=${f}&to=${t}`);
+              const res = await api.get<VisitStats>(`/api/portfolios/visits?from=${f}&to=${t}`);
               setVisits(res.data);
             }} className="text-xs px-3 py-1.5 rounded-lg border border-purple-900/30 text-gray-400 hover:text-white hover:border-purple-500 transition">
               {s.label}

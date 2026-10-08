@@ -3,7 +3,7 @@ import bcrypt from 'bcryptjs';
 import { requireAuth, isBcryptHash, normalizeEmail, MIN_PASSWORD_LENGTH } from '@/lib/auth';
 import { getSupabaseAdmin } from '@/lib/supabase/admin';
 import { checkRateLimit } from '@/lib/rate-limit';
-import { errorResponse, successResponse } from '@/lib/utils';
+import { errorResponse, successResponse, getErrorMessage } from '@/lib/utils';
 
 export async function PUT(request: NextRequest) {
   try {
@@ -14,7 +14,7 @@ export async function PUT(request: NextRequest) {
     const { data: current } = await supabase.from('users').select('id, email, password').eq('id', auth.id).maybeSingle();
     if (!current) return errorResponse('User not found', 404);
 
-    const updates: any = {};
+    const updates: Record<string, unknown> = {};
     if (name !== undefined) updates.name = name;
     if (photo_url !== undefined) updates.photo_url = photo_url;
 
@@ -57,7 +57,7 @@ export async function PUT(request: NextRequest) {
 
     if (error) return errorResponse('Unable to update profile', 500);
     return successResponse(data);
-  } catch (err: any) {
-    return err.message === 'Unauthorized' ? errorResponse('Unauthorized', 401) : errorResponse('Unable to update profile', 500);
+  } catch (err) {
+    return getErrorMessage(err) === 'Unauthorized' ? errorResponse('Unauthorized', 401) : errorResponse('Unable to update profile', 500);
   }
 }

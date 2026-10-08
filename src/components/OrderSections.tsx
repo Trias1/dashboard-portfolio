@@ -1,16 +1,25 @@
 'use client';
 import { useLayoutEffect, useRef } from 'react';
+import type { TemplateSectionOrder } from '@/types';
+
+type SectionOrderEntry = TemplateSectionOrder | string;
 
 function sectionKey(id: string) {
   const aliases: Record<string, string> = { team: 'about', work: 'projects', connect: 'contact' };
   return aliases[id] || id;
 }
 
-function normalizeSectionOrder(sections: any[]): any[] {
+function normalizeSectionOrder(sections: readonly SectionOrderEntry[]): SectionOrderEntry[] {
   return [...sections];
 }
 
-export default function OrderSections({ sections_order, children }: { sections_order: any[]; children: React.ReactNode }) {
+function entryKey(s: SectionOrderEntry): string {
+  if (typeof s === 'string') return s.split('-')[0];
+  if (s.type === 'custom' && s.label) return `custom-${s.label.toLowerCase().replace(/\s+/g, '-')}`;
+  return (s.type || '').split('-')[0];
+}
+
+export default function OrderSections({ sections_order, children }: { sections_order?: readonly SectionOrderEntry[]; children: React.ReactNode }) {
   const ref = useRef<HTMLDivElement>(null);
   const ordered = useRef(false);
 
@@ -21,19 +30,16 @@ export default function OrderSections({ sections_order, children }: { sections_o
     const normalized = normalizeSectionOrder(sections_order);
 
     const orderMap: Record<string, number> = {};
-    normalized.forEach((s: any, i: number) => {
-      const key = s.type === 'custom' && s.label
-        ? `custom-${s.label.toLowerCase().replace(/\s+/g, '-')}`
-        : (s.type || s).split('-')[0];
+    normalized.forEach((s, i: number) => {
+      const key = entryKey(s);
       if (key) orderMap[sectionKey(key)] = i;
     });
 
-    const disabled = new Set(normalized.filter((section: any) => section.enabled === false).map((section: any) => {
-      const key = section.type === 'custom' && section.label
-        ? `custom-${section.label.toLowerCase().replace(/\s+/g, '-')}`
-        : (section.type || section).split('-')[0];
-      return sectionKey(key);
-    }));
+    const disabled = new Set(
+      normalized
+        .filter((section) => typeof section !== 'string' && section.enabled === false)
+        .map((section) => sectionKey(entryKey(section)))
+    );
 
     const root = ref.current;
     if (!root) return;

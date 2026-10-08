@@ -1,16 +1,10 @@
 ﻿"use client";
 
 import { motion } from "framer-motion";
-import api from "@/lib/api";
+import api, { getApiErrorMessage } from "@/lib/api";
+import type { ProfileFormData } from "@/types";
 
-interface ProfileForm {
-  name: string;
-  email: string;
-  password: string;
-  confirmPassword: string;
-  currentPassword?: string;
-  photo_url: string;
-}
+type ProfileForm = ProfileFormData;
 
 interface DashboardProfileModalProps {
   open: boolean;
@@ -201,7 +195,7 @@ export default function DashboardProfileModal({
                   const formData = new FormData();
                   formData.append("file", file);
                   try {
-                    const response = await api.post(
+                    const response = await api.post<{ photo_url: string }>(
                       "/api/users/upload-photo",
                       formData,
                       { headers: { "Content-Type": "multipart/form-data" } },
@@ -211,9 +205,9 @@ export default function DashboardProfileModal({
                       photo_url: response.data.photo_url,
                     }));
                     setProfileError("");
-                  } catch (error: any) {
+                  } catch (error) {
                     setProfileError(
-                      error.response?.data?.message || "Photo upload failed",
+                      getApiErrorMessage(error, "Photo upload failed"),
                     );
                   }
                 }}

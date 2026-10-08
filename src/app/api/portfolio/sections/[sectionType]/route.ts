@@ -1,7 +1,8 @@
 import { NextRequest } from 'next/server';
 import { requireAuth } from '@/lib/auth';
 import { getSupabaseAdmin } from '@/lib/supabase/admin';
-import { errorResponse, successResponse } from '@/lib/utils';
+import { errorResponse, successResponse, getErrorMessage } from '@/lib/utils';
+import type { IdRow, SectionOrderEntry } from '@/types/api';
 
 type SectionType = 'hero' | 'about' | 'experience' | 'projects' | 'skills' | 'services' | 'testimonials' | 'gallery' | 'contact' | 'custom';
 
@@ -40,7 +41,7 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
       const { data: toDelete, error: selectError } = await selectQuery;
       console.log('[DELETE API] custom sections to delete:', JSON.stringify({ toDelete, selectError }));
       if (toDelete && toDelete.length > 0) {
-        const ids = toDelete.map((r: any) => r.id);
+        const ids = toDelete.map((r: IdRow) => r.id);
         const { error: delError, count } = await getSupabaseAdmin().from('custom_sections').delete().in('id', ids);
         rowsDeleted = delError ? 0 : ids.length;
         console.log('[DELETE API] custom_sections deleted:', JSON.stringify({ ids, delError, count }));
@@ -62,9 +63,9 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
       const { data: portfolio, error: pErr } = await getSupabaseAdmin().from('portfolios').select('sections_order').eq('id', body.portfolioId).eq('owner_id', userId).single();
       console.log('[DELETE API] Portfolio fetch:', JSON.stringify({ portfolio, error: pErr }));
       if (portfolio?.sections_order) {
-        let sectionsOrder: any[] = typeof portfolio.sections_order === 'string' ? JSON.parse(portfolio.sections_order) : portfolio.sections_order;
-        console.log('[DELETE API] Before filter, sections_order count:', sectionsOrder.length, 'IDs:', sectionsOrder.map((s: any) => s.id));
-        sectionsOrder = sectionsOrder.filter((s: any) => s.id !== targetId);
+        let sectionsOrder: SectionOrderEntry[] = typeof portfolio.sections_order === 'string' ? JSON.parse(portfolio.sections_order) : portfolio.sections_order;
+        console.log('[DELETE API] Before filter, sections_order count:', sectionsOrder.length, 'IDs:', sectionsOrder.map((s) => s.id));
+        sectionsOrder = sectionsOrder.filter((s) => s.id !== targetId);
         console.log('[DELETE API] After filter, sections_order count:', sectionsOrder.length);
         const updResult = await getSupabaseAdmin().from('portfolios').update({
           sections_order: JSON.stringify(sectionsOrder),
@@ -77,8 +78,8 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
     }
 
     return successResponse({ message: `${baseType} section${baseType === 'custom' && body.label ? ` "${body.label}"` : ''} deleted`, rowsDeleted });
-  } catch (err: any) {
-    console.error('[DELETE API] Error:', err.message);
-    return errorResponse(err.message);
+  } catch (err) {
+    console.error('[DELETE API] Error:', getErrorMessage(err));
+    return errorResponse(getErrorMessage(err));
   }
 }

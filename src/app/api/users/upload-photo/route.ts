@@ -3,7 +3,7 @@ import { requireAuth } from '@/lib/auth';
 import { getSupabaseAdmin } from '@/lib/supabase/admin';
 import { uploadFile } from '@/lib/supabase/storage';
 import { validateUpload } from '@/lib/upload-validation';
-import { errorResponse, successResponse } from '@/lib/utils';
+import { errorResponse, successResponse, getErrorMessage } from '@/lib/utils';
 
 export async function POST(request: NextRequest) {
   try {
@@ -18,7 +18,7 @@ export async function POST(request: NextRequest) {
 
     await getSupabaseAdmin().from('users').update({ photo_url }).eq('id', auth.id);
     return successResponse({ photo_url });
-  } catch (err: any) {
-    return errorResponse(err.message);
+  } catch (err) {
+    return errorResponse(getErrorMessage(err));
   }
 }

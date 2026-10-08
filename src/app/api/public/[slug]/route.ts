@@ -1,7 +1,8 @@
 ﻿import { NextRequest } from 'next/server';
 import { getSupabaseAdmin } from '@/lib/supabase/admin';
 import { getAuthUser } from '@/lib/auth';
-import { errorResponse, successResponse } from '@/lib/utils';
+import { errorResponse, successResponse, getErrorMessage } from '@/lib/utils';
+import type { CustomSectionContent, CustomSectionOutput, CustomSectionRow, SectionOrderEntry } from '@/types/api';
 
 export const dynamic = 'force-dynamic';
 
@@ -93,7 +94,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       try { await getSupabaseAdmin().from('portfolio_visits').insert({ portfolio_id: portfolio.id, ip_address: ip, user_agent: ua }) } catch {};
     }
 
-    const parseSectionsOrder = (value: any) => {
+    const parseSectionsOrder = (value: unknown): SectionOrderEntry[] => {
       if (Array.isArray(value)) return value;
       if (typeof value !== 'string') return [];
       if (value === 'undefined' || value === 'null') return [];
@@ -107,18 +108,19 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     const sectionsConfig = parseSectionsOrder(portfolio.sections_order);
     const isEnabled = (type: string) => {
       if (!Array.isArray(sectionsConfig) || !sectionsConfig.length) return true;
-      const section = sectionsConfig.find((s: any) => s.type?.split('-')[0] === type);
+      const section = sectionsConfig.find((s) => s.type?.split('-')[0] === type);
       return section ? section.enabled !== false : true;
     };
 
-    const rawCustomData = (custom.data || []).map((section: any) => {
+    const rawCustomData = (custom.data || []).map((section: CustomSectionRow): CustomSectionOutput => {
       let content = section.content;
       if (typeof content === 'string') {
         if (content === 'undefined' || content === 'null') {
           content = {};
         } else {
           try {
-            content = JSON.parse(content);
+            const parsedContent: CustomSectionContent = JSON.parse(content);
+            content = parsedContent;
           } catch {
             content = { body: content };
           }
@@ -127,7 +129,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       return { ...section, content: content || {} };
     });
     const typedCustomTypes = new Set(['education', 'certification', 'specialization', 'language', 'award', 'organization']);
-    const formatCustomItem = (section: any) => {
+    const formatCustomItem = (section: CustomSectionOutput): unknown => {
       const c = section.content || {};
       if (section.type === 'education') {
         const title = [c.institution, c.degree, c.field].filter(Boolean).join(' - ');
@@ -151,17 +153,17 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       }
       return c.body || c.title || section.title;
     };
-    const groupedCustomData = rawCustomData.reduce((items: any[], section: any) => {
-      if (!typedCustomTypes.has(section.type)) {
+    const groupedCustomData = rawCustomData.reduce((items: CustomSectionOutput[], section: CustomSectionOutput) => {
+      if (!typedCustomTypes.has(section.type!)) {
         items.push(section);
         return items;
       }
-      const existing = items.find((item: any) => item.title === section.title && item.original_type === section.type);
+      const existing = items.find((item) => item.title === section.title && item.original_type === section.type);
       const isCert = section.type === 'certification';
       const listItem = formatCustomItem(section);
       const sectionType = isCert ? 'certification' : 'list';
       if (existing) {
-        if (listItem) existing.content.items.push(listItem);
+        if (listItem) existing.content.items!.push(listItem);
       } else {
         items.push({
           id: `custom-${section.title}-${section.type}`,
@@ -192,6 +194,6 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       gallery: isEnabled('gallery') ? (gallery.data || []) : [],
       custom: isEnabled('custom') ? groupedCustomData : [],
     });
-  } catch (err: any) { return errorResponse(err.message); }
+  } catch (err) { return errorResponse(getErrorMessage(err)); }
 }
 

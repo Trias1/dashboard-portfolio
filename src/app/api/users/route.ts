@@ -1,7 +1,7 @@
 import { NextRequest } from 'next/server';
 import { requireSuperAdmin } from '@/lib/auth';
 import { getSupabaseAdmin } from '@/lib/supabase/admin';
-import { errorResponse, successResponse } from '@/lib/utils';
+import { errorResponse, successResponse, getErrorMessage } from '@/lib/utils';
 
 export async function GET(request: NextRequest) {
   try {
@@ -11,7 +11,7 @@ export async function GET(request: NextRequest) {
       .select('id, name, email, role, is_verified, is_active, created_at')
       .order('created_at', { ascending: false });
     return successResponse(data || []);
-  } catch (err: any) {
-    return errorResponse(err.message, err.message === 'Forbidden' ? 403 : 401);
+  } catch (err) {
+    return errorResponse(getErrorMessage(err), getErrorMessage(err) === 'Forbidden' ? 403 : 401);
   }
 }

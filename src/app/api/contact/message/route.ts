@@ -1,6 +1,6 @@
 import { NextRequest } from 'next/server';
 import { getSupabaseAdmin } from '@/lib/supabase/admin';
-import { errorResponse, successResponse } from '@/lib/utils';
+import { errorResponse, successResponse, getErrorMessage } from '@/lib/utils';
 import { checkRateLimit, getClientId } from '@/lib/rate-limit';
 import { sendContactNotification } from '@/lib/mailer';
 
@@ -42,7 +42,7 @@ export async function POST(request: NextRequest) {
     if (owner?.email) {
       try {
         await sendContactNotification(owner.email, name, email, message);
-      } catch (err: any) {
+      } catch (err) {
         console.error('[SMTP Error] Failed to send contact email:', err);
         // Return error so the user knows it failed, preventing silent data loss.
         return errorResponse('Pesan tersimpan, tetapi gagal meneruskan ke email pemilik.', 502);
@@ -50,5 +50,5 @@ export async function POST(request: NextRequest) {
     }
 
     return successResponse({ message: 'Pesan berhasil dikirim!' }, 201);
-  } catch (err: any) { return errorResponse(err.message); }
+  } catch (err) { return errorResponse(getErrorMessage(err)); }
 }

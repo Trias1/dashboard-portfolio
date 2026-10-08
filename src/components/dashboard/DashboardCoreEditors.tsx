@@ -1,13 +1,15 @@
 ﻿"use client";
 
+import type { EditFormData, StringFieldKey } from "@/types";
+
 const inputClass =
   "w-full rounded-xl border border-white/10 bg-slate-950/70 px-3 py-2.5 text-sm text-white outline-none focus:border-purple-400";
 const labelClass = "mb-1.5 block text-xs font-medium text-slate-400";
 const field = (
   label: string,
-  key: string,
-  value: any,
-  onChange: (value: any) => void,
+  key: StringFieldKey<EditFormData>,
+  value: EditFormData,
+  onChange: (value: EditFormData) => void,
   placeholder: string,
   area = false,
 ) => (
@@ -35,8 +37,8 @@ export function HeroEditor({
   value,
   onChange,
 }: {
-  value: any;
-  onChange: (value: any) => void;
+  value: EditFormData;
+  onChange: (value: EditFormData) => void;
 }) {
   return (
     <div className="space-y-4">
@@ -82,8 +84,8 @@ export function ContactEditor({
   value,
   onChange,
 }: {
-  value: any;
-  onChange: (value: any) => void;
+  value: EditFormData;
+  onChange: (value: EditFormData) => void;
 }) {
   return (
     <div className="space-y-4">
@@ -116,8 +118,8 @@ export function SkillsEditor({
   onAdd,
   onRemove,
 }: {
-  value: any;
-  onChange: (value: any) => void;
+  value: EditFormData;
+  onChange: (value: EditFormData) => void;
   search: string;
   suggestions: string[];
   onSearch: (value: string) => void;

@@ -3,7 +3,7 @@ import { requireAuth } from '@/lib/auth';
 import { getSupabaseAdmin } from '@/lib/supabase/admin';
 import { uploadFile } from '@/lib/supabase/storage';
 import { sanitizeExternalUrl, validateUpload } from '@/lib/upload-validation';
-import { errorResponse, successResponse } from '@/lib/utils';
+import { errorResponse, successResponse, getErrorMessage } from '@/lib/utils';
 
 export async function GET(request: NextRequest) {
   try {
@@ -14,7 +14,7 @@ export async function GET(request: NextRequest) {
     if (!owner_id) return successResponse([]);
     const { data } = await getSupabaseAdmin().from('gallery').select('*').eq('owner_id', owner_id).order('created_at', { ascending: false });
     return successResponse(data || []);
-  } catch (err: any) { return errorResponse(err.message); }
+  } catch (err) { return errorResponse(getErrorMessage(err)); }
 }
 
 export async function POST(request: NextRequest) {
@@ -47,5 +47,5 @@ export async function POST(request: NextRequest) {
       title, description, image_url, file_url, issued_date: issued_date || null, owner_id: auth.id,
     }).select().single();
     return successResponse(data, 201);
-  } catch (err: any) { return errorResponse(err.message); }
+  } catch (err) { return errorResponse(getErrorMessage(err)); }
 }

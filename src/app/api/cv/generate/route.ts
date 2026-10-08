@@ -1,9 +1,9 @@
 import { NextRequest } from 'next/server';
 import { requireAuth } from '@/lib/auth';
 import { getSupabaseAdmin } from '@/lib/supabase/admin';
-import { errorResponse } from '@/lib/utils';
+import { errorResponse, getErrorMessage } from '@/lib/utils';
 
-function esc(value: any) {
+function esc(value: unknown) {
   return String(value || '')
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
@@ -252,5 +252,5 @@ export async function GET(request: NextRequest) {
         'Content-Disposition': `inline; filename="${filename}"`,
       },
     });
-  } catch (err: any) { return errorResponse(err.message, 401); }
+  } catch (err) { return errorResponse(getErrorMessage(err), 401); }
 }

@@ -1,7 +1,7 @@
 import { NextRequest } from 'next/server';
 import { getAuthUser } from '@/lib/auth';
 import { getSupabaseAdmin } from '@/lib/supabase/admin';
-import { errorResponse, successResponse } from '@/lib/utils';
+import { errorResponse, successResponse, getErrorMessage } from '@/lib/utils';
 
 export async function GET(request: NextRequest) {
   try {
@@ -16,7 +16,7 @@ export async function GET(request: NextRequest) {
 
     if (!user) return errorResponse('User not found', 404);
     return successResponse(user);
-  } catch (err: any) {
-    return errorResponse(err.message);
+  } catch (err) {
+    return errorResponse(getErrorMessage(err));
   }
 }

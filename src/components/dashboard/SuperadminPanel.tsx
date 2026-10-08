@@ -1,10 +1,11 @@
 ﻿'use client';
 
 import { useMemo, useState } from 'react';
+import type { AdminStats, VercelLogEntry } from '@/types';
 
 interface Props {
-  adminStats: any;
-  vercelLogs: any[];
+  adminStats: AdminStats | null;
+  vercelLogs: VercelLogEntry[];
   vercelLogsLoading: boolean;
   vercelLogsError: string;
   fetchAdminStats: () => void;

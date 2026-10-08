@@ -224,7 +224,7 @@ export default function BoldPersonaTemplate({ data, theme, isPreview }: { data: 
               <div className="mb-16"><span className="text-xs font-black uppercase tracking-[0.4em]" style={{ color: ac }}>Testimonials</span><h2 className="text-5xl sm:text-7xl lg:text-8xl font-black tracking-[-0.04em] mt-2">Kind Words</h2></div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">{testimonials.map((t: TemplateItem) => (
                 <div key={t.id} className="p-8" style={{ backgroundColor: '#0a0a0f' }}>
-                  <p className="text-6xl font-black leading-none mb-4" style={{ color: ac }}>"</p>
+                  <p className="text-6xl font-black leading-none mb-4" style={{ color: ac }}>&quot;</p>
                   <p className="text-sm italic leading-relaxed mb-6 text-justify" style={{ color: subColor }}>{t.message}</p>
                   <div className="flex items-center gap-4">
                     {t.photo_url && <img src={t.photo_url} alt={t.name} className="w-12 h-12 rounded-full object-cover border-2" style={{ borderColor: ac }} />}
@@ -319,7 +319,7 @@ export default function BoldPersonaTemplate({ data, theme, isPreview }: { data: 
             <PopIn>
               <div className="mb-16">
                 <span className="text-xs font-black uppercase tracking-[0.4em]" style={{ color: ac }}>Connect</span>
-                <h2 className="text-5xl sm:text-7xl lg:text-8xl font-black tracking-[-0.04em] mt-2">Let's Talk</h2>
+                <h2 className="text-5xl sm:text-7xl lg:text-8xl font-black tracking-[-0.04em] mt-2">Let&apos;s Talk</h2>
               </div>
               <div className="flex gap-6 mb-12 flex-wrap">
                 {(contact?.email || about?.email) && <motion.a href={`mailto:${contact?.email || about?.email}`} whileHover={{ scale: 1.05, letterSpacing: '0.1em' }}

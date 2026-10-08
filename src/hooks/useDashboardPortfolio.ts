@@ -1,13 +1,14 @@
 import { useCallback, useState } from 'react';
 import api from '@/lib/api';
 import { defaultSections, Section, themes } from '@/lib/sections';
+import type { DashboardPortfolio, TemplateData, ThemeOption } from '@/types';
 
 export function useDashboardPortfolio() {
-  const [portfolio, setPortfolio] = useState<any>(null);
+  const [portfolio, setPortfolio] = useState<DashboardPortfolio | null>(null);
   const [sections, setSections] = useState<Section[]>(defaultSections);
   const [activeSection, setActiveSection] = useState<Section | null>(null);
-  const [selectedTheme, setSelectedTheme] = useState(themes[0]);
-  const [previewData, setPreviewData] = useState<any>(null);
+  const [selectedTheme, setSelectedTheme] = useState<ThemeOption>(themes[0]);
+  const [previewData, setPreviewData] = useState<TemplateData | null>(null);
   const [previewLoading, setPreviewLoading] = useState(false);
 
   const loadPreview = useCallback(async (slug?: string) => {
@@ -15,7 +16,7 @@ export function useDashboardPortfolio() {
     if (!targetSlug) return;
     setPreviewLoading(true);
     try {
-      const response = await api.get(`/api/public/${targetSlug}?preview=true`);
+      const response = await api.get<TemplateData>(`/api/public/${targetSlug}?preview=true`);
       setPreviewData(response.data);
     } catch (error) {
       console.error('Preview load failed', error);

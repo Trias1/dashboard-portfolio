@@ -333,7 +333,7 @@ export default function AgencyTemplate({ data, theme, isPreview }: { data: Templ
             <Rise>
               <div className="text-center mb-10">
                 <span className="text-xs font-bold uppercase tracking-[0.3em]" style={{ color: ac }}>Contact</span>
-                <h2 className="text-4xl sm:text-5xl font-black mt-2">Let's Work Together</h2>
+                <h2 className="text-4xl sm:text-5xl font-black mt-2">Let&apos;s Work Together</h2>
               </div>
               <div className="flex gap-4 justify-center mb-10 flex-wrap">
                 {(contact?.email || about?.email) && <motion.a href={`mailto:${contact?.email || about?.email}`} whileHover={{ scale: 1.04, boxShadow: `0 20px 40px ${ac}40` }}

@@ -292,7 +292,7 @@ export default function MinimalTemplate({ data, theme, isPreview }: { data: Temp
                     whileHover={{ borderColor: ac }}>
                     <motion.p className="text-lg italic mb-6 leading-relaxed"
                       style={{ color: textColor }}>
-                      "{tm.message}"
+                      &quot;{tm.message}&quot;
                     </motion.p>
                     <div className="flex items-center gap-3">
                       {tm.photo_url && (
@@ -456,7 +456,7 @@ export default function MinimalTemplate({ data, theme, isPreview }: { data: Temp
               </motion.p>
               <motion.h2 className="text-3xl md:text-6xl font-bold" style={{ color: textColor }}
                 initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }}>
-                Let's talk.
+                Let&apos;s talk.
               </motion.h2>
               {(contact?.email || about?.email) && (
                 <motion.a href={`mailto:${contact?.email || about?.email}`}

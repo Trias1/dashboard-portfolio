@@ -1,7 +1,7 @@
 import { NextRequest } from 'next/server';
 import { requireSuperAdmin } from '@/lib/auth';
 import { getSupabaseAdmin } from '@/lib/supabase/admin';
-import { errorResponse, successResponse } from '@/lib/utils';
+import { errorResponse, successResponse, getErrorMessage } from '@/lib/utils';
 
 export async function GET(request: NextRequest) {
   try {
@@ -12,7 +12,7 @@ export async function GET(request: NextRequest) {
       .order('created_at', { ascending: false })
       .limit(10);
     return successResponse(data || []);
-  } catch (err: any) {
-    return errorResponse(err.message, err.message === 'Forbidden' ? 403 : 401);
+  } catch (err) {
+    return errorResponse(getErrorMessage(err), getErrorMessage(err) === 'Forbidden' ? 403 : 401);
   }
 }

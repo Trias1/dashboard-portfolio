@@ -2,7 +2,7 @@ import { NextRequest } from 'next/server';
 import { cookies } from 'next/headers';
 import { getSupabaseAdmin } from '@/lib/supabase/admin';
 import { verifyRefreshToken, signAccessToken, signRefreshToken, setAuthCookies } from '@/lib/auth';
-import { errorResponse, successResponse } from '@/lib/utils';
+import { errorResponse, successResponse, getErrorMessage } from '@/lib/utils';
 
 export async function POST(_request: NextRequest) {
   try {
@@ -26,7 +26,7 @@ export async function POST(_request: NextRequest) {
     await setAuthCookies(accessToken, refreshToken);
 
     return successResponse({ accessToken, user });
-  } catch (err: any) {
-    return errorResponse(err.message, 401);
+  } catch (err) {
+    return errorResponse(getErrorMessage(err), 401);
   }
 }

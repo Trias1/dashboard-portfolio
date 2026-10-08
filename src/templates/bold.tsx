@@ -405,7 +405,7 @@ export default function BoldTemplate({ data, theme: initialTheme, isPreview }: {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {testimonials.map((t: TemplateItem) => (
                   <GlowCard key={t.id} ac={ac} className="p-8">
-                    <motion.div className="text-5xl mb-4 leading-none" style={{ color: `${ac}40` }}>"</motion.div>
+                    <motion.div className="text-5xl mb-4 leading-none" style={{ color: `${ac}40` }}>&quot;</motion.div>
                     <p className="text-base italic mb-6 leading-relaxed" style={{ color: subColor }}>{t.message}</p>
                     <div className="flex items-center gap-4">
                       {t.photo_url && (
@@ -567,10 +567,10 @@ export default function BoldTemplate({ data, theme: initialTheme, isPreview }: {
               <motion.span className="text-xs uppercase tracking-[0.3em] font-medium" style={{ color: `${ac}80` }}>Contact</motion.span>
               <motion.h2 className="text-4xl md:text-6xl font-black mt-3 mb-6 bg-clip-text text-transparent"
                 style={{ backgroundImage: acGradient(ac) }}>
-                Let's Create Together
+                Let&apos;s Create Together
               </motion.h2>
               <motion.p className="text-lg mb-12" style={{ color: subColor }}>
-                Have a project? Let's talk about how we can make something amazing.
+                Have a project? Let&apos;s talk about how we can make something amazing.
               </motion.p>
               <div className="flex gap-4 justify-center flex-wrap">
                 {(contact?.email || about?.email) && (

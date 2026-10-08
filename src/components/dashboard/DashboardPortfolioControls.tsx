@@ -1,15 +1,16 @@
 ﻿"use client";
 
 import { ReactNode, useState } from "react";
-import api from "@/lib/api";
+import api, { getApiErrorMessage } from "@/lib/api";
+import type { DashboardPortfolio } from "@/types";
 
 interface Props {
-  portfolio: any;
+  portfolio: DashboardPortfolio | null;
   activeMenu: string;
   lang: "id" | "en";
   onLangChange: (lang: "id" | "en") => void;
   onTogglePublish: () => void;
-  setPortfolio: (value: any) => void;
+  setPortfolio: (value: DashboardPortfolio) => void;
   account: ReactNode;
 }
 
@@ -30,18 +31,20 @@ export default function DashboardPortfolioControls({
   const [domainError, setDomainError] = useState("");
   const isAdmin = activeMenu !== "superadmin" && activeMenu !== "users";
   const saveSlug = async () => {
+    if (!portfolio) return;
     try {
-      const response = await api.patch(`/api/portfolios/${portfolio.id}`, {
+      const response = await api.patch<Pick<DashboardPortfolio, "slug">>(`/api/portfolios/${portfolio.id}`, {
         slug,
       });
       setPortfolio({ ...portfolio, slug: response.data.slug });
       setEditingSlug(false);
       setSlugError("");
-    } catch (error: any) {
-      setSlugError(error.response?.data?.message || "Unable to update slug");
+    } catch (error) {
+      setSlugError(getApiErrorMessage(error, "Unable to update slug"));
     }
   };
   const saveDomain = async () => {
+    if (!portfolio) return;
     try {
       await api.patch(`/api/portfolios/${portfolio.id}`, {
         custom_domain: domain,
@@ -49,10 +52,8 @@ export default function DashboardPortfolioControls({
       setPortfolio({ ...portfolio, custom_domain: domain || null });
       setEditingDomain(false);
       setDomainError("");
-    } catch (error: any) {
-      setDomainError(
-        error.response?.data?.message || "Unable to update domain",
-      );
+    } catch (error) {
+      setDomainError(getApiErrorMessage(error, "Unable to update domain"));
     }
   };
   return (

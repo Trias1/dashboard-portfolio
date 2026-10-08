@@ -3,11 +3,97 @@ import { useState, useRef, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import api, { initAuth, getToken } from '@/lib/api';
 
+interface GeneratedSkillCategory {
+  title?: string;
+  skills?: string;
+}
+
+interface GeneratedListItem {
+  icon?: string;
+  title?: string;
+  description?: string;
+  message?: string;
+  name?: string;
+  position?: string;
+}
+
+interface GeneratedObject {
+  categories?: GeneratedSkillCategory[];
+  bio?: string;
+  headline?: string;
+  subheadline?: string;
+  title?: string;
+  description?: string;
+  tech_stack?: string;
+  position?: string;
+  company?: string;
+  email?: string;
+  phone?: string;
+  location?: string;
+}
+
+/** Payload returned by /api/advisor/generate/[section] under "generated". */
+type GeneratedPayload = GeneratedObject | GeneratedListItem[];
+
+interface GeneratedResult {
+  section: string;
+  data: GeneratedPayload;
+  previewText: string;
+}
+
+type PreviewData = GeneratedPayload | GeneratedResult[] | null;
+
+interface AdvisorStreamEvent {
+  score?: number;
+  total?: number;
+  token?: string;
+  done?: boolean;
+}
+
+interface ExistingSectionFlags {
+  hasBio?: boolean;
+  hasHero?: boolean;
+  hasSkills?: boolean;
+  hasExperience?: boolean;
+  hasProjects?: boolean;
+  hasServices?: boolean;
+  hasTestimonials?: boolean;
+  hasCertificates?: boolean;
+  hasContact?: boolean;
+}
+
 interface Message {
   role: 'user' | 'assistant';
   content: string;
-  preview?: { section: string; data: any };
+  preview?: { section: string; data: PreviewData };
 }
+
+function asObject(payload: GeneratedPayload): GeneratedObject {
+  return Array.isArray(payload) ? {} : payload;
+}
+
+const ALL_SUGGESTED = [
+  ' Rapihkan & lengkapi portfolio saya',
+  ' Analyze my portfolio',
+  ' Isi bagian skills saya',
+  ' Generate testimonials untuk portfolio',
+  ' Suggest certificate untuk saya',
+  ' Generate experience saya',
+  ' Generate my bio',
+  ' Buat hero section',
+  ' Generate services saya',
+  ' Suggest experience saya',
+  ' Generate project untuk portfolio',
+  ' Apa yang kurang dari portfolio saya?',
+  ' Gimana cara buat portfolio lebih menarik?',
+  ' Tips untuk contact section',
+  ' Cara dapat testimonial?',
+  ' Tips design portfolio yang bagus?',
+  ' Gimana cara portfolio mudah ditemukan recruiter?',
+  ' Apa yang harus ada di bio yang menarik?',
+];
+
+const pickSuggestions = () => [...ALL_SUGGESTED].sort(() => Math.random() - 0.5).slice(0, 4);
 
 function AdvisorAvatar({ small = false }: { small?: boolean }) {
   return (
@@ -29,6 +115,9 @@ export default function AdvisorWidget({ inline = false }: { inline?: boolean }) 
   const [loading, setLoading] = useState(false);
   const [applying, setApplying] = useState<string | null>(null);
   const [score, setScore] = useState<{score: number, total: number} | null>(null);
+  // Shuffle dan ambil 4 random; reshuffled whenever a new AI reply is started.
+  const [suggested, setSuggested] = useState(pickSuggestions);
+  const reshuffleSuggestions = () => setSuggested(pickSuggestions());
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -64,23 +153,26 @@ export default function AdvisorWidget({ inline = false }: { inline?: boolean }) 
   };
 
   const generateSection = async (section: string) => {
+    reshuffleSuggestions();
     setLoading(true);
     setMessages(prev => [...prev, { role: 'assistant', content: ` Generating ${section} content...` }]);
     try {
       if (!getToken()) await initAuth();
-      const res = await api.post(`/api/advisor/generate/${section}`);
+      const res = await api.post<{ generated: GeneratedPayload }>(`/api/advisor/generate/${section}`);
       const { generated } = res.data;
-      
+      const obj = asObject(generated);
+
       // Format preview text
       let previewText = '';
-      if (section === 'skills' && generated.categories) {
-        previewText = generated.categories.map((c: any) => `**${c.title}:** ${c.skills}`).join('\n');
+      if (section === 'skills' && obj.categories) {
+        previewText = obj.categories.map((c) => `**${c.title}:** ${c.skills}`).join('\n');
       } else if (section === 'bio') {
-        previewText = generated.bio;
+        previewText = obj.bio as string;
       } else if (section === 'hero') {
-        previewText = `**Headline:** ${generated.headline}\n**Subheadline:** ${generated.subheadline}`;
+        previewText = `**Headline:** ${obj.headline}\n**Subheadline:** ${obj.subheadline}`;
       } else if (section === 'services') {
-        previewText = generated.map((s: any) => `${s.icon} **${s.title}:** ${s.description}`).join('\n');
+        if (!Array.isArray(generated)) throw new Error('Unexpected services payload');
+        previewText = generated.map((s) => `${s.icon} **${s.title}:** ${s.description}`).join('\n');
       }
 
       setMessages(prev => {
@@ -92,7 +184,7 @@ export default function AdvisorWidget({ inline = false }: { inline?: boolean }) 
         };
         return updated;
       });
-    } catch (err) {
+    } catch {
       setMessages(prev => {
         const updated = [...prev];
         updated[updated.length - 1] = { role: 'assistant', content: ' Failed to generate. Please try again.' };
@@ -103,7 +195,7 @@ export default function AdvisorWidget({ inline = false }: { inline?: boolean }) 
     }
   };
 
-  const applySection = async (section: string, data: any, msgIndex: number) => {
+  const applySection = async (section: string, data: PreviewData, msgIndex: number) => {
     setApplying(section);
     try {
       // Handle boom  -  langsung generate all
@@ -114,7 +206,7 @@ export default function AdvisorWidget({ inline = false }: { inline?: boolean }) 
       }
       // Handle apply all
       if (section === 'all' && Array.isArray(data)) {
-        for (const item of data) {
+        for (const item of data as GeneratedResult[]) {
           try {
             await api.post(`/api/advisor/apply/${item.section}`, { data: item.data });
           } catch {}
@@ -149,9 +241,10 @@ export default function AdvisorWidget({ inline = false }: { inline?: boolean }) 
   };
 
   const generateAll = async () => {
+    reshuffleSuggestions();
     setLoading(true);
     // Fetch data existing dulu
-    let existingData: any = {};
+    let existingData: ExistingSectionFlags = {};
     try {
       const [aboutRes, heroRes, skillsRes, expRes, projRes] = await Promise.all([
         api.get('/api/about'),
@@ -170,7 +263,7 @@ export default function AdvisorWidget({ inline = false }: { inline?: boolean }) 
     } catch {}
 
     const allSections = ['bio', 'hero', 'skills', 'services', 'projects', 'experience', 'testimonials', 'gallery', 'contact'];
-    
+
     // Hanya generate yang kosong
     const importantSections = ['bio', 'hero', 'experience', 'skills', 'projects', 'contact'];
 
@@ -236,33 +329,34 @@ export default function AdvisorWidget({ inline = false }: { inline?: boolean }) 
       content: ' **Sedang merapihkan portfolio Anda...**\n\nAI akan generate semua section yang belum lengkap. Mohon tunggu sebentar...' 
     }]);
 
-    const results: { section: string; data: any; previewText: string }[] = [];
+    const results: GeneratedResult[] = [];
 
     for (const section of sections) {
       try {
         if (!getToken()) await initAuth();
-        const res = await api.post(`/api/advisor/generate/${section}`);
+        const res = await api.post<{ generated: GeneratedPayload }>(`/api/advisor/generate/${section}`);
         const { generated } = res.data;
-        
+        const obj = asObject(generated);
+
         let previewText = '';
-        if (section === 'skills' && generated.categories) {
-          previewText = generated.categories.map((c: any) => `**${c.title}:** ${c.skills}`).join('\n');
+        if (section === 'skills' && obj.categories) {
+          previewText = obj.categories.map((c) => `**${c.title}:** ${c.skills}`).join('\n');
         } else if (section === 'bio') {
-          previewText = generated.bio;
+          previewText = obj.bio as string;
         } else if (section === 'hero') {
-          previewText = `**Headline:** ${generated.headline}\n**Subheadline:** ${generated.subheadline}`;
+          previewText = `**Headline:** ${obj.headline}\n**Subheadline:** ${obj.subheadline}`;
         } else if (section === 'services') {
-          previewText = Array.isArray(generated) ? generated.map((s: any) => `${s.icon} **${s.title}:** ${s.description}`).join('\n') : '';
+          previewText = Array.isArray(generated) ? generated.map((s) => `${s.icon} **${s.title}:** ${s.description}`).join('\n') : '';
         } else if (section === 'projects') {
-          previewText = `**${generated.title}**\n${generated.description}\nTech: ${generated.tech_stack}`;
+          previewText = `**${obj.title}**\n${obj.description}\nTech: ${obj.tech_stack}`;
         } else if (section === 'experience') {
-          previewText = `**${generated.position}** at ${generated.company}\n${generated.description}`;
+          previewText = `**${obj.position}** at ${obj.company}\n${obj.description}`;
         } else if (section === 'testimonials') {
-          previewText = Array.isArray(generated) ? generated.map((t: any) => ` "${t.message}"  -  **${t.name}**, ${t.position}`).join('\n\n') : '';
+          previewText = Array.isArray(generated) ? generated.map((t) => ` "${t.message}"  -  **${t.name}**, ${t.position}`).join('\n\n') : '';
         } else if (section === 'gallery') {
-          previewText = Array.isArray(generated) ? generated.map((g: any) => ` **${g.title}**\n${g.description}`).join('\n\n') : '';
+          previewText = Array.isArray(generated) ? generated.map((g) => ` **${g.title}**\n${g.description}`).join('\n\n') : '';
         } else if (section === 'contact') {
-          previewText = ` ${generated.email}\n ${generated.phone}\n ${generated.location}`;
+          previewText = ` ${obj.email}\n ${obj.phone}\n ${obj.location}`;
         }
         results.push({ section, data: generated, previewText });
       } catch {}
@@ -270,7 +364,7 @@ export default function AdvisorWidget({ inline = false }: { inline?: boolean }) 
 
     // Tampilkan semua hasil sekaligus dengan satu tombol apply all
     const summaryText = results.map(r => ` **${r.section === 'gallery' ? 'CERTIFICATE' : r.section.toUpperCase()}:**\n${r.previewText}`).join('\n\n---\n\n');
-    
+
     setMessages(prev => [...prev, {
       role: 'assistant',
       content: ` **Semua section sudah di-generate!**\n\n${summaryText}\n\n---\nKlik **"Terapkan Semua"** untuk save ke portfolio!`,
@@ -305,6 +399,7 @@ export default function AdvisorWidget({ inline = false }: { inline?: boolean }) 
       return;
     }
 
+    reshuffleSuggestions();
     setLoading(true);
     setMessages(prev => [...prev, { role: 'assistant', content: '' }]);
 
@@ -331,13 +426,14 @@ export default function AdvisorWidget({ inline = false }: { inline?: boolean }) 
         const lines = chunk.split('\n').filter(l => l.startsWith('data: '));
         for (const line of lines) {
           try {
-            const json = JSON.parse(line.slice(6));
-            if (json.score !== undefined) setScore({ score: json.score, total: json.total });
+            const json: AdvisorStreamEvent = JSON.parse(line.slice(6));
+            if (json.score !== undefined) setScore({ score: json.score, total: json.total as number });
             if (json.token) {
-              fullContent += json.token;
+              const nextContent = fullContent + json.token;
+              fullContent = nextContent;
               setMessages(prev => {
                 const updated = [...prev];
-                updated[updated.length - 1] = { role: 'assistant', content: fullContent };
+                updated[updated.length - 1] = { role: 'assistant', content: nextContent };
                 return updated;
               });
             }
@@ -356,36 +452,6 @@ export default function AdvisorWidget({ inline = false }: { inline?: boolean }) 
     }
   };
 
-  const allSuggested = [
-    ' Rapihkan & lengkapi portfolio saya',
-    ' Analyze my portfolio',
-    ' Isi bagian skills saya',
-    ' Generate testimonials untuk portfolio',
-    ' Suggest certificate untuk saya',
-    ' Generate experience saya',
-    ' Generate my bio',
-    ' Buat hero section',
-    ' Generate services saya',
-    ' Suggest experience saya',
-    ' Generate project untuk portfolio',
-    ' Apa yang kurang dari portfolio saya?',
-    ' Gimana cara buat portfolio lebih menarik?',
-    ' Tips untuk contact section',
-    ' Cara dapat testimonial?',
-    ' Tips design portfolio yang bagus?',
-    ' Gimana cara portfolio mudah ditemukan recruiter?',
-    ' Apa yang harus ada di bio yang menarik?',
-  ];
-  // Shuffle dan ambil 4 random setiap kali render
-  const [suggested, setSuggested] = useState(() => 
-    [...allSuggested].sort(() => Math.random() - 0.5).slice(0, 4)
-  );
-  // Reshuffle setiap kali ada pesan baru dari AI
-  useEffect(() => {
-    if (messages.length > 1 && messages[messages.length-1].role === 'assistant') {
-      setSuggested([...allSuggested].sort(() => Math.random() - 0.5).slice(0, 4));
-    }
-  }, [messages.length]);
 
   const scorePercent = score ? Math.round(score.score / score.total * 100) : null;
   const scoreColor = scorePercent ? (scorePercent >= 80 ? '#22c55e' : scorePercent >= 50 ? '#f59e0b' : '#ef4444') : '#a855f7';

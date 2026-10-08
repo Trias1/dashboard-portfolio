@@ -73,4 +73,4 @@ export const t = {
   },
 };
 
-export const g = (key: any, lang: Lang) => key[lang] ?? key['en'];
+export const g = <T,>(key: { en: T; id?: T }, lang: Lang): T => key[lang] ?? key['en'];

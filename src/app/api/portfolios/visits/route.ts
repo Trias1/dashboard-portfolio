@@ -1,7 +1,7 @@
 import { NextRequest } from 'next/server';
 import { requireAuth } from '@/lib/auth';
 import { getSupabaseAdmin } from '@/lib/supabase/admin';
-import { errorResponse, successResponse } from '@/lib/utils';
+import { errorResponse, successResponse, getErrorMessage } from '@/lib/utils';
 
 export async function GET(request: NextRequest) {
   try {
@@ -44,5 +44,5 @@ export async function GET(request: NextRequest) {
     const chartData = Object.entries(chart).map(([date, count]) => ({ date, count }));
 
     return successResponse({ total: total || 0, today: today || 0, week: week || 0, chart: chartData, from: dateFrom, to: dateTo });
-  } catch (err: any) { return errorResponse(err.message, err?.message === 'Unauthorized' ? 401 : 500); }
+  } catch (err) { return errorResponse(getErrorMessage(err), getErrorMessage(err) === 'Unauthorized' ? 401 : 500); }
 }

@@ -1,8 +1,26 @@
 'use client';
 
 import React from 'react';
+import type { Section } from '@/lib/sections';
+import type { EditFormData } from '@/types';
 
-export default function DashboardCustomEditor(props: any) {
+interface DashboardCustomEditorProps {
+  activeSection: Section;
+  normalizeCustomTitle: (value?: string) => string;
+  typedSectionMap: Record<string, string>;
+  editForm: EditFormData;
+  setEditForm: (form: EditFormData) => void;
+  inputClass: string;
+  labelClass: string;
+  certSkillSearch: string;
+  handleCertSkillSearch: (value: string) => void;
+  addCertSkill: (skill: string) => void;
+  certSkillSuggestions: string[];
+  removeCertSkill: (skill: string) => void;
+  detectOgImage: () => void;
+}
+
+export default function DashboardCustomEditor(props: DashboardCustomEditorProps) {
   const { activeSection, normalizeCustomTitle, typedSectionMap, editForm, setEditForm, inputClass, labelClass, certSkillSearch, handleCertSkillSearch, addCertSkill, certSkillSuggestions, removeCertSkill, detectOgImage } = props;
         const sectionLabel = normalizeCustomTitle(activeSection.label);
         const subType = typedSectionMap[sectionLabel] || null;

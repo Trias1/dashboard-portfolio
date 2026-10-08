@@ -2,6 +2,7 @@ import { NextRequest } from 'next/server';
 import { requireAuth } from '@/lib/auth';
 import { getSupabaseAdmin } from '@/lib/supabase/admin';
 import { checkRateLimit } from '@/lib/rate-limit';
+import type { ChatHistoryInput } from '@/types/api';
 
 const NINE_ROUTER_API_KEY = process.env.NINE_ROUTER_API_KEY!;
 const NINE_ROUTER_BASE_URL = process.env.NINE_ROUTER_BASE_URL || "https://router.zeen.my.id/v1";
@@ -54,8 +55,8 @@ Portfolio completeness: ${score}/${total}. Be helpful and concise.`;
         messages: [
           { role: 'system', content: systemPrompt },
           ...(Array.isArray(history) ? history : []).slice(-6)
-            .filter((m: any) => m && typeof m.content === 'string')
-            .map((m: any) => ({ role: m.role === 'assistant' ? 'assistant' : 'user', content: m.content.slice(0, 2000) })),
+            .filter((m: ChatHistoryInput | null): m is ChatHistoryInput & { content: string } => !!m && typeof m.content === 'string')
+            .map((m) => ({ role: m.role === 'assistant' ? 'assistant' : 'user', content: m.content.slice(0, 2000) })),
           { role: 'user', content: message },
         ],
         stream: true, max_tokens: 600,

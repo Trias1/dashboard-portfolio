@@ -1,7 +1,7 @@
 import { NextRequest } from 'next/server';
 import { requireAuth } from '@/lib/auth';
 import { getSupabaseAdmin } from '@/lib/supabase/admin';
-import { generateSlug, errorResponse, successResponse } from '@/lib/utils';
+import { generateSlug, errorResponse, successResponse, getErrorMessage } from '@/lib/utils';
 
 export async function POST(request: NextRequest) {
   try {
@@ -12,5 +12,5 @@ export async function POST(request: NextRequest) {
     const { data, error } = await getSupabaseAdmin().from('portfolios').insert({ owner_id: auth.id, title, slug: cleanSlug }).select().single();
     if (error?.code === '23505') return errorResponse('Slug already taken', 400);
     return successResponse(data, 201);
-  } catch (err: any) { return errorResponse(err.message); }
+  } catch (err) { return errorResponse(getErrorMessage(err)); }
 }

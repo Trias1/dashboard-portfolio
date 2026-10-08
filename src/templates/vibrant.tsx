@@ -294,7 +294,7 @@ export default function VibrantTemplate({ data, theme, isPreview }: { data: Temp
                 {testimonials.map((t: TemplateItem) => (
                   <BounceSection key={t.id}>
                     <ColorCard ac={ac} className="p-6">
-                      <p className="text-5xl leading-none mb-3 font-black" style={{ color: `${ac}40` }}>"</p>
+                      <p className="text-5xl leading-none mb-3 font-black" style={{ color: `${ac}40` }}>&quot;</p>
                       <p className="text-sm italic mb-4 leading-relaxed text-justify" style={{ color: subColor }}>{t.message}</p>
                       <div className="flex items-center gap-3">
                         {t.photo_url && <img src={t.photo_url} alt={t.name} className="w-10 h-10 rounded-2xl object-cover" />}
@@ -426,7 +426,7 @@ export default function VibrantTemplate({ data, theme, isPreview }: { data: Temp
             <SectionTitle title="Let's Talk" subtitle="Contact" ac={ac} />
             <motion.p className="text-lg font-medium mb-8" style={{ color: subColor }}
               animate={{ y: [0, -5, 0] }} transition={{ duration: 2, repeat: Infinity }}>
-              I'm always open to exciting new projects!
+              I&apos;m always open to exciting new projects!
             </motion.p>
             <div className="flex gap-4 justify-center flex-wrap mb-10">
               {(contact?.email || about?.email) && (

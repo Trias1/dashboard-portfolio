@@ -1,6 +1,6 @@
 ﻿"use client";
 
-import { DndContext, closestCenter, DragEndEvent } from "@dnd-kit/core";
+import { DndContext, closestCenter, DragEndEvent, useSensors } from "@dnd-kit/core";
 import {
   SortableContext,
   verticalListSortingStrategy,
@@ -12,7 +12,7 @@ interface DashboardBuilderProps {
   lang: "id" | "en";
   sections: Section[];
   activeSection: Section | null;
-  sensors: any;
+  sensors: ReturnType<typeof useSensors>;
   setShowAddSection: (open: boolean) => void;
   setActiveSection: (section: Section | null) => void;
   onDragEnd: (event: DragEndEvent) => void;

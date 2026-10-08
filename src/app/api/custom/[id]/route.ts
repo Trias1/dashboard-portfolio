@@ -1,7 +1,7 @@
 import { NextRequest } from 'next/server';
 import { requireAuth } from '@/lib/auth';
 import { getSupabaseAdmin } from '@/lib/supabase/admin';
-import { errorResponse, successResponse } from '@/lib/utils';
+import { errorResponse, successResponse, getErrorMessage } from '@/lib/utils';
 
 export async function PUT(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -11,7 +11,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     const { data } = await getSupabaseAdmin().from('custom_sections').update({ title, type, content: JSON.stringify(content || {}) }).eq('id', id).eq('owner_id', auth.id).select().maybeSingle();
     if (!data) return errorResponse('Not found', 404);
     return successResponse(data);
-  } catch (err: any) { return errorResponse(err.message); }
+  } catch (err) { return errorResponse(getErrorMessage(err)); }
 }
 
 export async function DELETE(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -21,5 +21,5 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
     const { data } = await getSupabaseAdmin().from('custom_sections').delete().eq('id', id).eq('owner_id', auth.id).select('id');
     if (!data || data.length === 0) return errorResponse('Not found', 404);
     return successResponse({ message: 'Deleted' });
-  } catch (err: any) { return errorResponse(err.message); }
+  } catch (err) { return errorResponse(getErrorMessage(err)); }
 }

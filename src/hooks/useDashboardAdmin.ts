@@ -1,16 +1,17 @@
 ﻿import { useCallback, useState } from 'react';
-import api from '@/lib/api';
+import api, { getApiErrorMessage } from '@/lib/api';
+import type { AdminStats, ManagedUser, VercelLogEntry } from '@/types';
 
 export function useDashboardAdmin() {
-  const [users, setUsers] = useState<any[]>([]);
-  const [adminStats, setAdminStats] = useState<any>(null);
-  const [vercelLogs, setVercelLogs] = useState<any[]>([]);
+  const [users, setUsers] = useState<ManagedUser[]>([]);
+  const [adminStats, setAdminStats] = useState<AdminStats | null>(null);
+  const [vercelLogs, setVercelLogs] = useState<VercelLogEntry[]>([]);
   const [vercelLogsLoading, setVercelLogsLoading] = useState(false);
   const [vercelLogsError, setVercelLogsError] = useState('');
 
   const fetchUsers = useCallback(async () => {
     try {
-      const response = await api.get('/api/users');
+      const response = await api.get<ManagedUser[]>('/api/users');
       setUsers(response.data);
     } catch (error) {
       console.error(error);
@@ -19,7 +20,7 @@ export function useDashboardAdmin() {
 
   const fetchAdminStats = useCallback(async () => {
     try {
-      const response = await api.get('/api/admin/stats');
+      const response = await api.get<AdminStats>('/api/admin/stats');
       setAdminStats(response.data);
     } catch (error) {
       console.error(error);
@@ -30,10 +31,10 @@ export function useDashboardAdmin() {
     setVercelLogsLoading(true);
     setVercelLogsError('');
     try {
-      const response = await api.get('/api/admin/vercel-logs');
+      const response = await api.get<VercelLogEntry[]>('/api/admin/vercel-logs');
       setVercelLogs(Array.isArray(response.data) ? response.data : []);
-    } catch (error: any) {
-      setVercelLogsError(error.response?.data?.message || 'Unable to load Vercel logs');
+    } catch (error) {
+      setVercelLogsError(getApiErrorMessage(error, 'Unable to load Vercel logs'));
     } finally {
       setVercelLogsLoading(false);
     }

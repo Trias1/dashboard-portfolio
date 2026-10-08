@@ -1,7 +1,12 @@
 'use client';
 
 import { useState, useRef } from 'react';
-import api from '@/lib/api';
+import api, { getApiErrorMessage } from '@/lib/api';
+import type { SectionType } from '@/lib/sections';
+import type { JsonValue } from '@/types';
+
+/** Section keys reported back after applying a CV: a builder section type, or `custom:<Title>`. */
+export type CvAppliedSection = SectionType | `custom:${string}`;
 
 interface ParsedCV {
   about: { name: string; title: string; bio: string };
@@ -16,14 +21,21 @@ interface ParsedCV {
   languages: { language: string; proficiency: string }[];
   awards: { title: string; issuer: string; date: string; description: string }[];
   organizations: { name: string; role: string; start_date: string; end_date: string; description: string }[];
-  customSections: { title: string; type: string; content: any }[];
+  customSections: { title: string; type: string; content?: { body?: string; [key: string]: JsonValue | undefined } | null }[];
   confidence: number;
   warnings: string[];
 }
 
 type SectionKey = 'experiences' | 'education' | 'skills' | 'projects' | 'certifications' | 'specializationAreas' | 'languages' | 'awards' | 'organizations' | 'customSections';
 
-const SECTION_LABELS: Record<string, string> = {
+type CvApplyPayload = Pick<ParsedCV, SectionKey> & {
+  replace: boolean;
+  about?: ParsedCV['about'];
+  hero?: ParsedCV['hero'];
+  contact?: ParsedCV['contact'];
+};
+
+const SECTION_LABELS: Record<SectionKey, string> = {
   experiences: 'Experience',
   education: 'Education',
   skills: 'Skills',
@@ -36,7 +48,7 @@ const SECTION_LABELS: Record<string, string> = {
   customSections: 'Other',
 };
 
-export default function CVUpload({ onApplied }: { onApplied?: (newSections?: string[]) => void }) {
+export default function CVUpload({ onApplied }: { onApplied?: (newSections?: CvAppliedSection[]) => void }) {
   const [step, setStep] = useState<'idle'|'uploading'|'preview'|'applying'|'done'>('idle');
   const [parsed, setParsed] = useState<ParsedCV | null>(null);
   const [error, setError] = useState('');
@@ -48,7 +60,7 @@ export default function CVUpload({ onApplied }: { onApplied?: (newSections?: str
   const [enabledSections, setEnabledSections] = useState<Record<string, boolean>>({});
   const fileRef = useRef<HTMLInputElement>(null);
 
-  const count = (arr: any[] | undefined | null) => arr?.length || 0;
+  const count = (arr: unknown[] | undefined | null) => arr?.length || 0;
 
   const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -69,14 +81,14 @@ export default function CVUpload({ onApplied }: { onApplied?: (newSections?: str
 
       // Enable sections that have data
       const enabled: Record<string, boolean> = { about: true, hero: true, contact: true };
-      for (const key of Object.keys(SECTION_LABELS)) {
-        const arr = (data as any)[key];
+      for (const key of Object.keys(SECTION_LABELS) as SectionKey[]) {
+        const arr: unknown = data[key];
         enabled[key] = Array.isArray(arr) && arr.length > 0;
       }
       setEnabledSections(enabled);
       setStep('preview');
-    } catch (err: any) {
-      setError(err.response?.data?.message || 'Upload failed');
+    } catch (err) {
+      setError(getApiErrorMessage(err, 'Upload failed'));
       setStep('idle');
     }
   };
@@ -102,7 +114,7 @@ export default function CVUpload({ onApplied }: { onApplied?: (newSections?: str
     });
     try {
       // Build payload with only enabled sections
-      const payload: any = {
+      const payload: CvApplyPayload = {
         replace: replaceMode,
         about: enabledSections.about ? parsed.about : undefined,
         hero: enabledSections.hero ? parsed.hero : undefined,
@@ -134,7 +146,7 @@ export default function CVUpload({ onApplied }: { onApplied?: (newSections?: str
       await api.post('/api/cv/apply', payload);
       setStep('done');
 
-      const newSections: string[] = [];
+      const newSections: CvAppliedSection[] = [];
       if (payload.experiences?.length) newSections.push('experience');
       if (payload.skills?.length) newSections.push('skills');
       if (payload.projects?.length) newSections.push('projects');
@@ -145,11 +157,11 @@ export default function CVUpload({ onApplied }: { onApplied?: (newSections?: str
       if (payload.organizations?.length) newSections.push('custom:Organizations');
       if (payload.specializationAreas?.length) newSections.push('custom:Specialization Areas');
       if (payload.customSections?.length) {
-        payload.customSections.forEach((cs: any) => newSections.push(`custom:${cs.title}`));
+        payload.customSections.forEach((cs) => newSections.push(`custom:${cs.title}`));
       }
       onApplied?.(newSections);
-    } catch (err: any) {
-      setError(err.response?.data?.message || 'Apply failed');
+    } catch (err) {
+      setError(getApiErrorMessage(err, 'Apply failed'));
       setStep('preview');
     }
   };

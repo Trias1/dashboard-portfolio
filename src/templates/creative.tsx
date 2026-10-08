@@ -96,7 +96,7 @@ export default function CreativeTemplate({ data, theme, isPreview }: { data: Tem
             {hero?.background_url && <div className="absolute inset-0 bg-black/60" />}
             <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }}
               className="relative z-10">
-              <p className="text-sm mb-2" style={{ color: ac }}> Hello, I'm</p>
+              <p className="text-sm mb-2" style={{ color: ac }}> Hello, I&apos;m</p>
               <h1 className="text-3xl sm:text-5xl md:text-6xl font-bold mb-3 leading-tight" style={{ color: textColor }}>
                 {hero?.headline || about?.name || portfolio.title}
               </h1>
@@ -247,7 +247,7 @@ export default function CreativeTemplate({ data, theme, isPreview }: { data: Tem
                   {testimonials.map((tm: TemplateItem) => (
                     <div key={tm.id} className="p-5 rounded-2xl border"
                       style={{ backgroundColor: cardBg, borderColor: `${ac}20` }}>
-                      <p className="text-sm italic mb-4" style={{ color: subColor }}>"{tm.message}"</p>
+                      <p className="text-sm italic mb-4" style={{ color: subColor }}>&quot;{tm.message}&quot;</p>
                       <div className="flex items-center gap-3">
                         {tm.photo_url && <img src={tm.photo_url} alt={tm.name} className="w-9 h-9 rounded-full object-cover" />}
                         <div>
@@ -396,8 +396,8 @@ export default function CreativeTemplate({ data, theme, isPreview }: { data: Tem
             <Section>
               <div className="p-8 rounded-2xl border text-center"
                 style={{ backgroundColor: `${ac}08`, borderColor: `${ac}30` }}>
-                <h2 className="text-2xl font-bold mb-2" style={{ color: textColor }}>Let's work together</h2>
-                <p className="text-sm mb-6" style={{ color: subColor }}>Have a project? I'd love to hear about it.</p>
+                <h2 className="text-2xl font-bold mb-2" style={{ color: textColor }}>Let&apos;s work together</h2>
+                <p className="text-sm mb-6" style={{ color: subColor }}>Have a project? I&apos;d love to hear about it.</p>
                 <div className="flex gap-3 justify-center flex-wrap">
                   {(contact?.email || about?.email) && (
                     <a href={`mailto:${contact?.email || about?.email}`}

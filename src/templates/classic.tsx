@@ -255,7 +255,7 @@ export default function ClassicTemplate({ data, theme, isPreview }: { data: Temp
                 {testimonials.map((t: TemplateItem) => (
                   <Section key={t.id}>
                     <Card className="p-6">
-                      <p className="text-4xl leading-none mb-2" style={{ color: `${ac}30` }}>"</p>
+                      <p className="text-4xl leading-none mb-2" style={{ color: `${ac}30` }}>&quot;</p>
                       <p className="text-sm italic mb-4 leading-relaxed text-justify" style={{ color: subColor }}>{t.message}</p>
                       <div className="flex items-center gap-3">
                         {t.photo_url && <img src={t.photo_url} alt={t.name} className="w-10 h-10 rounded-full object-cover" />}
@@ -397,7 +397,7 @@ export default function ClassicTemplate({ data, theme, isPreview }: { data: Temp
           <section id="contact" className="py-20 md:py-28 px-4" style={{ background: `${ac}04` }}>
           <div className="max-w-3xl mx-auto text-center">
             <SectionTitle title="Get In Touch" subtitle="Contact" ac={ac} />
-            <p className="text-base mb-8" style={{ color: subColor }}>Have a project or just want to say hi? I'd love to hear from you.</p>
+            <p className="text-base mb-8" style={{ color: subColor }}>Have a project or just want to say hi? I&apos;d love to hear from you.</p>
             <div className="flex gap-4 justify-center flex-wrap mb-10">
               {(contact?.email || about?.email) && (
                 <motion.a href={`mailto:${contact?.email || about?.email}`} whileHover={{ scale: 1.04 }}

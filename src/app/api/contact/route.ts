@@ -1,7 +1,7 @@
 import { NextRequest } from 'next/server';
 import { requireAuth, getAuthUser } from '@/lib/auth';
 import { getSupabaseAdmin } from '@/lib/supabase/admin';
-import { errorResponse, successResponse } from '@/lib/utils';
+import { errorResponse, successResponse, getErrorMessage } from '@/lib/utils';
 
 export async function GET(request: NextRequest) {
   try {
@@ -34,5 +34,5 @@ export async function PUT(request: NextRequest) {
       result = await getSupabaseAdmin().from('contact_info').insert({ email, phone, location, linkedin_url, github_url, owner_id: auth.id }).select().single();
     }
     return successResponse(result.data);
-  } catch (err: any) { return errorResponse(err.message); }
+  } catch (err) { return errorResponse(getErrorMessage(err)); }
 }

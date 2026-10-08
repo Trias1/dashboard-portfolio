@@ -1,15 +1,17 @@
 import { NextRequest } from 'next/server';
 import { requireAuth } from '@/lib/auth';
 import { getSupabaseAdmin } from '@/lib/supabase/admin';
-import { errorResponse, successResponse } from '@/lib/utils';
+import { errorResponse, successResponse, getErrorMessage } from '@/lib/utils';
+import type { GitHubRepo, GitHubUser } from '@/types/api';
 
 const GITHUB_TOKEN = process.env.GITHUB_TOKEN || '';
-const ghFetch = async (url: string) => {
-  const headers: any = { 'Accept': 'application/vnd.github.v3+json', 'User-Agent': 'PortfolioKit' };
+const ghFetch = async <T>(url: string): Promise<T> => {
+  const headers: Record<string, string> = { 'Accept': 'application/vnd.github.v3+json', 'User-Agent': 'PortfolioKit' };
   if (GITHUB_TOKEN) headers['Authorization'] = `token ${GITHUB_TOKEN}`;
   const res = await fetch(url, { headers });
   if (!res.ok) throw new Error(`GitHub API error: ${res.status}`);
-  return res.json();
+  const data: T = await res.json();
+  return data;
 };
 
 const GITHUB_USERNAME_RE = /^[A-Za-z0-9-]{1,39}$/;
@@ -31,8 +33,8 @@ export async function POST(request: NextRequest) {
     const userId = auth.id;
 
     const [user, repos] = await Promise.all([
-      ghFetch(`https://api.github.com/users/${encodeURIComponent(username)}`),
-      ghFetch(`https://api.github.com/users/${encodeURIComponent(username)}/repos?sort=updated&per_page=100&type=owner`),
+      ghFetch<GitHubUser>(`https://api.github.com/users/${encodeURIComponent(username)}`),
+      ghFetch<GitHubRepo[]>(`https://api.github.com/users/${encodeURIComponent(username)}/repos?sort=updated&per_page=100&type=owner`),
     ]);
 
     const results: string[] = [];
@@ -49,8 +51,8 @@ export async function POST(request: NextRequest) {
 
     if (options.skills) {
       const langCount: Record<string, number> = {};
-      repos.forEach((r: any) => { if (r.language) langCount[r.language] = (langCount[r.language] || 0) + 1; });
-      const topLangs = Object.entries(langCount).sort((a: any, b: any) => b[1] - a[1]).slice(0, 12).map(([l]) => l);
+      repos.forEach((r) => { if (r.language) langCount[r.language] = (langCount[r.language] || 0) + 1; });
+      const topLangs = Object.entries(langCount).sort((a, b) => b[1] - a[1]).slice(0, 12).map(([l]) => l);
       if (topLangs.length > 0) {
         await getSupabaseAdmin().from('skills').insert({ title: 'GitHub Languages', skills: topLangs.join(', '), owner_id: userId });
         results.push('skills');
@@ -58,7 +60,7 @@ export async function POST(request: NextRequest) {
     }
 
     if (options.projects && options.selectedProjects?.length > 0) {
-      const selectedRepos = repos.filter((r: any) => options.selectedProjects.includes(r.name));
+      const selectedRepos = repos.filter((r) => options.selectedProjects.includes(r.name));
       for (const r of selectedRepos) {
         await getSupabaseAdmin().from('projects').insert({
           title: r.name.replace(/-/g, ' ').replace(/\b\w/g, (l: string) => l.toUpperCase()),
@@ -70,9 +72,9 @@ export async function POST(request: NextRequest) {
     }
 
     return successResponse({ success: true, imported: results });
-  } catch (err: any) {
-    if (err?.message === 'GitHub API error: 404') return errorResponse('GitHub user not found', 404);
-    if (err?.message?.startsWith('GitHub API error')) return errorResponse(err.message, 502);
-    return errorResponse(err.message);
+  } catch (err) {
+    if (getErrorMessage(err) === 'GitHub API error: 404') return errorResponse('GitHub user not found', 404);
+    if (getErrorMessage(err).startsWith('GitHub API error')) return errorResponse(getErrorMessage(err), 502);
+    return errorResponse(getErrorMessage(err));
   }
 }

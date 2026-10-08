@@ -1,7 +1,7 @@
 import { NextRequest } from 'next/server';
 import { requireAuth } from '@/lib/auth';
 import { getSupabaseAdmin } from '@/lib/supabase/admin';
-import { errorResponse, successResponse } from '@/lib/utils';
+import { errorResponse, successResponse, getErrorMessage } from '@/lib/utils';
 
 const authStatus = (err: unknown) => {
   const message = err instanceof Error ? err.message : '';
@@ -27,5 +27,5 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
     const { id } = await params;
     await getSupabaseAdmin().from('projects').delete().eq('id', id).eq('owner_id', auth.id);
     return successResponse({ message: 'Deleted' });
-  } catch (err: any) { return errorResponse(err.message); }
+  } catch (err) { return errorResponse(getErrorMessage(err)); }
 }

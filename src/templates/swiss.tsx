@@ -212,7 +212,7 @@ export default function SwissTemplate({ data, theme, isPreview }: { data: Templa
               <div className="border-t-4 pt-6 mb-14" style={{ borderColor: ac }}><span className="text-xs font-black tracking-[0.3em] uppercase" style={{ color: ac }}>Kind Words</span><h2 className="text-4xl sm:text-6xl font-black tracking-[-0.03em] mt-1" style={{ color: light }}>Testimonials</h2></div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">{testimonials.map((t: TemplateItem) => (
                 <div key={t.id} className="p-6" style={{ backgroundColor: light }}>
-                  <p className="text-3xl mb-2" style={{ color: ac }}>"</p>
+                  <p className="text-3xl mb-2" style={{ color: ac }}>&quot;</p>
                   <p className="text-sm leading-relaxed italic mb-4" style={{ color: subColor }}>{t.message}</p>
                   <div className="flex items-center gap-3">
                     {t.photo_url && <img src={t.photo_url} alt={t.name} className="w-10 h-10 rounded-full object-cover" />}

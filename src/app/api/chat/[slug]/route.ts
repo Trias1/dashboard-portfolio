@@ -1,6 +1,8 @@
 import { NextRequest } from 'next/server';
 import { getSupabaseAdmin } from '@/lib/supabase/admin';
 import { checkRateLimit, getClientId } from '@/lib/rate-limit';
+import type { Experience, Project } from '@/types';
+import type { ChatHistoryInput, SkillGroupRow } from '@/types/api';
 
 const NINE_ROUTER_API_KEY = process.env.NINE_ROUTER_API_KEY!;
 const NINE_ROUTER_BASE_URL = process.env.NINE_ROUTER_BASE_URL || "https://router.zeen.my.id/v1";
@@ -13,8 +15,8 @@ const sanitizeHistory = (history: unknown) => {
   if (!Array.isArray(history)) return [];
   return history
     .slice(-MAX_HISTORY_ITEMS)
-    .filter((h: any) => h && typeof h.content === 'string' && h.content.trim())
-    .map((h: any) => ({
+    .filter((h: ChatHistoryInput | null): h is ChatHistoryInput & { content: string } => !!h && typeof h.content === 'string' && !!h.content.trim())
+    .map((h) => ({
       role: h.role === 'assistant' ? 'assistant' : 'user',
       content: h.content.slice(0, MAX_MESSAGE_LENGTH),
     }));
@@ -57,9 +59,9 @@ Answer questions about this person based on the info below. Be friendly and conc
 Name: ${a.name || '-'}
 Title: ${a.title || h.subheadline || '-'}
 Bio: ${a.bio || '-'}
-Skills: ${sk.map((s: any) => s.skills).join(', ') || '-'}
-Experience: ${exp.map((e: any) => `${e.position} at ${e.company}`).join('; ') || '-'}
-Projects: ${proj.map((p: any) => p.title).join(', ') || '-'}
+Skills: ${sk.map((s: SkillGroupRow) => s.skills).join(', ') || '-'}
+Experience: ${exp.map((e: Experience) => `${e.position} at ${e.company}`).join('; ') || '-'}
+Projects: ${proj.map((p: Project) => p.title).join(', ') || '-'}
 Contact: ${ct.email || '-'}`;
 
     const messages = [
@@ -117,7 +119,7 @@ Contact: ${ct.email || '-'}`;
     return new Response(stream, {
       headers: { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache', 'Connection': 'keep-alive' },
     });
-  } catch (err: any) {
+  } catch (err) {
     console.error('Chat error:', err);
     return new Response(`data: ${JSON.stringify({ error: 'Unable to process message' })}\n\n`, {
       headers: { 'Content-Type': 'text/event-stream' },

@@ -3,7 +3,7 @@ import { requireAuth } from '@/lib/auth';
 import { isUploadFolder, uploadFile } from '@/lib/supabase/storage';
 import { validateUpload } from '@/lib/upload-validation';
 import { checkRateLimit } from '@/lib/rate-limit';
-import { errorResponse, successResponse } from '@/lib/utils';
+import { errorResponse, successResponse, getErrorMessage } from '@/lib/utils';
 
 export async function POST(request: NextRequest) {
   try {
@@ -22,7 +22,7 @@ export async function POST(request: NextRequest) {
     const publicUrl = await uploadFile(checked.buffer, fileName, checked.type.mime, folder);
 
     return successResponse({ url: publicUrl, fileName: publicUrl.split('/').pop(), size: checked.buffer.length });
-  } catch (err: any) {
-    return errorResponse(err.message);
+  } catch (err) {
+    return errorResponse(getErrorMessage(err));
   }
 }

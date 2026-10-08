@@ -1,14 +1,14 @@
 ﻿"use client";
 
 import { motion } from "framer-motion";
-import { availableSections, Section } from "@/lib/sections";
+import { availableSections, Section, SectionType } from "@/lib/sections";
 
 interface DashboardAddSectionModalProps {
   open: boolean;
   lang: "id" | "en";
   sections: Section[];
   onClose: () => void;
-  onAdd: (type: any, label: string, icon: string) => void;
+  onAdd: (type: SectionType, label: string, icon: string) => void;
 }
 
 export default function DashboardAddSectionModal({

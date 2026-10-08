@@ -256,7 +256,7 @@ export default function GlassTemplate({ data, theme, isPreview }: { data: Templa
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {testimonials.map((t: TemplateItem) => (
                   <GlassCard key={t.id} className="p-6">
-                    <p className="text-4xl font-thin leading-none mb-2 opacity-30" style={{ color: ac }}>"</p>
+                    <p className="text-4xl font-thin leading-none mb-2 opacity-30" style={{ color: ac }}>&quot;</p>
                     <p className="text-sm font-light italic mb-4 leading-relaxed text-justify" style={{ color: subColor }}>{t.message}</p>
                     <div className="flex items-center gap-3">
                       {t.photo_url && <img src={t.photo_url} alt={t.name} className="w-10 h-10 rounded-full object-cover" />}
@@ -394,7 +394,7 @@ export default function GlassTemplate({ data, theme, isPreview }: { data: Templa
           <section id="contact" className="py-20 md:py-28 px-4">
           <div className="max-w-3xl mx-auto text-center">
             <SectionTitle title="Get In Touch" subtitle="Contact" ac={ac} />
-            <p className="text-sm font-light mb-8" style={{ color: subColor }}>I'm always open to new projects and collaborations.</p>
+            <p className="text-sm font-light mb-8" style={{ color: subColor }}>I&apos;m always open to new projects and collaborations.</p>
             <div className="flex gap-4 justify-center flex-wrap mb-10">
               {(contact?.email || about?.email) && (
                 <motion.a href={`mailto:${contact?.email || about?.email}`} whileHover={{ scale: 1.03 }}

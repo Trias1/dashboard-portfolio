@@ -1,7 +1,7 @@
 'use client';
 import type { TemplateData, TemplateItem, TemplateSectionOrder, ThemeConfig } from '@/types';
 import type { SyntheticEvent } from 'react';
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { motion, useInView, useScroll, useTransform } from 'framer-motion';
 import { themes } from '@/lib/sections';
@@ -28,12 +28,6 @@ function AnimatedSection({ children, className }: { children: React.ReactNode, c
 export default function ModernTemplate({ data, theme: initialTheme, isPreview }: { data: TemplateData, theme: ThemeConfig, isPreview?: boolean }) {
   const [theme, setTheme] = useState(initialTheme || themes[0]);
   const [mobileMenu, setMobileMenu] = useState(false);
-  const [isInPreview, setIsInPreview] = useState(false);
-  useEffect(() => {
-    const inIframe = window.self !== window.top;
-    const hasPreview = window.location.search.includes('preview=true');
-    setIsInPreview(inIframe || hasPreview);
-  }, []);
   const searchParams = useSearchParams();
   const hiddenSections = (searchParams.get('hidden') || '').split(',').filter(Boolean);
   const isVisible = (type: string) => !hiddenSections.includes(type);
@@ -295,7 +289,7 @@ export default function ModernTemplate({ data, theme: initialTheme, isPreview }:
                   {testimonials.map((t: TemplateItem) => (
                     <motion.div key={t.id} variants={fadeUp} whileHover={{ y: -4 }}
                       className={`p-6 rounded-2xl border ${cardBg}`}>
-                      <p className={`text-sm mb-4 italic ${subTextColor}`}>"{t.message}"</p>
+                      <p className={`text-sm mb-4 italic ${subTextColor}`}>&quot;{t.message}&quot;</p>
                       <div className="flex items-center gap-3">
                         {t.photo_url && <img src={t.photo_url} alt={t.name} className="w-10 h-10 rounded-full object-cover" />}
                         <div>
@@ -440,7 +434,7 @@ export default function ModernTemplate({ data, theme: initialTheme, isPreview }:
               <motion.h2 variants={fadeUp} className={`text-4xl font-bold mb-4 ${textColor}`}>
                 Get In <span style={{ color: accentColor }}>Touch</span>
               </motion.h2>
-              <motion.p variants={fadeUp} className={`mb-10 ${subTextColor}`}>Have a project in mind? Let's work together!</motion.p>
+              <motion.p variants={fadeUp} className={`mb-10 ${subTextColor}`}>Have a project in mind? Let&apos;s work together!</motion.p>
               <div className="flex gap-4 justify-center flex-wrap mb-12">
                 {(contact?.email || about?.email) && (
                   <motion.a variants={fadeUp} href={`mailto:${contact?.email || about?.email}`}

@@ -131,7 +131,7 @@ export default function RetroTemplate({ data, theme, isPreview }: { data: Templa
                       </div>
                     )}
                     <div className="space-y-4 flex-1">
-                      <p className="text-xs uppercase tracking-widest font-bold" style={{ color: ac }}>// profile</p>
+                      <p className="text-xs uppercase tracking-widest font-bold" style={{ color: ac }}>{'//'} profile</p>
                       <h3 className="text-2xl font-bold uppercase tracking-wide" style={{ color: textColor }}>{about.name}</h3>
                       <p className="text-sm font-bold uppercase tracking-wider" style={{ color: ac }}>{about.title}</p>
                       <p className="text-sm leading-relaxed whitespace-pre-line" style={{ color: subColor }}>{about.bio}</p>
@@ -410,7 +410,7 @@ export default function RetroTemplate({ data, theme, isPreview }: { data: Templa
         <section id="contact" className="py-20 md:py-28 px-4 border-t-2" style={{ borderColor: 'rgba(255,200,100,0.08)' }}>
           <div className="max-w-3xl mx-auto text-center">
             <SectionTitle title="Contact" subtitle="Get In Touch" ac={ac} />
-            <p className="text-sm uppercase tracking-wider mb-8" style={{ color: subColor }}>Let's work together.</p>
+            <p className="text-sm uppercase tracking-wider mb-8" style={{ color: subColor }}>Let&apos;s work together.</p>
             <div className="flex gap-4 justify-center flex-wrap mb-10">
               {(contact?.email || about?.email) && (
                 <motion.a href={`mailto:${contact?.email || about?.email}`} whileHover={{ backgroundColor: ac, color: '#1a150e' }}

@@ -1,7 +1,7 @@
 import { NextRequest } from 'next/server';
 import { requireSuperAdmin } from '@/lib/auth';
 import { getSupabaseAdmin } from '@/lib/supabase/admin';
-import { errorResponse, successResponse } from '@/lib/utils';
+import { errorResponse, successResponse, getErrorMessage } from '@/lib/utils';
 
 export async function GET(request: NextRequest) {
   try {
@@ -38,7 +38,7 @@ export async function GET(request: NextRequest) {
       onlineUsers: (presenceUsers.data || []).filter((user) => user.last_seen_at && user.last_seen_at >= onlineSince),
       offlineUsers: (presenceUsers.data || []).filter((user) => !user.last_seen_at || user.last_seen_at < onlineSince),
     });
-  } catch (error: any) {
-    return errorResponse(error?.message || 'Unable to load admin stats', error?.message === 'Forbidden' ? 403 : 500);
+  } catch (error) {
+    return errorResponse(getErrorMessage(error, 'Unable to load admin stats'), getErrorMessage(error) === 'Forbidden' ? 403 : 500);
   }
 }

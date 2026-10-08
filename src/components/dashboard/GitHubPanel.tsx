@@ -1,21 +1,23 @@
 'use client';
-import api from '@/lib/api';
+import type { Dispatch, SetStateAction } from 'react';
+import api, { getApiErrorMessage } from '@/lib/api';
+import type { GitHubImportOptions, GitHubPreview } from '@/types';
 
 interface Props {
   githubUsername: string;
   setGithubUsername: (v: string) => void;
-  githubPreview: any;
-  setGithubPreview: (v: any) => void;
+  githubPreview: GitHubPreview | null;
+  setGithubPreview: (v: GitHubPreview | null) => void;
   githubLoading: boolean;
   setGithubLoading: (v: boolean) => void;
   githubImporting: boolean;
   setGithubImporting: (v: boolean) => void;
   githubMsg: string;
   setGithubMsg: (v: string) => void;
-  githubOptions: { bio: boolean; skills: boolean; projects: boolean };
-  setGithubOptions: (v: any) => void;
+  githubOptions: GitHubImportOptions;
+  setGithubOptions: Dispatch<SetStateAction<GitHubImportOptions>>;
   selectedProjects: string[];
-  setSelectedProjects: (v: any) => void;
+  setSelectedProjects: Dispatch<SetStateAction<string[]>>;
   loadPreview: () => void;
   onImport?: (sectionsImported: string[]) => void;
 }
@@ -25,10 +27,10 @@ export default function GitHubPanel({ githubUsername, setGithubUsername, githubP
     if (!githubUsername) return;
     setGithubLoading(true); setGithubPreview(null); setGithubMsg('');
     try {
-      const res = await api.get(`/api/github/preview?username=${githubUsername}`);
+      const res = await api.get<GitHubPreview>(`/api/github/preview?username=${githubUsername}`);
       setGithubPreview(res.data);
-      setSelectedProjects(res.data.projects.map((p: any) => p.name));
-    } catch (err: any) { setGithubMsg(' ' + (err.response?.data?.message || 'User tidak ditemukan')); }
+      setSelectedProjects(res.data.projects.map((p) => p.name));
+    } catch (err) { setGithubMsg(' ' + getApiErrorMessage(err, 'User tidak ditemukan')); }
     finally { setGithubLoading(false); }
   };
 
@@ -82,16 +84,16 @@ export default function GitHubPanel({ githubUsername, setGithubUsername, githubP
                   <div className="flex items-center justify-between mb-2">
                     <p className="text-xs text-gray-400">Pilih projects ({selectedProjects.length}/{githubPreview.projects.length} dipilih):</p>
                     <div className="flex gap-2">
-                      <button onClick={() => setSelectedProjects(githubPreview.projects.map((p: any) => p.name))} className="text-xs text-purple-400 hover:text-purple-300">Pilih Semua</button>
+                      <button onClick={() => setSelectedProjects(githubPreview.projects.map((p) => p.name))} className="text-xs text-purple-400 hover:text-purple-300">Pilih Semua</button>
                       <span className="text-gray-600">|</span>
                       <button onClick={() => setSelectedProjects([])} className="text-xs text-gray-400 hover:text-gray-300">Reset</button>
                     </div>
                   </div>
                   <div className="space-y-2 max-h-60 overflow-y-auto pr-1">
-                    {githubPreview.projects.map((p: any, i: number) => (
+                    {githubPreview.projects.map((p, i) => (
                       <label key={i} className="flex items-center gap-3 p-3 bg-[#1a1a3a] rounded-lg cursor-pointer hover:bg-[#1a1a4a] transition">
                         <input type="checkbox" checked={selectedProjects.includes(p.name)}
-                          onChange={e => { if (e.target.checked) setSelectedProjects((prev: string[]) => [...prev, p.name]); else setSelectedProjects((prev: string[]) => prev.filter((n: string) => n !== p.name)); }}
+                          onChange={e => { if (e.target.checked) setSelectedProjects((prev) => [...prev, p.name]); else setSelectedProjects((prev) => prev.filter((n) => n !== p.name)); }}
                           className="accent-purple-500 flex-shrink-0" />
                         <div className="flex-1 min-w-0">
                           <p className="text-sm text-white font-medium truncate">{p.title}</p>
@@ -117,7 +119,7 @@ export default function GitHubPanel({ githubUsername, setGithubUsername, githubP
                 ].map(opt => (
                   <label key={opt.key} className="flex items-start gap-3 cursor-pointer">
                     <input type="checkbox" checked={githubOptions[opt.key as keyof typeof githubOptions]}
-                      onChange={e => setGithubOptions((prev: any) => ({...prev, [opt.key]: e.target.checked}))}
+                      onChange={e => setGithubOptions((prev) => ({...prev, [opt.key]: e.target.checked}))}
                       className="mt-1 accent-purple-500" />
                     <div>
                       <p className="text-sm text-white font-medium">{opt.label}</p>
@@ -130,11 +132,11 @@ export default function GitHubPanel({ githubUsername, setGithubUsername, githubP
               <button onClick={async () => {
                 setGithubImporting(true); setGithubMsg('');
                 try {
-                  const res = await api.post('/api/github/import', { username: githubUsername, options: { ...githubOptions, selectedProjects } });
+                  const res = await api.post<{ imported: string[] }>('/api/github/import', { username: githubUsername, options: { ...githubOptions, selectedProjects } });
                   setGithubMsg(` Berhasil import: ${res.data.imported.join(', ')}!`);
                   loadPreview();
                   if (onImport) onImport(res.data.imported || []);
-                } catch (err: any) { setGithubMsg(' ' + (err.response?.data?.message || 'Import gagal')); }
+                } catch (err) { setGithubMsg(' ' + getApiErrorMessage(err, 'Import gagal')); }
                 finally { setGithubImporting(false); }
               }} disabled={githubImporting || !Object.values(githubOptions).some(Boolean)}
                 className="w-full py-3 bg-purple-600 hover:bg-purple-700 disabled:opacity-50 text-white rounded-xl font-medium transition text-sm">

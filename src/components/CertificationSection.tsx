@@ -2,30 +2,53 @@
 import { motion } from 'framer-motion';
 import { useState } from 'react';
 
+type DatePart = string | number;
+
+export interface CertificationItem {
+  name?: string;
+  title?: string;
+  issuer?: string;
+  description?: string;
+  imageUrl?: string;
+  credentialUrl?: string;
+  credential_url?: string;
+  skills?: string[] | string;
+  issueMonth?: DatePart;
+  issueYear?: DatePart;
+  expiryMonth?: DatePart;
+  expiryYear?: DatePart;
+  noExpiration?: boolean;
+  noExpiry?: boolean;
+}
+
+function toCertification(value: unknown): CertificationItem {
+  return typeof value === 'object' && value !== null ? (value as CertificationItem) : {};
+}
+
 const MONTHS_ID = [
   'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
   'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
 ];
 
-export function formatCertificationDate(cert: any): string {
+export function formatCertificationDate(cert: CertificationItem): string {
   if (cert.issueYear || cert.issueMonth) {
     if (cert.issueMonth && cert.issueYear) {
-      const m = parseInt(cert.issueMonth);
+      const m = parseInt(String(cert.issueMonth));
       if (m >= 1 && m <= 12) return `${MONTHS_ID[m - 1]} ${cert.issueYear}`;
     }
-    return cert.issueYear || '';
+    return cert.issueYear ? String(cert.issueYear) : '';
   }
   return '';
 }
 
-export function formatCertExpiry(cert: any): string {
+export function formatCertExpiry(cert: CertificationItem): string {
   if (cert.noExpiration || cert.noExpiry) return 'Tidak ada masa berlaku';
   if (cert.expiryYear || cert.expiryMonth) {
     if (cert.expiryMonth && cert.expiryYear) {
-      const m = parseInt(cert.expiryMonth);
+      const m = parseInt(String(cert.expiryMonth));
       if (m >= 1 && m <= 12) return `${MONTHS_ID[m - 1]} ${cert.expiryYear}`;
     }
-    return cert.expiryYear || '';
+    return cert.expiryYear ? String(cert.expiryYear) : '';
   }
   return '';
 }
@@ -33,7 +56,7 @@ export function formatCertExpiry(cert: any): string {
 export default function CertificationSection({
   items, textColor, subTextColor, accentColor, cardBg, initialCount = 3
 }: {
-  items: any[];
+  items?: readonly unknown[];
   textColor: string;
   subTextColor: string;
   accentColor: string;
@@ -46,10 +69,11 @@ export default function CertificationSection({
   return (
     <div>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-      {visible.map((cert: any, i: number) => {
+      {visible.map((rawCert, i: number) => {
+        const cert = toCertification(rawCert);
         const issueDate = formatCertificationDate(cert);
         const expiryDate = formatCertExpiry(cert);
-        const skills = Array.isArray(cert.skills) ? cert.skills : [];
+        const skills: string[] = Array.isArray(cert.skills) ? cert.skills : [];
         const certImage = cert.imageUrl || '';
 
         return (
@@ -66,7 +90,7 @@ export default function CertificationSection({
                 style={{ backgroundImage: `url(${certImage})` }}>
                 <img src={certImage} alt={cert.name || cert.title}
                   className="w-full h-full object-cover"
-                  onError={(e: any) => { e.target.style.display = 'none' }} />
+                  onError={(e) => { e.currentTarget.style.display = 'none' }} />
               </div>
             )}
             <h3 className={`text-base font-bold mb-1 ${textColor}`}>{cert.name || cert.title}</h3>

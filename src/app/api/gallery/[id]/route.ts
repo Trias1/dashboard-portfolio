@@ -3,7 +3,7 @@ import { requireAuth } from '@/lib/auth';
 import { getSupabaseAdmin } from '@/lib/supabase/admin';
 import { deleteFile } from '@/lib/supabase/storage';
 import { sanitizeExternalUrl } from '@/lib/upload-validation';
-import { errorResponse, successResponse } from '@/lib/utils';
+import { errorResponse, successResponse, getErrorMessage } from '@/lib/utils';
 
 const authStatus = (err: unknown) => {
   const message = err instanceof Error ? err.message : '';
@@ -44,5 +44,5 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
 
     await getSupabaseAdmin().from('gallery').delete().eq('id', id).eq('owner_id', auth.id);
     return successResponse({ message: 'Deleted' });
-  } catch (err: any) { return errorResponse(err.message); }
+  } catch (err) { return errorResponse(getErrorMessage(err)); }
 }

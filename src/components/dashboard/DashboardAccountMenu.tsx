@@ -1,7 +1,9 @@
 ﻿"use client";
 
+import type { DashboardUser } from "@/types";
+
 interface Props {
-  user: any;
+  user: DashboardUser | null;
   lang: "id" | "en";
   open: boolean;
   onToggle: () => void;

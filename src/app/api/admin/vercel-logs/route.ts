@@ -1,14 +1,15 @@
 import { NextRequest } from 'next/server';
 import { requireSuperAdmin } from '@/lib/auth';
-import { errorResponse, successResponse } from '@/lib/utils';
+import { errorResponse, successResponse, getErrorMessage } from '@/lib/utils';
+import type { VercelDeployment, VercelEvent } from '@/types/api';
 
 const VERCEL_API = 'https://api.vercel.com';
 
-function getMessage(event: any) {
+function getMessage(event: VercelEvent) {
   return event.text || event.message || event.payload?.text || event.payload?.message || event.type || 'Vercel event';
 }
 
-function getLevel(event: any) {
+function getLevel(event: VercelEvent) {
   const value = String(event.level || event.payload?.level || event.type || '').toLowerCase();
   if (value.includes('error') || value.includes('fail')) return 'error';
   if (value.includes('warn')) return 'warning';
@@ -31,7 +32,7 @@ export async function GET(request: NextRequest) {
     );
     if (!deploymentsResponse.ok) return errorResponse('Unable to fetch Vercel deployments', 502);
 
-    const deployments = await deploymentsResponse.json();
+    const deployments: { deployments?: VercelDeployment[] } = await deploymentsResponse.json();
     const deployment = deployments.deployments?.[0];
     if (!deployment?.uid) return successResponse([]);
 
@@ -41,8 +42,8 @@ export async function GET(request: NextRequest) {
     );
     if (!eventsResponse.ok) return errorResponse('Unable to fetch Vercel logs', 502);
 
-    const events = await eventsResponse.json();
-    const rows = (Array.isArray(events) ? events : events.events || []).slice(-50).reverse().map((event: any, index: number) => ({
+    const events: VercelEvent[] | { events?: VercelEvent[] } = await eventsResponse.json();
+    const rows = (Array.isArray(events) ? events : events.events || []).slice(-50).reverse().map((event: VercelEvent, index: number) => ({
       id: String(event.id || `${deployment.uid}-${index}`),
       timestamp: event.createdAt || event.timestamp || event.date || new Date().toISOString(),
       level: getLevel(event),
@@ -53,7 +54,7 @@ export async function GET(request: NextRequest) {
     }));
 
     return successResponse(rows);
-  } catch (error: any) {
-    return errorResponse(error?.message === 'Forbidden' ? 'Forbidden' : 'Unable to load Vercel logs', error?.message === 'Forbidden' ? 403 : 401);
+  } catch (error) {
+    return errorResponse(getErrorMessage(error) === 'Forbidden' ? 'Forbidden' : 'Unable to load Vercel logs', getErrorMessage(error) === 'Forbidden' ? 403 : 401);
   }
 }

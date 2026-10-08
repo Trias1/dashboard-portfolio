@@ -296,7 +296,7 @@ export default function PlayfulTemplate({ data, theme, isPreview }: { data: Temp
         {data.portfolio?.sections_order?.find((section: TemplateSectionOrder) => section.type === 'contact')?.enabled !== false && (
           <section id="contact" className="py-24 px-4">
           <div className="max-w-3xl mx-auto text-center">
-            <Float><div className="text-center mb-14"><motion.span className="text-xs uppercase tracking-[0.3em] font-bold" style={{ color: `${ac}80` }}>Contact</motion.span><motion.h2 className="text-4xl sm:text-5xl font-black mt-2" style={{ color: textColor }}>Let's Play!</motion.h2></div>
+            <Float><div className="text-center mb-14"><motion.span className="text-xs uppercase tracking-[0.3em] font-bold" style={{ color: `${ac}80` }}>Contact</motion.span><motion.h2 className="text-4xl sm:text-5xl font-black mt-2" style={{ color: textColor }}>Let&apos;s Play!</motion.h2></div>
             <p className="text-base mb-8" style={{ color: subColor }}>Got a fun project? Hit me up!</p>
             <div className="flex gap-4 justify-center flex-wrap mb-10">
               {(contact?.email || about?.email) && <motion.a href={`mailto:${contact?.email || about?.email}`} whileHover={{ scale: 1.08, rotate: -3 }} className="px-8 py-3.5 rounded-2xl font-bold text-white" style={{ backgroundColor: ac }}> Email</motion.a>}

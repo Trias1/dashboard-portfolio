@@ -90,7 +90,7 @@ export default function DeveloperTemplate({ data, theme, isPreview }: { data: Te
               </motion.h1>
               <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.2 }}
                 className="text-lg sm:text-xl font-mono mb-10" style={{ color: subColor }}>
-                <span style={{ color: '#f1fa8c' }}>//</span> {hero?.subheadline || 'Building things for the web'}
+                <span style={{ color: '#f1fa8c' }}>{'//'}</span> {hero?.subheadline || 'Building things for the web'}
               </motion.p>
               <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.3 }}
                 className="flex gap-4 flex-wrap">
@@ -371,7 +371,7 @@ export default function DeveloperTemplate({ data, theme, isPreview }: { data: Te
                 </div>
                 <div className="rounded-xl border p-8" style={{ borderColor: `${ac}20`, backgroundColor: panelBg }}>
                   <h2 className="font-mono text-xl font-black mb-2" style={{ color: textColor }}>{'>'} Contact</h2>
-                  <p className="font-mono text-sm mb-8" style={{ color: subColor }}>// Fill out the form below</p>
+                  <p className="font-mono text-sm mb-8" style={{ color: subColor }}>{'//'} Fill out the form below</p>
                   <div className="flex gap-4 mb-8 justify-center flex-wrap">
                     {(contact?.email || about?.email) && <motion.a href={`mailto:${contact?.email || about?.email}`} whileHover={{ scale: 1.05 }} className="font-mono text-sm px-6 py-3 rounded font-bold" style={{ backgroundColor: ac, color: '#121016' }}>send email</motion.a>}
                     {contact?.phone && <motion.a href={`https://wa.me/${contact.phone.replace(/[^0-9]/g, '')}`} target="_blank" whileHover={{ scale: 1.05 }} className="font-mono text-sm px-6 py-3 rounded font-bold border-2" style={{ borderColor: `${ac}40`, color: subColor }}>WhatsApp</motion.a>}
@@ -387,7 +387,7 @@ export default function DeveloperTemplate({ data, theme, isPreview }: { data: Te
 
         <footer className="py-8 px-6 text-center border-t" style={{ borderColor: `${ac}20`, backgroundColor: '#0d0b10' }}>
           <div className="font-mono text-xs" style={{ color: subColor }}>
-            <p><span style={{ color: '#50fa7b' }}>$</span> echo "(c) 2026 {about?.name || portfolio.title}"</p>
+            <p><span style={{ color: '#50fa7b' }}>$</span> echo &quot;(c) 2026 {about?.name || portfolio.title}&quot;</p>
             <p className="mt-1" style={{ color: `${ac}60` }}>Built with PortfolioKit  -  MIT License</p>
           </div>
         </footer>

@@ -1,17 +1,22 @@
 import axios from 'axios';
 
 let memoryToken: string | null = null;
-let memoryUser: any = null;
+/** Minimal user shape cached client-side; only `role` is persisted to localStorage. */
+export interface ApiUser {
+  role?: string;
+}
+
+let memoryUser: ApiUser | null = null;
 
 export const setToken = (token: string | null) => { memoryToken = token; };
 export const getToken = () => memoryToken;
 export const getApiErrorMessage = (error: unknown, fallback: string) => axios.isAxiosError(error) ? error.response?.data?.message || fallback : fallback;
-export const setUser = (user: any) => {
+export const setUser = (user: ApiUser | null) => {
   memoryUser = user;
   if (user) localStorage.setItem('user', JSON.stringify({ role: user.role }));
   else localStorage.removeItem('user');
 };
-export const getUser = () => {
+export const getUser = (): ApiUser | null => {
   if (memoryUser) return memoryUser;
   try {
     const stored = localStorage.getItem('user');

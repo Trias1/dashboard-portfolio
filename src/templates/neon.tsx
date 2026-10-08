@@ -143,7 +143,7 @@ export default function NeonTemplate({ data, theme, isPreview }: { data: Templat
                     </motion.div>
                   )}
                   <div className="space-y-4">
-                    <p className="text-xs uppercase tracking-widest" style={{ color: ac }}>// profile</p>
+                    <p className="text-xs uppercase tracking-widest" style={{ color: ac }}>{'//'} profile</p>
                     <h3 className="text-2xl font-bold" style={{ color: textColor }}>{about.name}</h3>
                     <p className="text-sm" style={{ color: ac }}>{about.title}</p>
                     <p className="text-sm leading-relaxed text-justify whitespace-pre-line" style={{ color: subColor }}>{about.bio}</p>
@@ -410,7 +410,7 @@ export default function NeonTemplate({ data, theme, isPreview }: { data: Templat
           <section id="contact" className="py-20 md:py-28 px-4" style={{ background: `${ac}04` }}>
           <div className="max-w-3xl mx-auto text-center">
             <SectionTitle title="Contact" subtitle="Get In Touch" ac={ac} />
-            <p className="text-sm font-mono mb-8" style={{ color: subColor }}>Have a project? Let's build something together.</p>
+            <p className="text-sm font-mono mb-8" style={{ color: subColor }}>Have a project? Let&apos;s build something together.</p>
             <div className="flex gap-4 justify-center flex-wrap mb-10">
               {(contact?.email || about?.email) && (
                 <motion.a href={`mailto:${contact?.email || about?.email}`} whileHover={{ boxShadow: `0 0 25px ${ac}` }}
@@ -447,7 +447,7 @@ export default function NeonTemplate({ data, theme, isPreview }: { data: Templat
 
       <footer className="relative z-10 py-8 text-center border-t" style={{ borderColor: `${ac}30` }}>
         <p className="text-xs font-mono" style={{ color: subColor }}>
-          &copy; 2026 {about?.name || portfolio.title} // built with PortfolioKit
+          &copy; 2026 {about?.name || portfolio.title} {'//'} built with PortfolioKit
         </p>
         <p className="text-xs font-mono mt-1" style={{ color: `${ac}60`, textShadow: `0 0 10px ${ac}` }}>Powered by PortfolioKit</p>
       </footer>

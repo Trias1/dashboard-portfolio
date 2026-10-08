@@ -1,15 +1,16 @@
 ﻿"use client";
 
-import api from "@/lib/api";
+import api, { getApiErrorMessage } from "@/lib/api";
+import type { EditFormData, StringFieldKey } from "@/types";
 
 const inputClass =
   "w-full rounded-xl border border-white/10 bg-slate-950/70 px-3 py-2.5 text-sm text-white outline-none focus:border-purple-400";
 const labelClass = "mb-1.5 block text-xs font-medium text-slate-400";
 const field = (
   label: string,
-  key: string,
-  value: any,
-  onChange: (value: any) => void,
+  key: StringFieldKey<EditFormData>,
+  value: EditFormData,
+  onChange: (value: EditFormData) => void,
   placeholder: string,
   area = false,
 ) => (
@@ -40,8 +41,8 @@ export function AboutEditor({
   onPhotoChange,
   setMessage,
 }: {
-  value: any;
-  onChange: (value: any) => void;
+  value: EditFormData;
+  onChange: (value: EditFormData) => void;
   photoPreview: string;
   onPhotoChange: (event: React.ChangeEvent<HTMLInputElement>) => void;
   setMessage: (message: string) => void;
@@ -54,7 +55,7 @@ export function AboutEditor({
           <div className="h-16 w-16 overflow-hidden rounded-2xl border border-white/10 bg-slate-950">
             {photoPreview || value.photo_url ? (
               <img
-                src={photoPreview || value.photo_url}
+                src={photoPreview || value.photo_url || undefined}
                 alt="Preview"
                 className="h-full w-full object-cover"
               />
@@ -103,15 +104,15 @@ export function AboutEditor({
             const formData = new FormData();
             formData.append("cv", file);
             try {
-              const response = await api.post(
+              const response = await api.post<{ cv_url: string }>(
                 "/api/about/upload-cv",
                 formData,
                 { headers: { "Content-Type": "multipart/form-data" } },
               );
               onChange({ ...value, cv_url: response.data.cv_url });
               setMessage("CV uploaded");
-            } catch (error: any) {
-              setMessage(error.response?.data?.message || "CV upload failed");
+            } catch (error) {
+              setMessage(getApiErrorMessage(error, "CV upload failed"));
             }
           }}
         />
@@ -149,8 +150,8 @@ export function ExperienceEditor({
   value,
   onChange,
 }: {
-  value: any;
-  onChange: (value: any) => void;
+  value: EditFormData;
+  onChange: (value: EditFormData) => void;
 }) {
   return (
     <div className="space-y-4">
@@ -211,8 +212,8 @@ export function ProjectEditor({
   value,
   onChange,
 }: {
-  value: any;
-  onChange: (value: any) => void;
+  value: EditFormData;
+  onChange: (value: EditFormData) => void;
 }) {
   return (
     <div className="space-y-4">
@@ -252,7 +253,11 @@ export function ProjectEditor({
             if (!file) return;
             const reader = new FileReader();
             reader.onload = () =>
-              onChange({ ...value, image_url: reader.result });
+              onChange({
+                ...value,
+                image_url:
+                  typeof reader.result === "string" ? reader.result : null,
+              });
             reader.readAsDataURL(file);
           }}
         />

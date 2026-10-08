@@ -1,6 +1,6 @@
 import { NextRequest } from 'next/server';
 import { getSupabaseAdmin } from '@/lib/supabase/admin';
-import { errorResponse, successResponse } from '@/lib/utils';
+import { errorResponse, successResponse, getErrorMessage } from '@/lib/utils';
 
 export async function GET(_request: NextRequest, { params }: { params: Promise<{ slug: string }> }) {
   try {
@@ -8,5 +8,5 @@ export async function GET(_request: NextRequest, { params }: { params: Promise<{
     const { data } = await getSupabaseAdmin().from('portfolios').select('*').eq('slug', slug).eq('is_published', true).maybeSingle();
     if (!data) return errorResponse('Portfolio not found', 404);
     return successResponse(data);
-  } catch (err: any) { return errorResponse(err.message); }
+  } catch (err) { return errorResponse(getErrorMessage(err)); }
 }

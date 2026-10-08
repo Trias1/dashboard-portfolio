@@ -225,7 +225,7 @@ export default function ImmersiveTemplate({ data, theme, isPreview }: { data: Te
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {testimonials.map((t: TemplateItem) => (
                   <div key={t.id} className="p-6 rounded-2xl backdrop-blur-sm border" style={{ borderColor: `${ac}15`, backgroundColor: `${ac}06` }}>
-                    <p className="text-4xl font-thin leading-none mb-2" style={{ color: `${ac}30` }}>"</p>
+                    <p className="text-4xl font-thin leading-none mb-2" style={{ color: `${ac}30` }}>&quot;</p>
                     <p className="text-sm italic mb-4 font-light" style={{ color: subColor }}>{t.message}</p>
                     <div className="flex items-center gap-3">
                       {t.photo_url && <img src={t.photo_url} alt={t.name} className="w-10 h-10 rounded-full object-cover" />}
@@ -323,7 +323,7 @@ export default function ImmersiveTemplate({ data, theme, isPreview }: { data: Te
         <ParallaxSection speed={-0.1} className="py-28 px-4" id="contact">
           <div className="max-w-3xl mx-auto text-center">
             <SectionTitle title="Contact" subtitle="Get In Touch" ac={ac} />
-            <p className="text-base font-light mb-8" style={{ color: subColor }}>Let's create something amazing together.</p>
+            <p className="text-base font-light mb-8" style={{ color: subColor }}>Let&apos;s create something amazing together.</p>
             <div className="flex gap-4 justify-center flex-wrap mb-10">
               {(contact?.email || about?.email) && <motion.a href={`mailto:${contact?.email || about?.email}`} whileHover={{ scale: 1.05 }} className="px-8 py-3.5 rounded-full font-medium backdrop-blur-sm border text-white" style={{ backgroundColor: `${ac}40`, borderColor: ac }}>Email</motion.a>}
               {contact?.phone && <motion.a href={`https://wa.me/${contact.phone.replace(/[^0-9]/g, '')}`} target="_blank" whileHover={{ scale: 1.05 }} className="px-8 py-3.5 rounded-full font-medium backdrop-blur-sm border" style={{ borderColor: '#25D36680', color: '#25D366' }}>WhatsApp</motion.a>}

@@ -1,14 +1,16 @@
 import { NextRequest } from 'next/server';
 import { requireAuth } from '@/lib/auth';
-import { errorResponse, successResponse } from '@/lib/utils';
+import { errorResponse, successResponse, getErrorMessage } from '@/lib/utils';
+import type { GitHubRepo, GitHubUser } from '@/types/api';
 
 const GITHUB_TOKEN = process.env.GITHUB_TOKEN || '';
-const ghFetch = async (url: string) => {
-  const headers: any = { 'Accept': 'application/vnd.github.v3+json', 'User-Agent': 'PortfolioKit' };
+const ghFetch = async <T>(url: string): Promise<T> => {
+  const headers: Record<string, string> = { 'Accept': 'application/vnd.github.v3+json', 'User-Agent': 'PortfolioKit' };
   if (GITHUB_TOKEN) headers['Authorization'] = `token ${GITHUB_TOKEN}`;
   const res = await fetch(url, { headers });
   if (!res.ok) throw new Error(`GitHub API error: ${res.status}`);
-  return res.json();
+  const data: T = await res.json();
+  return data;
 };
 
 const GITHUB_USERNAME_RE = /^[A-Za-z0-9-]{1,39}$/;
@@ -28,16 +30,16 @@ export async function GET(request: NextRequest) {
     if (!username) return errorResponse('Invalid GitHub username', 400);
 
     const [user, repos] = await Promise.all([
-      ghFetch(`https://api.github.com/users/${encodeURIComponent(username)}`),
-      ghFetch(`https://api.github.com/users/${encodeURIComponent(username)}/repos?sort=updated&per_page=100&type=owner`),
+      ghFetch<GitHubUser>(`https://api.github.com/users/${encodeURIComponent(username)}`),
+      ghFetch<GitHubRepo[]>(`https://api.github.com/users/${encodeURIComponent(username)}/repos?sort=updated&per_page=100&type=owner`),
     ]);
 
     const langCount: Record<string, number> = {};
-    repos.forEach((r: any) => {
+    repos.forEach((r) => {
       if (r.language) langCount[r.language] = (langCount[r.language] || 0) + 1;
     });
     const topLangs = Object.entries(langCount)
-      .sort((a: any, b: any) => b[1] - a[1])
+      .sort((a, b) => b[1] - a[1])
       .slice(0, 10)
       .map(([lang]) => lang);
 
@@ -48,16 +50,16 @@ export async function GET(request: NextRequest) {
         public_repos: user.public_repos, followers: user.followers,
       },
       languages: topLangs,
-      projects: repos.map((r: any) => ({
+      projects: repos.map((r) => ({
         name: r.name, title: r.name.replace(/-/g, ' ').replace(/\b\w/g, (l: string) => l.toUpperCase()),
         description: r.description || '', tech_stack: r.language || '',
         github_url: r.html_url, demo_url: r.homepage || '',
         stars: r.stargazers_count, fork: r.fork,
       })),
     });
-  } catch (err: any) {
-    if (err?.message === 'GitHub API error: 404') return errorResponse('GitHub user not found', 404);
-    if (err?.message?.startsWith('GitHub API error')) return errorResponse(err.message, 502);
-    return errorResponse(err.message);
+  } catch (err) {
+    if (getErrorMessage(err) === 'GitHub API error: 404') return errorResponse('GitHub user not found', 404);
+    if (getErrorMessage(err).startsWith('GitHub API error')) return errorResponse(getErrorMessage(err), 502);
+    return errorResponse(getErrorMessage(err));
   }
 }

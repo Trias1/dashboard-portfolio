@@ -3,7 +3,7 @@ import { lookup } from 'node:dns/promises';
 import { isIP } from 'node:net';
 import { requireAuth } from '@/lib/auth';
 import { checkRateLimit } from '@/lib/rate-limit';
-import { errorResponse } from '@/lib/utils';
+import { errorResponse, getErrorMessage } from '@/lib/utils';
 
 export const dynamic = 'force-dynamic';
 
@@ -123,8 +123,8 @@ export async function POST(request: NextRequest) {
     }
 
     return Response.json({ image });
-  } catch (err: any) {
-    if (err?.message === 'Unauthorized') return errorResponse('Unauthorized', 401);
+  } catch (err) {
+    if (getErrorMessage(err) === 'Unauthorized') return errorResponse('Unauthorized', 401);
     return Response.json({ image: null });
   }
 }

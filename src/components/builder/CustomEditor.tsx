@@ -1,9 +1,10 @@
 ﻿'use client';
 import React, { useState } from 'react';
+import type { CustomCard, CustomLink, EditFormData } from '@/types';
 
 interface Props {
-  editForm: any;
-  setEditForm: (form: any) => void;
+  editForm: EditFormData;
+  setEditForm: (form: EditFormData) => void;
 }
 
 export default function CustomEditor({ editForm, setEditForm }: Props) {
@@ -33,7 +34,7 @@ export default function CustomEditor({ editForm, setEditForm }: Props) {
         return (
           <div className="space-y-3">
             <label className={labelClass}>Cards</label>
-            {(editForm.content?.cards || []).map((card: any, i: number) => (
+            {(editForm.content?.cards || []).map((card: CustomCard, i: number) => (
               <div key={i} className="bg-[#1a1a3a] rounded-lg p-3 space-y-2 border border-purple-900/20">
                 <input value={card.title || ''} onChange={e => {
                   const cards = [...(editForm.content?.cards || [])];
@@ -52,7 +53,7 @@ export default function CustomEditor({ editForm, setEditForm }: Props) {
                     setEditForm({...editForm, content: {...editForm.content, cards}});
                   }} className={inputClass} placeholder=" Icon" />
                   <button onClick={() => {
-                    const cards = (editForm.content?.cards || []).filter((_: any, idx: number) => idx !== i);
+                    const cards = (editForm.content?.cards || []).filter((_: CustomCard, idx: number) => idx !== i);
                     setEditForm({...editForm, content: {...editForm.content, cards}});
                   }} className="text-red-400 hover:text-red-300 px-3"></button>
                 </div>
@@ -70,7 +71,7 @@ export default function CustomEditor({ editForm, setEditForm }: Props) {
         return (
           <div className="space-y-3">
             <label className={labelClass}>Links</label>
-            {(editForm.content?.links || []).map((link: any, i: number) => (
+            {(editForm.content?.links || []).map((link: CustomLink, i: number) => (
               <div key={i} className="flex gap-2">
                 <input value={link.label || ''} onChange={e => {
                   const links = [...(editForm.content?.links || [])];
@@ -83,7 +84,7 @@ export default function CustomEditor({ editForm, setEditForm }: Props) {
                   setEditForm({...editForm, content: {...editForm.content, links}});
                 }} className={inputClass} placeholder="https://..." />
                 <button onClick={() => {
-                  const links = (editForm.content?.links || []).filter((_: any, idx: number) => idx !== i);
+                  const links = (editForm.content?.links || []).filter((_: CustomLink, idx: number) => idx !== i);
                   setEditForm({...editForm, content: {...editForm.content, links}});
                 }} className="text-red-400 hover:text-red-300 px-3"></button>
               </div>

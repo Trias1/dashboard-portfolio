@@ -1,13 +1,20 @@
 import { NextRequest } from 'next/server';
 import { requireAuth } from '@/lib/auth';
 import { getSupabaseAdmin } from '@/lib/supabase/admin';
-import { errorResponse, successResponse } from '@/lib/utils';
+import { errorResponse, successResponse, getErrorMessage } from '@/lib/utils';
+import type { CvApplyBody, TitleRow } from '@/types/api';
 
-function normalizeField(data: any, newKey: string, oldKey: string) {
-  return data?.[newKey]?.length ? data[newKey] : data?.[oldKey]?.length ? data[oldKey] : [];
+interface CustomSectionDraft {
+  title: string;
+  type: string;
+  content: unknown;
 }
 
-function normalizeDate(value: any) {
+function normalizeField<T>(primary: T[] | undefined, fallback: T[] | undefined): T[] {
+  return primary?.length ? primary : fallback?.length ? fallback : [];
+}
+
+function normalizeDate(value: unknown) {
   if (!value || /present|now|sekarang/i.test(String(value))) return null;
   const text = String(value).trim();
   if (/^\d{4}-\d{2}-\d{2}$/.test(text)) return text;
@@ -28,7 +35,7 @@ function normalizeDate(value: any) {
 export async function POST(request: NextRequest) {
   try {
     const auth = await requireAuth(request);
-    const body = await request.json();
+    const body: CvApplyBody = await request.json();
     const userId = auth.id;
     const replace = body.replace === true; // default false (merge)
 
@@ -36,11 +43,11 @@ export async function POST(request: NextRequest) {
     const about = body.about || {};
     const hero = body.hero || {};
     const contact = body.contact || {};
-    const experiences = normalizeField(body, 'experiences', 'experience');
-    const education = normalizeField(body, 'education', 'education');
-    const skills = normalizeField(body, 'skills', 'skills');
-    const projects = normalizeField(body, 'projects', 'projects');
-    const certifications = normalizeField(body, 'certifications', 'certifications');
+    const experiences = normalizeField(body.experiences, body.experience);
+    const education = normalizeField(body.education, body.education);
+    const skills = normalizeField(body.skills, body.skills);
+    const projects = normalizeField(body.projects, body.projects);
+    const certifications = normalizeField(body.certifications, body.certifications);
     const specializationAreas = body.specializationAreas || [];
     const languages = body.languages || [];
     const awards = body.awards || [];
@@ -50,7 +57,7 @@ export async function POST(request: NextRequest) {
     //  -  -  About  -  - 
     if (about.name || about.title || about.bio) {
       const { data: ex } = await getSupabaseAdmin().from('about').select('id').eq('owner_id', userId).maybeSingle();
-      const updateData: any = {};
+      const updateData: Record<string, unknown> = {};
       if (about.name) updateData.name = about.name;
       if (about.title) updateData.title = about.title;
       if (about.bio) updateData.bio = about.bio;
@@ -67,7 +74,7 @@ export async function POST(request: NextRequest) {
     //  -  -  Hero  -  - 
     if (hero.headline || hero.subheadline) {
       const { data: hx } = await getSupabaseAdmin().from('hero').select('id').eq('owner_id', userId).maybeSingle();
-      const updateData: any = {};
+      const updateData: Record<string, unknown> = {};
       if (hero.headline) updateData.headline = hero.headline;
       if (hero.subheadline) updateData.subheadline = hero.subheadline;
       if (hx) {
@@ -80,7 +87,7 @@ export async function POST(request: NextRequest) {
     //  -  -  Contact  -  - 
     if (contact.email || contact.phone || contact.location) {
       const { data: cx } = await getSupabaseAdmin().from('contact_info').select('id').eq('owner_id', userId).maybeSingle();
-      const updateData: any = {};
+      const updateData: Record<string, unknown> = {};
       if (contact.email) updateData.email = contact.email;
       if (contact.phone) updateData.phone = contact.phone;
       if (contact.location) updateData.location = contact.location;
@@ -136,7 +143,7 @@ export async function POST(request: NextRequest) {
         await getSupabaseAdmin().from('projects').delete().eq('owner_id', userId);
       }
       const { data: existingProjects } = replace ? { data: [] } : await getSupabaseAdmin().from('projects').select('title').eq('owner_id', userId);
-      const existingTitles = new Set((existingProjects || []).map((p: any) => p.title.toLowerCase().trim()));
+      const existingTitles = new Set((existingProjects || []).map((p: TitleRow) => p.title.toLowerCase().trim()));
       for (const proj of projects) {
         if (!proj.title) continue;
         if (existingTitles.has(proj.title.toLowerCase().trim())) continue;
@@ -166,7 +173,7 @@ export async function POST(request: NextRequest) {
     console.log(` [CV Apply] Inserted ${projectCount} projects`);
 
     //  -  -  Custom Sections (education, certifications, languages, awards, organizations, specializationAreas, custom)  -  - 
-    const allCustom: any[] = [];
+    const allCustom: CustomSectionDraft[] = [];
 
     for (const ed of education) {
       if (ed.institution || ed.degree) {
@@ -176,7 +183,7 @@ export async function POST(request: NextRequest) {
 
     for (const cert of certifications) {
       if (cert.name) {
-        const content: any = { name: cert.name, issuer: cert.issuer || '' };
+        const content: Record<string, string> = { name: cert.name, issuer: cert.issuer || '' };
         if (cert.date) {
           const dateMatch = String(cert.date).match(/([A-Za-z]+)?\s*(\d{4})/);
           if (dateMatch) {
@@ -216,7 +223,7 @@ export async function POST(request: NextRequest) {
     }
 
     for (const sa of specializationAreas) {
-      if (sa.area || typeof sa === 'string') {
+      if (typeof sa === 'string' || sa.area) {
         allCustom.push({
           title: 'Specialization Areas',
           type: 'specialization',
@@ -286,5 +293,5 @@ export async function POST(request: NextRequest) {
       mode: replace ? 'replace' : 'merge',
       custom_count: allCustom.length,
     });
-  } catch (err: any) { return errorResponse(err.message); }
+  } catch (err) { return errorResponse(getErrorMessage(err)); }
 }

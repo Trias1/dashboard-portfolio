@@ -1,14 +1,15 @@
 ﻿"use client";
 
-import api from "@/lib/api";
+import api, { getApiErrorMessage } from "@/lib/api";
+import type { EditFormData } from "@/types";
 
 const inputClass =
   "w-full rounded-xl border border-white/10 bg-slate-950/70 px-3 py-2.5 text-sm text-white outline-none focus:border-purple-400";
 const labelClass = "mb-1.5 block text-xs font-medium text-slate-400";
 
 interface GalleryEditorProps {
-  value: any;
-  onChange: (value: any) => void;
+  value: EditFormData;
+  onChange: (value: EditFormData) => void;
   setMessage: (message: string) => void;
   onRefresh: () => Promise<void> | void;
 }
@@ -78,8 +79,8 @@ export default function GalleryEditor({
               setMessage("Certificate saved");
               onChange({});
               await onRefresh();
-            } catch (error: any) {
-              setMessage(error.response?.data?.message || "Upload failed");
+            } catch (error) {
+              setMessage(getApiErrorMessage(error, "Upload failed"));
             }
           }}
         />

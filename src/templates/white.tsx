@@ -202,7 +202,7 @@ export default function WhiteTemplate({ data, theme, isPreview }: { data: Templa
               <div className="mb-14"><span className="text-xs font-semibold uppercase tracking-[0.25em]" style={{ color: ac }}>Kind Words</span><h2 className="text-3xl sm:text-4xl font-light mt-1" style={{ color: '#111' }}>Testimonials</h2></div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-8">{testimonials.map((t: TemplateItem) => (
                 <div key={t.id}>
-                  <p className="text-5xl font-thin leading-none mb-2" style={{ color: ac }}>"</p>
+                  <p className="text-5xl font-thin leading-none mb-2" style={{ color: ac }}>&quot;</p>
                   <p className="text-sm leading-relaxed italic mb-4" style={{ color: '#888' }}>{t.message}</p>
                   <div className="flex items-center gap-3">
                     {t.photo_url && <img src={t.photo_url} alt={t.name} className="w-10 h-10 rounded-full object-cover" />}
@@ -297,7 +297,7 @@ export default function WhiteTemplate({ data, theme, isPreview }: { data: Templa
             <FadeIn>
               <div className="mb-10">
                 <span className="text-xs font-semibold uppercase tracking-[0.25em]" style={{ color: ac }}>Contact</span>
-                <h2 className="text-3xl sm:text-4xl font-light mt-1" style={{ color: '#111' }}>Let's Talk</h2>
+                <h2 className="text-3xl sm:text-4xl font-light mt-1" style={{ color: '#111' }}>Let&apos;s Talk</h2>
               </div>
               <div className="flex gap-4 mb-10 flex-wrap">
                 {(contact?.email || about?.email) && <motion.a href={`mailto:${contact?.email || about?.email}`} whileHover={{ y: -2 }}

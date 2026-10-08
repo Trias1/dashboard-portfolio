@@ -1,5 +1,5 @@
 "use client";
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState, useSyncExternalStore } from "react";
 import { useRouter } from "next/navigation";
 import {
   KeyboardSensor,
@@ -9,10 +9,11 @@ import {
   DragEndEvent,
 } from "@dnd-kit/core";
 import { arrayMove, sortableKeyboardCoordinates } from "@dnd-kit/sortable";
-import api, { initAuth } from "@/lib/api";
+import api, { getApiErrorMessage, initAuth } from "@/lib/api";
 import {
   defaultSections,
   Section,
+  SectionType,
   availableSections,
   getThemeById,
   normalizeThemeId,
@@ -45,8 +46,47 @@ import DashboardPortfolioControls from "@/components/dashboard/DashboardPortfoli
 import { useDashboardProfileActions } from "@/hooks/useDashboardProfileActions";
 import { useDashboardAnalytics } from "@/hooks/useDashboardAnalytics";
 import { useDashboardGitHubImport } from "@/hooks/useDashboardGitHubImport";
+import type {
+  CustomSectionContent,
+  DashboardPortfolio,
+  DashboardUser,
+  EditFormData,
+  ProfileFormData,
+  StoredSectionItem,
+  ThemeOption,
+} from "@/types";
 
-function parseSectionsOrder(value: any): Section[] {
+// The user cached in localStorage is only readable on the client; the server snapshot is
+// always null so hydration matches, and React re-renders with the stored value right after.
+const subscribeNoop = () => () => {};
+const readStoredUserRaw = () => {
+  try {
+    return localStorage.getItem("user");
+  } catch {
+    return null;
+  }
+};
+const readServerStoredUserRaw = () => null;
+const readStoredLang = (): "id" | "en" | null => {
+  try {
+    const savedLang = localStorage.getItem("lang");
+    return savedLang === "id" || savedLang === "en" ? savedLang : null;
+  } catch {
+    return null;
+  }
+};
+const readServerStoredLang = () => null;
+
+function parseStoredUser(raw: string | null): DashboardUser | null {
+  if (!raw) return null;
+  try {
+    return JSON.parse(raw);
+  } catch {
+    return null;
+  }
+}
+
+function parseSectionsOrder(value: unknown): Section[] {
   if (Array.isArray(value)) return value;
   if (typeof value !== "string") return [];
   try {
@@ -89,13 +129,13 @@ export default function DashboardPage() {
   const router = useRouter();
   const { users, adminStats, vercelLogs, vercelLogsLoading, vercelLogsError, fetchUsers, fetchAdminStats, fetchVercelLogs } = useDashboardAdmin();
   const { portfolio, setPortfolio, sections, setSections, activeSection, setActiveSection, selectedTheme, setSelectedTheme, previewData, previewLoading, loadPreview } = useDashboardPortfolio();
-  const [user, setUser] = useState<any>(null);
+  const [user, setUser] = useState<DashboardUser | null>(null);
   const [activeMenu, setActiveMenu] = useState("builder"); // akan di-override setelah user load
   // null = responsive default (collapsed below `md`, expanded on desktop) until the user toggles it.
   const [sidebarOpen, setSidebarOpen] = useState<boolean | null>(null);
   const [showProfile, setShowProfile] = useState(false);
   const [showAddSection, setShowAddSection] = useState(false);
-  const [profileForm, setProfileForm] = useState({
+  const [profileForm, setProfileForm] = useState<ProfileFormData>({
     name: "",
     email: "",
     password: "",
@@ -104,11 +144,28 @@ export default function DashboardPage() {
   });
   const [profileMsg, setProfileMsg] = useState("");
   const [profileError, setProfileError] = useState("");
+  // Prefill from the user cached in localStorage once it becomes readable on the client
+  // (adjusting state during render instead of in an effect).
+  const storedUserRaw = useSyncExternalStore(subscribeNoop, readStoredUserRaw, readServerStoredUserRaw);
+  const [storedUserApplied, setStoredUserApplied] = useState(false);
+  if (!storedUserApplied && storedUserRaw !== null) {
+    setStoredUserApplied(true);
+    const u = parseStoredUser(storedUserRaw);
+    if (u && !user && (u.role === "admin" || u.role === "superadmin")) {
+      setUser(u);
+      setProfileForm((prev) => ({
+        ...prev,
+        name: u.name || "",
+        photo_url: u.photo_url || "",
+      }));
+      if (u.role === "superadmin") setActiveMenu("superadmin");
+    }
+  }
   const { logout: handleLogout, updateProfile: handleUpdateProfile } = useDashboardProfileActions({ user, profileForm, setUser, setProfileForm, setProfileMsg, setProfileError, router });
   const { visits, setVisits, dateFrom, setDateFrom, dateTo, setDateTo, fetchVisits } = useDashboardAnalytics();
   const { githubUsername, setGithubUsername, githubPreview, setGithubPreview, githubLoading, setGithubLoading, githubImporting, setGithubImporting, githubMsg, setGithubMsg, githubOptions, setGithubOptions, selectedProjects, setSelectedProjects } = useDashboardGitHubImport();
 
-  const [editForm, setEditForm] = useState<any>({});
+  const [editForm, setEditForm] = useState<EditFormData>({});
   const [saving, setSaving] = useState(false);
   const [saveStatus, setSaveStatus] = useState<"success" | "error" | "">("");
   const [saveMsg, setSaveMsg] = useState("");
@@ -120,11 +177,14 @@ export default function DashboardPage() {
   );
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [photoPreview, setPhotoPreview] = useState<string>("");
-  const [listData, setListData] = useState<any[]>([]);
+  const [listData, setListData] = useState<StoredSectionItem[]>([]);
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [showAllItems, setShowAllItems] = useState(false);
   const allowedSectionTypes = availableSections.map((section) => section.type);
-  const [lang, setLang] = useState<"id" | "en">("id");
+  // Explicit choice in this session wins; otherwise the saved preference (client only), else "id".
+  const [langChoice, setLang] = useState<"id" | "en" | null>(null);
+  const storedLang = useSyncExternalStore(subscribeNoop, readStoredLang, readServerStoredLang);
+  const lang = langChoice ?? storedLang ?? "id";
   const [toggleVersion, setToggleVersion] = useState(0);
   const [deleteSection, setDeleteSection] = useState<Section | null>(null);
 
@@ -147,25 +207,11 @@ export default function DashboardPage() {
     return () => window.clearInterval(timer);
   }, [userId]);
   useEffect(() => {
-    let u: { role?: string; name?: string; photo_url?: string } | null = null;
-    try {
-      const stored = localStorage.getItem("user");
-      u = stored ? JSON.parse(stored) : null;
-    } catch {
-      u = null;
-    }
+    // Stored-user prefill of user/profileForm/activeMenu happens during render (see above).
+    const u = parseStoredUser(readStoredUserRaw());
     if (u && u.role !== "admin" && u.role !== "superadmin") {
       router.push("/");
       return;
-    }
-    if (u) {
-      setUser(u);
-      setProfileForm((prev) => ({
-        ...prev,
-        name: u.name || "",
-        photo_url: u.photo_url || "",
-      }));
-      if (u.role === "superadmin") setActiveMenu("superadmin");
     }
     // Init auth " restore token dari httpOnly cookie dulu
     initAuth().then((ok) => {
@@ -175,7 +221,7 @@ export default function DashboardPage() {
       }
       // Fetch fresh user data dari API
       api
-        .get("/api/auth/me", { headers: { "Cache-Control": "no-cache" } })
+        .get<DashboardUser>("/api/auth/me", { headers: { "Cache-Control": "no-cache" } })
         .then((res) => {
           if (res.data.role !== "admin" && res.data.role !== "superadmin") {
             router.push("/");
@@ -204,7 +250,7 @@ export default function DashboardPage() {
         });
 
       api
-        .get("/api/portfolios/my")
+        .get<DashboardPortfolio[]>("/api/portfolios/my")
         .then((res) => {
           const portfolios = res.data;
           if (portfolios.length > 0) {
@@ -214,11 +260,11 @@ export default function DashboardPage() {
             // Load sections dari DB
             const parsedSectionsOrder = parseSectionsOrder(p.sections_order);
             if (parsedSectionsOrder.length > 0) {
-              const dbSections = parsedSectionsOrder.filter((s: any) =>
+              const dbSections = parsedSectionsOrder.filter((s) =>
                 allowedSectionTypes.includes(s.type),
               );
               const merged = defaultSections.map((def) => {
-                const saved = dbSections.find((s: any) =>
+                const saved = dbSections.find((s) =>
                   s.type === "custom"
                     ? s.label === def.label
                     : s.type === def.type,
@@ -230,7 +276,7 @@ export default function DashboardPage() {
                   .filter((d) => d.type === "custom")
                   .map((d) => d.label),
               );
-              const extras = dbSections.filter((s: any) => {
+              const extras = dbSections.filter((s) => {
                 if (s.type === "custom") return !customDefaultLabels.has(s.label);
                 return !defaultSections.find((d) => d.type === s.type);
               });
@@ -241,8 +287,7 @@ export default function DashboardPage() {
         .catch((err) => console.error("Failed to fetch portfolio", err));
     });
     try {
-      const savedLang = localStorage.getItem("lang");
-      if (savedLang === "id" || savedLang === "en") setLang(savedLang);
+      // Saved language is read via useSyncExternalStore above.
       // Sections & theme are loaded from the DB (per user). Drop the legacy
       // unscoped caches so another account's layout never leaks in.
       localStorage.removeItem("portfolio-sections");
@@ -270,22 +315,22 @@ export default function DashboardPage() {
       const apiType = type.split("-")[0];
       const endpoint =
         apiType === "contact" ? "/api/contact" : `/api/${apiType}`;
-      const res = await api.get(endpoint);
+      const res = await api.get<StoredSectionItem[] | EditFormData>(endpoint);
       if (Array.isArray(res.data)) {
         if (apiType === "custom" && activeSection) {
           const sectionTitle = normalizeCustomTitle(activeSection.label);
           const subType = typedSectionMap[sectionTitle] || "text";
           const matched = res.data.filter(
-            (i: any) =>
+            (i) =>
               normalizeCustomTitle(i.title) === sectionTitle ||
               (subType !== "text" && i.type === subType),
           );
           setListData(matched);
           const item = selectedId
-            ? matched.find((i: any) => i.id === selectedId) || matched[0]
+            ? matched.find((i) => i.id === selectedId) || matched[0]
             : undefined;
           if (item) {
-            const content = parseJsonSafe(item.content, {});
+            const content = parseJsonSafe<CustomSectionContent>(item.content, {});
             setEditForm({ ...item, content });
             console.log(
               `... [${sectionTitle}] editForm loaded from row #${item.id}`,
@@ -433,7 +478,7 @@ export default function DashboardPage() {
     if (portfolio?.slug) loadPreview(portfolio.slug);
   };
 
-  const handleAddSection = async (type: any, label: string, icon: string) => {
+  const handleAddSection = async (type: SectionType, label: string, icon: string) => {
     const id = `${type}-${Date.now()}`;
     const newSection: Section = {
       id,
@@ -451,7 +496,7 @@ export default function DashboardPage() {
 
     if (portfolio) {
       try {
-        const res = await api.put(`/api/portfolios/${portfolio.id}`, {
+        const res = await api.put<DashboardPortfolio>(`/api/portfolios/${portfolio.id}`, {
           title: portfolio.title,
           theme: portfolio.theme,
           is_published: portfolio.is_published,
@@ -471,7 +516,7 @@ export default function DashboardPage() {
     }
   };
 
-  const handleThemeChange = async (theme: any) => {
+  const handleThemeChange = async (theme: ThemeOption) => {
     setSelectedTheme(theme);
     if (portfolio) {
       try {
@@ -492,7 +537,7 @@ export default function DashboardPage() {
   const handleTogglePublish = async () => {
     if (!portfolio) return;
     try {
-      const res = await api.patch(`/api/portfolios/${portfolio.id}`, {
+      const res = await api.patch<DashboardPortfolio>(`/api/portfolios/${portfolio.id}`, {
         publish: !portfolio.is_published,
       });
       setPortfolio(res.data);
@@ -585,7 +630,7 @@ export default function DashboardPage() {
       editForm.content?.credentialUrl || editForm.content?.credential_url;
     if (!credUrl) return;
     try {
-      const { data } = await api.post("/api/og-image", { url: credUrl });
+      const { data } = await api.post<{ image?: string }>("/api/og-image", { url: credUrl });
       if (data?.image) {
         setEditForm({
           ...editForm,
@@ -622,7 +667,8 @@ export default function DashboardPage() {
           reader.onload = resolve;
         });
 
-        formData.photo_url = reader.result;
+        formData.photo_url =
+          typeof reader.result === "string" ? reader.result : null;
       }
 
       if (type === "custom") {
@@ -699,10 +745,10 @@ export default function DashboardPage() {
         setSaveMsg("");
         setSaveStatus("");
       }, 3000);
-    } catch (err: any) {
+    } catch (err) {
       console.error(err);
 
-      setSaveMsg(err.response?.data?.message || "Save failed");
+      setSaveMsg(getApiErrorMessage(err, "Save failed"));
       setSaveStatus("error");
 
       setTimeout(() => {
@@ -747,7 +793,7 @@ export default function DashboardPage() {
       gallery: <GalleryEditor value={editForm} onChange={setEditForm} setMessage={setSaveMsg} onRefresh={async () => { await fetchSectionData("gallery"); await loadPreview(); }} />,
       custom: <DashboardCustomEditor activeSection={activeSection} normalizeCustomTitle={normalizeCustomTitle} typedSectionMap={typedSectionMap} editForm={editForm} setEditForm={setEditForm} inputClass={inputClass} labelClass={labelClass} certSkillSearch={certSkillSearch} handleCertSkillSearch={handleCertSkillSearch} addCertSkill={addCertSkill} certSkillSuggestions={certSkillSuggestions} removeCertSkill={removeCertSkill} detectOgImage={detectOgImage} />,
     };
-    return <DashboardEditorPanel activeSection={activeSection} field={fields[type]} saveMsg={saveMsg} saveStatus={saveStatus} listData={listData} showAllItems={showAllItems} saving={saving} saveLabel={t2("save")} savingLabel={t2("saving")} normalizeCustomTitle={normalizeCustomTitle} typedSectionMap={typedSectionMap} onClose={() => setActiveSection(null)} onSave={handleSave} onEditStored={(item) => setEditForm({ ...item, content: parseJsonSafe(item.content, {}) })} onDeleteStored={async (item) => { if (!confirm("Delete this item?")) return; try { await api.delete(`/api/${activeSection.type.split("-")[0]}/${item.id}`); setListData((previous) => previous.filter((entry: any) => entry.id !== item.id)); await loadPreview(); } catch { setSaveMsg("Failed to delete"); } }} onToggleItems={() => setShowAllItems(!showAllItems)} />;
+    return <DashboardEditorPanel activeSection={activeSection} field={fields[type]} saveMsg={saveMsg} saveStatus={saveStatus} listData={listData} showAllItems={showAllItems} saving={saving} saveLabel={t2("save")} savingLabel={t2("saving")} normalizeCustomTitle={normalizeCustomTitle} typedSectionMap={typedSectionMap} onClose={() => setActiveSection(null)} onSave={handleSave} onEditStored={(item) => setEditForm({ ...item, content: parseJsonSafe<CustomSectionContent>(item.content, {}) })} onDeleteStored={async (item) => { if (!confirm("Delete this item?")) return; try { await api.delete(`/api/${activeSection.type.split("-")[0]}/${item.id}`); setListData((previous) => previous.filter((entry) => entry.id !== item.id)); await loadPreview(); } catch { setSaveMsg("Failed to delete"); } }} onToggleItems={() => setShowAllItems(!showAllItems)} />;
   };
 
   return (
@@ -851,13 +897,13 @@ export default function DashboardPage() {
               setSections((prev) => {
                 const sectionMap: Record<
                   string,
-                  { type: string; label: string; icon: string }
+                  { type: SectionType; label: string; icon: string }
                 > = {
                   bio: { type: "about", label: "About", icon: "A" },
                   skills: { type: "skills", label: "Skills", icon: "SK" },
                   projects: { type: "projects", label: "Projects", icon: "P" },
                 };
-                let updated = [...prev];
+                const updated = [...prev];
                 imported.forEach((s: string) => {
                   const info = sectionMap[s];
                   if (info) {
@@ -867,7 +913,7 @@ export default function DashboardPage() {
                     if (!exists) {
                       updated.push({
                         id: `${info.type}-${Date.now()}`,
-                        type: info.type as any,
+                        type: info.type,
                         label: info.label,
                         icon: info.icon,
                         enabled: true,

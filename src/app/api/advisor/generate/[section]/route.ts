@@ -63,7 +63,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     return new Response(stream, {
       headers: { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache' },
     });
-  } catch (err: any) {
+  } catch {
     return new Response(`data: ${JSON.stringify({ token: 'Error generating content', done: true })}\n\n`, {
       headers: { 'Content-Type': 'text/event-stream' },
     });

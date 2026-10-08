@@ -1,20 +1,21 @@
 import { NextRequest } from 'next/server';
 import { requireAuth } from '@/lib/auth';
-import { errorResponse, successResponse } from '@/lib/utils';
+import { errorResponse, successResponse, getErrorMessage } from '@/lib/utils';
 import { checkRateLimit } from '@/lib/rate-limit';
 import PDF2JSON from 'pdf2json';
 import Groq from 'groq-sdk';
+import type { CvListKey, KeywordCvResult, ParsedCv, ParsedCvItem } from '@/types/api';
 
 const groq = new Groq({ apiKey: process.env.NINE_ROUTER_API_KEY || '', baseURL: process.env.NINE_ROUTER_BASE_URL || 'https://router.zeen.my.id/v1' });
 
 function pdfParse(buffer: Buffer): Promise<{ text: string }> {
   return new Promise((resolve, reject) => {
     const pdfParser = new PDF2JSON();
-    pdfParser.on('pdfParser_dataError', (err: any) => reject(err));
-    pdfParser.on('pdfParser_dataReady', (data: any) => {
-      const text = (data.Pages || []).map((page: any) =>
-        (page.Texts || []).map((t: any) =>
-          decodeURIComponent((t.R || []).map((r: any) => r.T).join(''))
+    pdfParser.on('pdfParser_dataError', (err) => reject(err));
+    pdfParser.on('pdfParser_dataReady', (data) => {
+      const text = (data.Pages || []).map((page) =>
+        (page.Texts || []).map((t) =>
+          decodeURIComponent((t.R || []).map((r) => r.T).join(''))
         ).join(' ')
       ).join('\n');
       resolve({ text });
@@ -23,18 +24,18 @@ function pdfParse(buffer: Buffer): Promise<{ text: string }> {
   });
 }
 
-function sanitizeJson(obj: any): any {
+function sanitizeJson(obj: unknown): unknown {
   if (typeof obj === 'string') return obj.replace(/\u0000/g, '');
   if (Array.isArray(obj)) return obj.map(sanitizeJson);
   if (obj && typeof obj === 'object') {
-    const result: any = {};
+    const result: Record<string, unknown> = {};
     for (const [k, v] of Object.entries(obj)) result[k] = sanitizeJson(v);
     return result;
   }
   return obj;
 }
 
-function repairJson(raw: string): any {
+function repairJson(raw: string): ParsedCv {
   try { return JSON.parse(raw); } catch {}
 
   let cleaned = raw.replace(/```json\s*/gi, '').replace(/```\s*$/g, '').trim();
@@ -54,7 +55,7 @@ function repairJson(raw: string): any {
 
   try { return JSON.parse(cleaned); } catch {}
 
-  const parsed: any = {};
+  const parsed: ParsedCv = {};
   const nameMatch = raw.match(/name["']?\s*[:=]\s*["']([^"']+)/i);
   if (nameMatch) parsed.about = { name: nameMatch[1] };
   const emailMatch = raw.match(/email["']?\s*[:=]\s*["']([^"']+@[^"']+)["']/i);
@@ -64,7 +65,7 @@ function repairJson(raw: string): any {
 
 function extractByKeyword(rawText: string) {
   const lines = rawText.split('\n').map(l => l.trim()).filter(Boolean);
-  const fallback: any = {
+  const fallback: KeywordCvResult = {
     experiences: [], education: [], skills: [], projects: [],
     certifications: [], specializationAreas: [], languages: [],
     awards: [], organizations: [], customSections: [],
@@ -109,9 +110,10 @@ function extractByKeyword(rawText: string) {
   }
 
   // Title: line after name
-  if (fallback.about?.name) {
+  const aboutName = fallback.about?.name;
+  if (aboutName) {
     const nameIdx = lines.findIndex((l: string) =>
-      l.toLowerCase().includes(fallback.about.name.toLowerCase())
+      l.toLowerCase().includes(aboutName.toLowerCase())
     );
     if (nameIdx >= 0 && nameIdx + 1 < lines.length) {
       const next = lines[nameIdx + 1].trim();
@@ -231,7 +233,7 @@ function extractByKeyword(rawText: string) {
   if (sections.skills) {
     const skillLines = sections.skills.split('\n').filter(Boolean);
     const categoryRx = /^([A-Za-z\s/]+?)[:;]\s*(.+)/;
-    const cats: any[] = [];
+    const cats: ParsedCvItem[] = [];
     for (const sl of skillLines) {
       const cm = sl.match(categoryRx);
       if (cm) {
@@ -373,7 +375,7 @@ function extractExperienceFromRawText(rawText: string) {
 
   const body = match[1];
   const companyMatches = [...body.matchAll(/((?:PT|CV|UD|LLC|Inc\.?|Ltd\.?|Company)\s+[A-Z][A-Za-z0-9&.,\-\s()]+?)(?:,\s*[^|]+)?\s*\|\s*(?:Fulltime|Full-time|Contract|Bootcamp|Internship|Part-time|Online|Hybrid|Onsite)/gi)];
-  const experiences: any[] = [];
+  const experiences: ParsedCvItem[] = [];
 
   for (let i = 0; i < companyMatches.length; i++) {
     const company = companyMatches[i][1].replace(/\s+/g, ' ').trim();
@@ -399,7 +401,7 @@ function extractExperienceFromRawText(rawText: string) {
   return experiences;
 }
 
-function estimateConfidence(parsed: any, rawText: string): { score: number; warnings: string[] } {
+function estimateConfidence(parsed: ParsedCv, rawText: string): { score: number; warnings: string[] } {
   const warnings: string[] = [];
   let score = 50;
   const low = rawText.toLowerCase();
@@ -510,7 +512,7 @@ export async function POST(request: NextRequest) {
     console.log('[CV Parse] Raw text full:\n' + rawText);
 
     // Try AI parsing via Groq
-    let parsed: any = {};
+    let parsed: ParsedCv = {};
     let aiUsed = false;
     let aiRawResponse = '';
     if (process.env.NINE_ROUTER_API_KEY) {
@@ -579,18 +581,21 @@ ${rawText.substring(0, 15000)}`;
             parsed = repairJson(aiText);
             console.log('[CV Parse] repairJson success, parsed keys:', Object.keys(parsed));
             aiUsed = true;
-          } catch (repairErr: any) {
-            console.error('[CV Parse] repairJson failed:', repairErr.message, 'response was:', aiText);
+          } catch (repairErr) {
+            console.error('[CV Parse] repairJson failed:', getErrorMessage(repairErr), 'response was:', aiText);
           }
         } else {
           console.error('[CV Parse] Groq returned empty response');
         }
-      } catch (aiErr: any) {
-        const status = aiErr.status || aiErr.code || 'unknown';
-        const message = aiErr.message || String(aiErr);
+      } catch (aiErr) {
+        const errObj = typeof aiErr === 'object' && aiErr !== null ? aiErr : null;
+        const status = (errObj && 'status' in errObj && errObj.status) || (errObj && 'code' in errObj && errObj.code) || 'unknown';
+        const message = getErrorMessage(aiErr, '') || String(aiErr);
         console.error(`[CV Parse] Nine Router API error [${status}]: ${message}`);
-        if (aiErr.response?.data) {
-          console.error('[CV Parse] Groq error details:', JSON.stringify(aiErr.response.data));
+        const errResponse = errObj && 'response' in errObj && typeof errObj.response === 'object' && errObj.response !== null ? errObj.response : null;
+        const errData = errResponse && 'data' in errResponse ? errResponse.data : undefined;
+        if (errData) {
+          console.error('[CV Parse] Groq error details:', JSON.stringify(errData));
         }
         if (status === 401) console.error('[CV Parse] NINE_ROUTER_API_KEY invalid or missing');
         else if (status === 429) console.error('[CV Parse] Rate limited by Groq');
@@ -610,14 +615,14 @@ ${rawText.substring(0, 15000)}`;
       parsed = { ...keywordResult, ...parsed, about: { ...keywordResult.about, ...parsed.about }, contact: { ...keywordResult.contact, ...parsed.contact } };
     } else {
       // Supplement EVERY section  -  keyword result adds to what AI found
-      for (const key of ['experiences', 'education', 'skills', 'projects', 'certifications', 'specializationAreas', 'languages', 'awards', 'organizations', 'customSections']) {
+      for (const key of ['experiences', 'education', 'skills', 'projects', 'certifications', 'specializationAreas', 'languages', 'awards', 'organizations', 'customSections'] satisfies CvListKey[]) {
         const aiArr = parsed[key] || [];
         const kwArr = keywordResult[key] || [];
         if (kwArr.length > 0 && aiArr.length === 0) {
           parsed[key] = kwArr;
         } else if (kwArr.length > 0 && aiArr.length > 0) {
           // Merge: add keyword items that don't duplicate AI items
-          const aiTitles = new Set(aiArr.map((item: any) => JSON.stringify(item)));
+          const aiTitles = new Set(aiArr.map((item) => JSON.stringify(item)));
           for (const kwItem of kwArr) {
             if (!aiTitles.has(JSON.stringify(kwItem))) {
               aiArr.push(kwItem);
@@ -650,13 +655,15 @@ ${rawText.substring(0, 15000)}`;
 
     // Post-processing: dedup customSections that overlap with main sections
     const mainTextSet = new Set<string>();
-    for (const key of ['experiences', 'projects', 'education', 'skills', 'certifications', 'specializationAreas', 'languages', 'awards', 'organizations']) {
+    for (const key of ['experiences', 'projects', 'education', 'skills', 'certifications', 'specializationAreas', 'languages', 'awards', 'organizations'] satisfies CvListKey[]) {
       for (const item of (parsed[key] || [])) {
-        const texts = [item.title, item.name, item.area, item.position, item.company, item.institution, item.description, item.skills].filter(Boolean);
+        // Plain-string entries (e.g. specialization areas) have none of these fields.
+        const texts = typeof item === 'string' ? [] : [item.title, item.name, item.area, item.position, item.company, item.institution, item.description, item.skills].filter(Boolean);
         for (const t of texts) mainTextSet.add(String(t).toLowerCase().trim().slice(0, 300));
       }
     }
-    parsed.customSections = (parsed.customSections || []).filter((cs: any) => {
+    parsed.customSections = (parsed.customSections || []).filter((cs) => {
+      if (typeof cs === 'string') return true;
       const body = typeof cs.content?.body === 'string' ? cs.content.body.toLowerCase().trim() : '';
       if (!body) return true;
       for (const mainText of mainTextSet) {
@@ -666,9 +673,9 @@ ${rawText.substring(0, 15000)}`;
     });
 
     // Post-processing: dedup project titles  -  append customer for uniqueness
-    const titleGroups: Record<string, any[]> = {};
+    const titleGroups: Record<string, ParsedCvItem[]> = {};
     for (const p of (parsed.projects || [])) {
-      if (p.title) {
+      if (typeof p !== 'string' && p.title) {
         titleGroups[p.title] = titleGroups[p.title] || [];
         titleGroups[p.title].push(p);
       }
@@ -731,7 +738,7 @@ ${rawText.substring(0, 15000)}`;
         keyword_section_splits: sectionDebug,
       },
     });
-  } catch (err: any) { return errorResponse(err.message); }
+  } catch (err) { return errorResponse(getErrorMessage(err)); }
 }
 
 

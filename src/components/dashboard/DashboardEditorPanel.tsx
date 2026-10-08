@@ -2,13 +2,14 @@
 
 import { AnimatePresence, motion } from "framer-motion";
 import { Section } from "@/lib/sections";
+import type { CustomSectionContent, StoredSectionItem } from "@/types";
 
 interface Props {
   activeSection: Section | null;
   field: React.ReactNode;
   saveMsg: string;
   saveStatus: string;
-  listData: any[];
+  listData: StoredSectionItem[];
   showAllItems: boolean;
   saving: boolean;
   saveLabel: string;
@@ -17,8 +18,8 @@ interface Props {
   typedSectionMap: Record<string, string>;
   onClose: () => void;
   onSave: () => void;
-  onEditStored: (item: any) => void;
-  onDeleteStored: (item: any) => void;
+  onEditStored: (item: StoredSectionItem) => void;
+  onDeleteStored: (item: StoredSectionItem) => void;
   onToggleItems: () => void;
 }
 
@@ -93,7 +94,7 @@ export default function DashboardEditorPanel({
           </h3>
           <div className="space-y-2">
             {visibleItems.map((item) => {
-              const content =
+              const content: CustomSectionContent =
                 typeof item.content === "string"
                   ? JSON.parse(item.content)
                   : item.content || {};

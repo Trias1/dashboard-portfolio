@@ -9,13 +9,21 @@ export function generateSlug(name: string, id?: number): string {
   return id ? `${base}-${id}` : base;
 }
 
-export function sanitizeStr(val: any): string {
+export function sanitizeStr(val: unknown): string {
   if (!val) return '';
   return String(val).trim();
 }
 
 export function formatDate(date: string | Date): string {
   return new Date(date).toISOString().split('T')[0];
+}
+
+// Message from anything thrown (Error, string, Supabase/PostgREST error object, ...)
+export function getErrorMessage(err: unknown, fallback = 'Unknown error'): string {
+  if (err instanceof Error) return err.message;
+  if (typeof err === 'string') return err;
+  if (err && typeof err === 'object' && 'message' in err && typeof err.message === 'string') return err.message;
+  return fallback;
 }
 
 // Error response helper
@@ -33,6 +41,6 @@ export function errorResponse(message: string, status: number = 500) {
 }
 
 // Success response helper
-export function successResponse(data: any, status: number = 200) {
+export function successResponse(data: unknown, status: number = 200) {
   return Response.json(data, { status });
 }

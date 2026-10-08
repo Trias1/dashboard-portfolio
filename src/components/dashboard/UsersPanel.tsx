@@ -1,8 +1,9 @@
 ﻿'use client';
 import api from '@/lib/api';
+import type { ManagedUser } from '@/types';
 
 interface Props {
-  users: any[];
+  users: ManagedUser[];
   fetchUsers: () => void;
 }
 
@@ -21,7 +22,7 @@ export default function UsersPanel({ users, fetchUsers }: Props) {
               </tr>
             </thead>
             <tbody>
-              {users.map((u: any) => (
+              {users.map((u) => (
                 <tr key={u.id} className="border-b border-purple-900/20 hover:bg-purple-900/10 transition">
                   <td className="p-4 text-white text-sm">{u.name}</td>
                   <td className="p-4 text-gray-400 text-sm">{u.email}</td>

@@ -2,18 +2,19 @@
 
 import api from '@/lib/api';
 import { getThemeById, Section, themes } from '@/lib/sections';
+import type { DashboardPortfolio, TemplateData, ThemeOption } from '@/types';
 
 const templates = ['modern','creative','minimal','bold','classic','neon','glass','nature','vibrant','retro','immersive','playful','developer','swiss','white','agency','boldpersona'];
 
 interface DashboardPreviewProps {
-  portfolio: any;
-  previewData: any;
+  portfolio: DashboardPortfolio | null;
+  previewData: TemplateData | null;
   previewLoading: boolean;
   sections: Section[];
-  selectedTheme: any;
+  selectedTheme: ThemeOption;
   toggleVersion: number;
-  setPortfolio: (portfolio: any) => void;
-  onThemeChange: (theme: any) => void;
+  setPortfolio: (portfolio: DashboardPortfolio) => void;
+  onThemeChange: (theme: ThemeOption) => void;
   onRefresh: () => void;
 }
 
@@ -31,7 +32,7 @@ export default function DashboardPreview({ portfolio, previewData, previewLoadin
           <div className="flex items-center gap-1">{themes.map((item) => <button key={item.id} type="button" onClick={() => onThemeChange(item)} title={item.label} aria-label={`Use ${item.label} theme`} className={`h-5 w-5 rounded-full border-2 transition ${selectedTheme.id === item.id ? 'scale-110 border-white' : 'border-transparent'}`} style={{ backgroundColor: item.accent }} />)}</div>
           <select aria-label="Portfolio template" value={portfolio.template || 'modern'} disabled={portfolio.is_published} onChange={async (event) => {
             try {
-              const response = await api.put(`/api/portfolios/${portfolio.id}`, { title: portfolio.title, theme: portfolio.theme, sections_order: portfolio.sections_order, is_published: portfolio.is_published, template: event.target.value });
+              const response = await api.put<DashboardPortfolio>(`/api/portfolios/${portfolio.id}`, { title: portfolio.title, theme: portfolio.theme, sections_order: portfolio.sections_order, is_published: portfolio.is_published, template: event.target.value });
               setPortfolio(response.data);
             } catch (error) {
               console.error('Template update failed', error);
