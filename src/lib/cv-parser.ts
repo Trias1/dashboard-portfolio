@@ -357,7 +357,10 @@ export function extractContact(rawText: string, name?: string) {
   }
   const linkedin = rawText.match(/(?:https?:\/\/)?(?:[a-z]{2,3}\.)?linkedin\.com\/[^\s|,;]+/i);
   if (linkedin) contact.linkedin = linkedin[0].replace(/[).]+$/, '');
-  for (const m of rawText.matchAll(/(?:https?:\/\/|www\.)[^\s|,;]+|\b[a-z0-9-]+\.(?:github\.io|vercel\.app|netlify\.app|dev|me|id|com)(?:\/[^\s|,;]*)?\b|github\.com\/[^\s|,;]+/gi)) {
+  // Prefer a link from the header (the portfolio URL) over links further down (project demos).
+  const URL_RX = /(?:https?:\/\/|www\.)[^\s|,;]+|\b(?:[a-z0-9-]+\.)+(?:github\.io|vercel\.app|netlify\.app|web\.id|my\.id|co\.id|dev|me|id|com|app|io|net|org)(?:\/[^\s|,;]*)?|github\.com\/[^\s|,;]+/gi;
+  const headerText = rawText.split('\n').slice(0, 8).join('\n');
+  for (const m of [...headerText.matchAll(URL_RX), ...rawText.matchAll(URL_RX)]) {
     const url = m[0].replace(/[).]+$/, '');
     if (/linkedin\.com/i.test(url) || (contact.email && contact.email.toLowerCase().includes(url.toLowerCase()))) continue;
     contact.website = url;
@@ -366,7 +369,9 @@ export function extractContact(rawText: string, name?: string) {
   // Location: a short segment of a contact line (split on | • ·) that is not an email/phone/url/name.
   const head = rawText.split('\n').slice(0, 8);
   for (const line of head) {
-    if (!/[|•·]/.test(line) && !(contact.email && line.includes(contact.email))) continue;
+    // Only the contact line (it carries the email or phone) — not e.g. a "Role | Focus" headline.
+    const isContactLine = (contact.email && line.includes(contact.email)) || (contact.phone && line.includes(contact.phone));
+    if (!isContactLine) continue;
     for (const seg of line.split(/\s*[|•·]\s*/)) {
       const s = seg.trim();
       if (!s || s.length > 40 || /@|\d{4,}|https?:|www\.|linkedin|github/i.test(s)) continue;
@@ -414,7 +419,8 @@ export function extractByKeyword(rawText: string): KeywordCvResult {
   let current: string | null = null;
   for (const line of lines) {
     const header = matchHeader(line);
-    if (header) { current = header; sections[current] = sections[current] || []; continue; }
+    // Inside a section, a line naming that same section is content (e.g. a project called "Portfolio").
+    if (header && header !== current) { current = header; sections[current] = sections[current] || []; continue; }
     if (current) sections[current].push(line);
   }
 
@@ -440,7 +446,34 @@ export function extractByKeyword(rawText: string): KeywordCvResult {
     result.education = groupBlocks(sections.education).map(blockToEducation).filter((e) => e.institution || e.degree);
   }
   if (sections.projects?.length) {
-    result.projects = groupBlocks(sections.projects).map(blockToProject).filter((p) => p.title);
+    // PortfolioKit's own CV: "Title" / description / "Tech · Tech" / "demo.com | github.com/x".
+    const projLines = sections.projects.map((l) => l.replace(BULLET_RX, '').trim()).filter(Boolean);
+    const isLinkLine = (l: string) => l.split(/\s*\|\s*/).every((seg) => /^(?:https?:\/\/)?(?:[a-z0-9-]+\.)+[a-z]{2,}(?:\/\S*)?$/i.test(seg));
+    const isTechLine = (l: string) => / · /.test(l) && l.split(' · ').every((t) => t.trim().split(/\s+/).length <= 3);
+    if (projLines.some((l) => isLinkLine(l) || isTechLine(l))) {
+      const projects: ParsedCvItem[] = [];
+      let cur: { title: string; desc: string[]; tech: string; links: string[] } | null = null;
+      const withScheme = (u: string) => (u && !/^https?:\/\//i.test(u) ? `https://${u}` : u);
+      const flush = () => {
+        if (!cur?.title) return;
+        const gh = cur.links.find((u) => /github\.com/i.test(u)) || '';
+        const demo = cur.links.find((u) => !/github\.com/i.test(u)) || '';
+        projects.push({ title: cur.title, customer: '', assignmentBy: '', startDate: '', endDate: '', status: '', description: cur.desc.join('\n'), tech_stack: cur.tech, demo_url: withScheme(demo), github_url: withScheme(gh) });
+      };
+      for (const l of projLines) {
+        if (cur && isTechLine(l)) { cur.tech = l.split(' · ').map((t) => t.trim()).join(', '); continue; }
+        if (cur && isLinkLine(l)) { cur.links.push(...l.split(/\s*\|\s*/)); continue; }
+        const closed = !cur || !!cur.tech || cur.links.length > 0;
+        // A single short word right under the title is a one-item tech list ("Java").
+        if (cur && !closed && !cur.desc.length && /^[\w.+#-]+(?:\s[\w.+#-]+)?$/.test(l) && l.length <= 20) { cur.tech = l; continue; }
+        if (closed) { flush(); cur = { title: l, desc: [], tech: '', links: [] }; continue; }
+        cur?.desc.push(l);
+      }
+      flush();
+      result.projects = projects;
+    } else {
+      result.projects = groupBlocks(sections.projects).map(blockToProject).filter((p) => p.title);
+    }
   }
 
   // "Languages: Java, PHP • Frameworks: Spring, Laravel • Cloud: AWS" → one skill group per "Category:" chunk.
@@ -465,7 +498,23 @@ export function extractByKeyword(rawText: string): KeywordCvResult {
 
   if (sections.skills?.length) result.skills = skillCategories(sectionText('skills'), 'Skills');
 
-  if (sections.certification?.length) {
+  const isDateOnlyLine = (l: string) => {
+    const m = l.match(DATE_RANGE_RX) || l.match(SINGLE_DATE_RX);
+    return !!m && l.replace(m[0], '').replace(/[\s|,()·•–—-]/g, '').length === 0;
+  };
+  if (sections.certification?.length && lineItems(sectionText('certification')).some(isDateOnlyLine)) {
+    // "Name" / "Issuer" / "Jan 2022" — the layout PortfolioKit's own CV uses.
+    const certs: ParsedCvItem[] = [];
+    let cur: ParsedCvItem | null = null;
+    for (const l of lineItems(sectionText('certification'))) {
+      if (isDateOnlyLine(l)) { if (cur) { cur.date = l.trim(); certs.push(cur); cur = null; } continue; }
+      if (!cur) cur = { name: l.trim(), issuer: '', date: '', credential_url: '' };
+      else if (!cur.issuer && l.length <= 60) cur.issuer = l.trim();
+      else { certs.push(cur); cur = { name: l.trim(), issuer: '', date: '', credential_url: '' }; }
+    }
+    if (cur) certs.push(cur);
+    result.certifications = certs.filter((c) => c.name);
+  } else if (sections.certification?.length) {
     result.certifications = lineItems(sectionText('certification')).map((l) => {
       const d = datedLine(l);
       const [name, issuer] = splitTitleIssuer(d.rest);
