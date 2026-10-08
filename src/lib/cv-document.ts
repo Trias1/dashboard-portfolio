@@ -216,19 +216,21 @@ export function buildCvHtml(data: CvSourceData, template: string): { html: strin
 
   // Certifications: gallery certificates + custom "certification" rows
   const certEntries = [
-    ...(data.certificates || []).map((g) => renderEntry({
-      title: esc(s(g.title) || 'Certificate'),
+    // Untitled certificates would print a bare "Certificate" line, so they're left out.
+    ...(data.certificates || []).filter((g) => s(g.title)).map((g) => renderEntry({
+      title: esc(s(g.title)),
       sub: s(g.description) && s(g.description).length <= 120 ? esc(g.description) : undefined,
       date: fmtDate(g.issued_date),
     }, t)),
     ...ofType('certification').flatMap(({ content: ct }) => {
       // Older rows store a list under items; newer rows are one certificate each.
       const list = Array.isArray(ct.items) ? (ct.items as Row[]) : [ct];
-      return list.map((it) => {
-        const item = typeof it === 'object' && it ? it : { name: String(it) };
+      return list.map((it) => typeof it === 'object' && it ? it : { name: String(it) })
+        .filter((item) => s(item.name) || s(item.title))
+        .map((item) => {
         const month = parseInt(s(item.issueMonth), 10);
         const date = s(item.issueYear) ? `${month >= 1 && month <= 12 ? `${MONTHS[month - 1]} ` : ''}${s(item.issueYear)}` : s(item.date);
-        return renderEntry({ title: esc(s(item.name) || s(item.title) || 'Certificate'), sub: esc(s(item.issuer)) || undefined, date }, t);
+        return renderEntry({ title: esc(s(item.name) || s(item.title)), sub: esc(s(item.issuer)) || undefined, date }, t);
       });
     }),
   ];
