@@ -9,13 +9,13 @@ const bricolage = Bricolage_Grotesque({ variable: "--font-bricolage", subsets: [
 
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_BASE_URL || "https://portfolio.west-solutions.web.id"),
-  title: "PortfolioKit  -  Buat Portfolio Profesional Gratis",
-  description: "Platform portfolio profesional untuk semua profesi. Designer, developer, marketer  -  tampilkan dirimu secara profesional dalam menit. Gratis selamanya.",
-  keywords: ["portfolio", "portfolio gratis", "buat portfolio", "portfolio profesional", "portfoliokit"],
+  title: "PortfolioKit - Build a Free Professional Portfolio",
+  description: "A portfolio builder for any profession. Designers, developers, marketers: put your work online in minutes. Free.",
+  keywords: ["portfolio", "free portfolio", "portfolio builder", "professional portfolio", "portfoliokit"],
   authors: [{ name: "Trias" }],
   openGraph: {
-    title: "PortfolioKit  -  Buat Portfolio Profesional Gratis",
-    description: "Tampilkan dirimu secara profesional. Gratis selamanya.",
+    title: "PortfolioKit - Build a Free Professional Portfolio",
+    description: "Show your work in one clean page. Free.",
     url: process.env.NEXT_PUBLIC_BASE_URL || "https://portfolio.west-solutions.web.id",
     siteName: "PortfolioKit",
     type: "website",
@@ -24,14 +24,14 @@ export const metadata: Metadata = {
         url: `${process.env.NEXT_PUBLIC_BASE_URL || "https://portfolio.west-solutions.web.id"}/og-image.png`,
         width: 1200,
         height: 630,
-        alt: "PortfolioKit  -  Buat Portfolio Profesional Gratis",
+        alt: "PortfolioKit - Build a Free Professional Portfolio",
       }
     ],
   },
   twitter: {
     card: "summary_large_image",
-    title: "PortfolioKit  -  Buat Portfolio Profesional Gratis",
-    description: "Tampilkan dirimu secara profesional. Gratis selamanya.",
+    title: "PortfolioKit - Build a Free Professional Portfolio",
+    description: "Show your work in one clean page. Free.",
     images: [`${process.env.NEXT_PUBLIC_BASE_URL || "https://portfolio.west-solutions.web.id"}/og-image.png`],
   },
   icons: {
@@ -43,7 +43,7 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="id" data-scroll-behavior="smooth" className={`${geistSans.variable} ${geistMono.variable} ${bricolage.variable} h-full antialiased`}>
+    <html lang="en" data-scroll-behavior="smooth" className={`${geistSans.variable} ${geistMono.variable} ${bricolage.variable} h-full antialiased`}>
       <body className="min-h-full flex flex-col">{children}<Analytics /></body>
     </html>
   );

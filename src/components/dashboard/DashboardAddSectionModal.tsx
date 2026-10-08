@@ -6,7 +6,6 @@ import { SectionIcon } from "@/components/builder/SortableSection";
 
 interface DashboardAddSectionModalProps {
   open: boolean;
-  lang: "id" | "en";
   sections: Section[];
   onClose: () => void;
   onAdd: (type: SectionType, label: string, icon: string) => void;
@@ -14,7 +13,6 @@ interface DashboardAddSectionModalProps {
 
 export default function DashboardAddSectionModal({
   open,
-  lang,
   sections,
   onClose,
   onAdd,
@@ -38,12 +36,10 @@ export default function DashboardAddSectionModal({
         <div className="flex items-start justify-between gap-4 border-b border-rule px-5 py-4">
           <div>
             <h2 id="add-section-title" className="font-display text-lg font-semibold tracking-tight">
-              {lang === "id" ? "Tambah bagian" : "Add a section"}
+              Add a section
             </h2>
             <p className="mt-0.5 text-xs text-ink-soft">
-              {lang === "id"
-                ? "Bagian baru muncul di urutan paling bawah."
-                : "New sections are added at the bottom."}
+              New sections are added at the bottom.
             </p>
           </div>
           <button
@@ -75,7 +71,7 @@ export default function DashboardAddSectionModal({
                   </span>
                   <span className="flex-1 text-sm">{section.label}</span>
                   <span className="text-xs text-ink-soft">
-                    {exists ? (lang === "id" ? "Sudah ada" : "Added") : (lang === "id" ? "Tambah" : "Add")}
+                    {exists ? "Added" : "Add"}
                   </span>
                 </button>
               </li>

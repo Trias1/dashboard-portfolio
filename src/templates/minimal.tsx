@@ -60,7 +60,7 @@ const year = (d?: string) => (d ? d.slice(0, 4) : '');
 function fmtDate(d?: string) {
   if (!d) return '';
   const date = new Date(d);
-  return Number.isNaN(date.getTime()) ? d : date.toLocaleDateString('id-ID', { year: 'numeric', month: 'short' });
+  return Number.isNaN(date.getTime()) ? d : date.toLocaleDateString('en-US', { year: 'numeric', month: 'short' });
 }
 const waLink = (phone: string, name?: string) =>
   `https://wa.me/${phone.replace(/[^0-9]/g, '').replace(/^0/, '62')}?text=Halo%20${encodeURIComponent(name || 'there')}%2C%20saya%20tertarik%20untuk%20bekerja%20sama!`;

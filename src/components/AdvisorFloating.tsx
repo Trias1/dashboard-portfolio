@@ -9,7 +9,7 @@ interface Message {
 
 /** Fallback text /api/advisor sends when its own upstream request fails. */
 const SERVER_FAILURE = /^sorry, something went wrong\.?$/i;
-const AI_UNAVAILABLE = 'Advisor belum bisa menjawab sekarang: layanan AI belum dikonfigurasi atau sedang tidak tersedia.';
+const AI_UNAVAILABLE = "Advisor can't answer right now: the AI service isn't set up or is unavailable.";
 
 /** Black or white text, whichever reads better on the accent. */
 function textOn(hex: string) {
@@ -36,7 +36,7 @@ function CloseGlyph({ className }: { className?: string }) {
 export default function AdvisorFloating({ accentColor }: { accentColor: string }) {
   const [open, setOpen] = useState(false);
   const [messages, setMessages] = useState<Message[]>([
-    { role: 'assistant', content: 'Tanyakan cara memperbaiki portfolio ini atau bagian apa yang sebaiknya ditambah.' }
+    { role: 'assistant', content: 'Ask how to improve this portfolio or which sections to add.' }
   ]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
@@ -113,7 +113,7 @@ export default function AdvisorFloating({ accentColor }: { accentColor: string }
       if (!fullContent.trim() || SERVER_FAILURE.test(fullContent.trim())) replaceLast({ role: 'assistant', content: AI_UNAVAILABLE, tone: 'notice' });
     } catch {
       replaceLast(fullContent
-        ? { role: 'assistant', content: `${fullContent}\n\n(Jawaban terputus.)` }
+        ? { role: 'assistant', content: `${fullContent}\n\n(The answer was cut off.)` }
         : { role: 'assistant', content: AI_UNAVAILABLE, tone: 'notice' });
     } finally {
       setLoading(false);
@@ -121,7 +121,7 @@ export default function AdvisorFloating({ accentColor }: { accentColor: string }
   };
 
   const scorePercent = score && score.total ? Math.round(score.score / score.total * 100) : null;
-  const suggested = ['Analisis portfolio saya', 'Apa yang perlu ditambah?', 'Perbaiki bio saya'];
+  const suggested = ['Analyze my portfolio', 'What should I add?', 'Improve my bio'];
   const last = messages[messages.length - 1];
 
   return (
@@ -137,13 +137,13 @@ export default function AdvisorFloating({ accentColor }: { accentColor: string }
                   <div className="h-1 w-20 overflow-hidden rounded-full bg-[#efefe9]">
                     <div className="h-full" style={{ width: `${scorePercent}%`, backgroundColor: ac }} />
                   </div>
-                  <span className="font-mono text-xs text-[#55555a]">{scorePercent}% lengkap</span>
+                  <span className="font-mono text-xs text-[#55555a]">{scorePercent}% complete</span>
                 </div>
               ) : (
-                <p className="text-xs text-[#55555a]">Hanya terlihat oleh kamu di mode preview</p>
+                <p className="text-xs text-[#55555a]">Only you can see this in preview mode</p>
               )}
             </div>
-            <button type="button" onClick={() => setOpen(false)} className="flex h-8 w-8 items-center justify-center rounded-md text-[#55555a] transition-colors hover:bg-[#efefe9] hover:text-[#141414] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#141414]" aria-label="Tutup advisor">
+            <button type="button" onClick={() => setOpen(false)} className="flex h-8 w-8 items-center justify-center rounded-md text-[#55555a] transition-colors hover:bg-[#efefe9] hover:text-[#141414] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#141414]" aria-label="Close advisor">
               <CloseGlyph className="h-4 w-4" />
             </button>
           </div>
@@ -162,7 +162,7 @@ export default function AdvisorFloating({ accentColor }: { accentColor: string }
                 ? <div key={i} role="status" className="rounded-md border border-[#dcdcd5] bg-[#fafaf7] px-3 py-2 text-[13px] leading-relaxed text-[#55555a]">{msg.content}</div>
                 : <div key={i} className="max-w-[90%] whitespace-pre-wrap text-sm leading-relaxed">{msg.content}</div>;
             })}
-            {loading && last?.content === '' && <p className="text-[13px] text-[#55555a]" role="status">Sedang menulis…</p>}
+            {loading && last?.content === '' && <p className="text-[13px] text-[#55555a]" role="status">Writing…</p>}
             <div ref={messagesEndRef} />
           </div>
 
@@ -178,17 +178,17 @@ export default function AdvisorFloating({ accentColor }: { accentColor: string }
           )}
 
           <form className="flex flex-shrink-0 items-center gap-2 border-t border-[#dcdcd5] p-3" onSubmit={(e) => { e.preventDefault(); sendMessage(); }}>
-            <label htmlFor="advisor-floating-input" className="sr-only">Pertanyaan untuk Advisor</label>
+            <label htmlFor="advisor-floating-input" className="sr-only">Question for the Advisor</label>
             <input id="advisor-floating-input" ref={inputRef} value={input}
               onChange={e => setInput(e.target.value)}
-              placeholder="Tulis pertanyaan…"
+              placeholder="Ask a question…"
               disabled={loading}
               className="min-w-0 flex-1 rounded-md border border-[#dcdcd5] bg-white px-3 py-2 text-sm text-[#141414] placeholder:text-[#9a9aa0] outline-none transition-colors focus:border-[#141414] disabled:opacity-60"
             />
             <button type="submit" disabled={loading || !input.trim()}
               className="shrink-0 rounded-md px-3 py-2 text-sm font-medium transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
               style={{ backgroundColor: ac, color: onAc }}>
-              Kirim
+              Send
             </button>
           </form>
         </div>
@@ -198,7 +198,7 @@ export default function AdvisorFloating({ accentColor }: { accentColor: string }
         className="flex h-12 w-12 items-center justify-center rounded-full shadow-[0_2px_8px_rgba(0,0,0,0.18)] transition-opacity hover:opacity-90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#141414]"
         style={{ backgroundColor: ac, color: onAc }}
         aria-expanded={open}
-        aria-label={open ? 'Tutup portfolio advisor' : 'Buka portfolio advisor'}>
+        aria-label={open ? 'Close portfolio advisor' : 'Open portfolio advisor'}>
         {open ? <CloseGlyph className="h-5 w-5" /> : <ChatGlyph className="h-5 w-5" />}
       </button>
     </div>

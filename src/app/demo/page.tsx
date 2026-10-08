@@ -57,7 +57,7 @@ export default function DemoPage() {
           </div>
 
           <Link href="/register" className="rounded-md bg-accent px-3.5 py-2 text-sm font-medium text-white transition-colors hover:bg-accent-dark">
-            Bikin punyamu
+            Make your own
           </Link>
         </div>
       </header>
@@ -65,7 +65,7 @@ export default function DemoPage() {
       <div className="flex-1 bg-paper-deep p-0 sm:p-4">
         <iframe
           key={`${template}-${theme.id}`}
-          title={`Contoh portfolio dengan template ${current?.label ?? template}`}
+          title={`Sample portfolio using the ${current?.label ?? template} template`}
           src={`/portfolio/demo?preview=true&template=${template}&theme=${theme.id}&demo=alex`}
           className="h-full min-h-[calc(100dvh-7.5rem)] w-full border-0 bg-white sm:min-h-[calc(100dvh-6.5rem)] sm:rounded-md sm:border sm:border-rule"
         />

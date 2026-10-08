@@ -11,13 +11,13 @@ import type { DashboardPortfolio } from '@/types';
 const isCustomSectionKey = (key: CvAppliedSection): key is `custom:${string}` => key.startsWith('custom:');
 
 const TEMPLATES = [
-  { id: 'ats', label: 'ATS (untuk melamar kerja)', desc: 'Hitam-putih, satu kolom, judul bagian standar. Paling mudah dibaca sistem rekrutmen.' },
-  { id: 'professional', label: 'Professional', desc: 'Satu kolom dengan aksen biru tua.' },
-  { id: 'modern', label: 'Dua kolom', desc: 'Tanggal di kolom kiri, isi di kanan.' },
-  { id: 'executive', label: 'Executive', desc: 'Serif, header di tengah. Kesan formal.' },
+  { id: 'ats', label: 'ATS (for job applications)', desc: 'Black and white, one column, standard headings. Easiest for applicant tracking systems to read.' },
+  { id: 'professional', label: 'Professional', desc: 'One column with a dark blue accent.' },
+  { id: 'modern', label: 'Two columns', desc: 'Dates on the left, details on the right.' },
+  { id: 'executive', label: 'Executive', desc: 'Serif type, centred header. More formal.' },
 ];
 
-const INCLUDED = ['Nama, jabatan, dan bio (About)', 'Kontak, LinkedIn, GitHub', 'Pengalaman kerja', 'Pendidikan', 'Skills', 'Project (8 terbaru)', 'Sertifikat dan sertifikasi', 'Organisasi, penghargaan, bahasa', 'Bagian custom lainnya'];
+const INCLUDED = ['Name, job title and bio (About)', 'Contact, LinkedIn, GitHub', 'Work experience', 'Education', 'Skills', 'Projects (8 most recent)', 'Certificates and certifications', 'Organizations, awards, languages', 'Other custom sections'];
 
 interface Props {
   portfolio: DashboardPortfolio | null;
@@ -28,16 +28,16 @@ interface Props {
 /** Error bodies come back as text (responseType "text"), so parse the JSON message ourselves. */
 function cvErrorMessage(err: unknown) {
   if (axios.isAxiosError(err)) {
-    if (err.code === 'ECONNABORTED') return 'Server terlalu lama merespons. Coba lagi.';
+    if (err.code === 'ECONNABORTED') return 'The server took too long to respond. Try again.';
     const data: unknown = err.response?.data;
     if (typeof data === 'string') {
       try { const j = JSON.parse(data); if (j?.message) return String(j.message); } catch { /* not JSON */ }
     } else if (data && typeof data === 'object' && 'message' in data && typeof data.message === 'string') {
       return data.message;
     }
-    if (err.response?.status === 401) return 'Sesi kamu sudah habis. Masuk lagi lalu coba ulang.';
+    if (err.response?.status === 401) return 'Your session has expired. Log in again and retry.';
   }
-  return getErrorMessage(err, 'Gagal membuat CV.');
+  return getErrorMessage(err, 'Could not generate the CV.');
 }
 
 export default function CVPanel({ portfolio, setSections, loadPreview }: Props) {
@@ -92,7 +92,7 @@ export default function CVPanel({ portfolio, setSections, loadPreview }: Props) 
     const res = await api.get<string>(`/api/cv/generate?template=${encodeURIComponent(cvTemplate)}`, {
       responseType: 'text', timeout: 30000, transformResponse: (d) => d,
     });
-    if (typeof res.data !== 'string' || !res.data.includes('cv-doc')) throw new Error('Respons server bukan dokumen CV.');
+    if (typeof res.data !== 'string' || !res.data.includes('cv-doc')) throw new Error('The server did not return a CV document.');
     return res.data;
   };
 
@@ -102,7 +102,7 @@ export default function CVPanel({ portfolio, setSections, loadPreview }: Props) 
   const downloadPdf = async () => {
     setCvError('');
     const win = window.open('', '_blank');
-    if (!win) { setCvError('Pop-up diblokir browser. Izinkan pop-up untuk situs ini lalu coba lagi.'); return; }
+    if (!win) { setCvError('Your browser blocked the pop-up. Allow pop-ups for this site and try again.'); return; }
     setBusy('pdf');
     try {
       const html = await fetchCvHtml();
@@ -124,7 +124,7 @@ export default function CVPanel({ portfolio, setSections, loadPreview }: Props) 
   const openPrintable = async () => {
     setCvError('');
     const win = window.open('', '_blank');
-    if (!win) { setCvError('Pop-up diblokir browser. Izinkan pop-up untuk situs ini lalu coba lagi.'); return; }
+    if (!win) { setCvError('Your browser blocked the pop-up. Allow pop-ups for this site and try again.'); return; }
     setBusy('print');
     try {
       const html = await fetchCvHtml();
@@ -143,19 +143,19 @@ export default function CVPanel({ portfolio, setSections, loadPreview }: Props) 
     <div className="flex-1 overflow-auto bg-paper">
       <div className="mx-auto max-w-3xl px-5 py-8 sm:px-8">
         <h2 className="font-display text-2xl font-semibold tracking-tight text-ink">CV</h2>
-        <p className="mt-1 text-sm text-ink-soft">Isi portfolio dari CV yang sudah ada, atau buat CV PDF dari data portfolio.</p>
+        <p className="mt-1 text-sm text-ink-soft">Fill your portfolio from an existing CV, or generate a PDF CV from your portfolio.</p>
 
         <div className="mt-6"><CVUpload onApplied={handleApplied} /></div>
 
         <section className="mt-6 rounded-lg border border-rule bg-white" aria-labelledby="cv-generate-title">
           <div className="border-b border-rule px-5 py-4">
-            <h3 id="cv-generate-title" className="text-sm font-semibold text-ink">Buat CV dari portfolio</h3>
-            <p className="mt-0.5 text-[13px] text-ink-soft">CV dibuat dari data yang sudah tersimpan. Lengkapi dulu bagian yang masih kosong. Bahasa judul CV mengikuti bahasa isi portfolio kamu (English atau Indonesia), jadi tulis isinya dalam satu bahasa.</p>
+            <h3 id="cv-generate-title" className="text-sm font-semibold text-ink">Generate a CV from your portfolio</h3>
+            <p className="mt-0.5 text-[13px] text-ink-soft">The CV uses the data you have saved, so fill in any empty sections first. CV headings follow the language your portfolio content is written in (English or Indonesian), so keep the content in one language.</p>
           </div>
 
           <div className="grid gap-6 px-5 py-4 md:grid-cols-[minmax(0,1fr)_minmax(0,14rem)]">
             <fieldset>
-              <legend className="mb-2 text-[13px] font-medium text-ink">Tata letak</legend>
+              <legend className="mb-2 text-[13px] font-medium text-ink">Layout</legend>
               <div className="divide-y divide-rule rounded-md border border-rule">
                 {TEMPLATES.map((t) => (
                   <label key={t.id} htmlFor={`cv-tpl-${t.id}`}
@@ -172,7 +172,7 @@ export default function CVPanel({ portfolio, setSections, loadPreview }: Props) 
             </fieldset>
 
             <div>
-              <p className="mb-2 text-[13px] font-medium text-ink">Yang dimasukkan</p>
+              <p className="mb-2 text-[13px] font-medium text-ink">What&rsquo;s included</p>
               <ul className="space-y-1 text-[13px] text-ink-soft">
                 {INCLUDED.map((item) => <li key={item} className="border-l border-rule pl-2.5">{item}</li>)}
               </ul>
@@ -183,20 +183,20 @@ export default function CVPanel({ portfolio, setSections, loadPreview }: Props) 
             {cvError && <div role="alert" className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-[13px] text-red-800">{cvError}</div>}
             {portfolio && !portfolio.is_published && (
               <div role="status" className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-[13px] text-amber-900">
-                Portfolio kamu belum terbit, jadi <b className="font-medium">link portfolio tidak dimasukkan ke CV</b>. Terbitkan dulu lewat tombol <b className="font-medium">Terbitkan</b> di bagian atas kalau ingin link-nya ikut tercantum, lalu unduh ulang CV-nya.
+                Your portfolio is not published, so <b className="font-medium">the portfolio link is left out of the CV</b>. To include it, use <b className="font-medium">Publish</b> in the top bar, then download the CV again.
               </div>
             )}
             <div className="flex flex-wrap items-center gap-2">
               <button type="button" onClick={downloadPdf} disabled={busy !== null}
                 className="rounded-md bg-ink px-3.5 py-2 text-sm font-medium text-paper transition-colors hover:bg-black disabled:cursor-not-allowed disabled:opacity-60">
-                {busy === 'pdf' ? 'Menyiapkan…' : 'Unduh PDF'}
+                {busy === 'pdf' ? 'Preparing…' : 'Download PDF'}
               </button>
               <button type="button" onClick={openPrintable} disabled={busy !== null}
                 className="rounded-md border border-rule bg-white px-3.5 py-2 text-sm text-ink transition-colors hover:border-ink-soft disabled:cursor-not-allowed disabled:opacity-60">
-                {busy === 'print' ? 'Membuka…' : 'Buka versi cetak'}
+                {busy === 'print' ? 'Opening…' : 'Open print version'}
               </button>
             </div>
-            <p className="text-[12px] text-ink-soft">&ldquo;Unduh PDF&rdquo; membuka jendela cetak: pilih tujuan <b className="font-medium text-ink">Simpan sebagai PDF</b>. Hasilnya PDF berisi teks asli, jadi bisa dibaca sistem ATS saat melamar kerja. Matikan opsi &ldquo;Header dan footer&rdquo; di jendela cetak supaya tidak ada tanggal/URL di pinggir halaman.</p>
+            <p className="text-[12px] text-ink-soft">&ldquo;Download PDF&rdquo; opens the print dialog: choose <b className="font-medium text-ink">Save as PDF</b> as the destination. The PDF keeps real text, so applicant tracking systems can read it. Turn off &ldquo;Headers and footers&rdquo; in the print dialog so no date or URL is printed in the margins.</p>
           </div>
         </section>
       </div>

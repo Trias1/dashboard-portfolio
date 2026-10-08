@@ -63,7 +63,7 @@ const year = (d?: string) => (d ? d.slice(0, 4) : '');
 function fmtDate(d?: string) {
   if (!d) return '';
   const date = new Date(d);
-  return Number.isNaN(date.getTime()) ? d : date.toLocaleDateString('id-ID', { year: 'numeric', month: 'long' });
+  return Number.isNaN(date.getTime()) ? d : date.toLocaleDateString('en-US', { year: 'numeric', month: 'long' });
 }
 const waLink = (phone: string, name?: string) =>
   `https://wa.me/${phone.replace(/[^0-9]/g, '').replace(/^0/, '62')}?text=Halo%20${encodeURIComponent(name || 'there')}%2C%20saya%20tertarik%20untuk%20bekerja%20sama!`;
@@ -383,7 +383,7 @@ export default function ModernTemplate({ data, theme, isPreview }: { data: Templ
                     <h3 className="font-medium">{cert.title}</h3>
                     {cert.issued_date && <p className="mt-0.5 font-mono text-xs" style={{ color: p.muted }}>{fmtDate(cert.issued_date)}</p>}
                     {cert.description && <p className="mt-2 text-sm leading-relaxed" style={{ color: p.muted }}>{cert.description}</p>}
-                    {cert.file_url && <p className="mt-2 text-sm"><TextLink href={cert.file_url} p={p} external>Lihat sertifikat</TextLink></p>}
+                    {cert.file_url && <p className="mt-2 text-sm"><TextLink href={cert.file_url} p={p} external>View certificate</TextLink></p>}
                   </figcaption>
                 </figure>
               ))}

@@ -156,7 +156,7 @@ export default function DashboardCustomEditor(props: DashboardCustomEditorProps)
             certification: (
               <div className="space-y-5">
                 <div>
-                  <label htmlFor="cx-name" className={labelClass}>Nama Sertifikat *</label>
+                  <label htmlFor="cx-name" className={labelClass}>Certificate name *</label>
                   <input
                     id="cx-name"
                     value={editForm.content?.name || ""}
@@ -174,7 +174,7 @@ export default function DashboardCustomEditor(props: DashboardCustomEditorProps)
                   />
                 </div>
                 <div>
-                  <label htmlFor="cx-issuer" className={labelClass}>Organisasi Penerbit *</label>
+                  <label htmlFor="cx-issuer" className={labelClass}>Issuing organization *</label>
                   <input
                     id="cx-issuer"
                     value={editForm.content?.issuer || ""}
@@ -193,7 +193,7 @@ export default function DashboardCustomEditor(props: DashboardCustomEditorProps)
                 </div>
                 <div className="grid grid-cols-2 gap-x-3 gap-y-5">
                   <div>
-                    <label htmlFor="cx-issueMonth" className={labelClass}>Bulan Terbit</label>
+                    <label htmlFor="cx-issueMonth" className={labelClass}>Issue month</label>
                     <select
                       id="cx-issueMonth"
                       value={editForm.content?.issueMonth || ""}
@@ -208,23 +208,23 @@ export default function DashboardCustomEditor(props: DashboardCustomEditorProps)
                       }
                       className={inputClass}
                     >
-                      <option value="">Bulan</option>
-                      <option value="01">Januari</option>
-                      <option value="02">Februari</option>
-                      <option value="03">Maret</option>
+                      <option value="">Month</option>
+                      <option value="01">January</option>
+                      <option value="02">February</option>
+                      <option value="03">March</option>
                       <option value="04">April</option>
-                      <option value="05">Mei</option>
-                      <option value="06">Juni</option>
-                      <option value="07">Juli</option>
-                      <option value="08">Agustus</option>
+                      <option value="05">May</option>
+                      <option value="06">June</option>
+                      <option value="07">July</option>
+                      <option value="08">August</option>
                       <option value="09">September</option>
-                      <option value="10">Oktober</option>
+                      <option value="10">October</option>
                       <option value="11">November</option>
-                      <option value="12">Desember</option>
+                      <option value="12">December</option>
                     </select>
                   </div>
                   <div>
-                    <label htmlFor="cx-issueYear" className={labelClass}>Tahun Terbit *</label>
+                    <label htmlFor="cx-issueYear" className={labelClass}>Issue year *</label>
                     <input
                       id="cx-issueYear"
                       value={editForm.content?.issueYear || ""}
@@ -245,7 +245,7 @@ export default function DashboardCustomEditor(props: DashboardCustomEditorProps)
                 </div>
                 <div className="grid grid-cols-2 gap-x-3 gap-y-5">
                   <div>
-                    <label htmlFor="cx-expiryMonth" className={labelClass}>Bulan Expired</label>
+                    <label htmlFor="cx-expiryMonth" className={labelClass}>Expiry month</label>
                     <select
                       id="cx-expiryMonth"
                       value={editForm.content?.expiryMonth || ""}
@@ -260,23 +260,23 @@ export default function DashboardCustomEditor(props: DashboardCustomEditorProps)
                       }
                       className={inputClass}
                     >
-                      <option value="">Bulan</option>
-                      <option value="01">Januari</option>
-                      <option value="02">Februari</option>
-                      <option value="03">Maret</option>
+                      <option value="">Month</option>
+                      <option value="01">January</option>
+                      <option value="02">February</option>
+                      <option value="03">March</option>
                       <option value="04">April</option>
-                      <option value="05">Mei</option>
-                      <option value="06">Juni</option>
-                      <option value="07">Juli</option>
-                      <option value="08">Agustus</option>
+                      <option value="05">May</option>
+                      <option value="06">June</option>
+                      <option value="07">July</option>
+                      <option value="08">August</option>
                       <option value="09">September</option>
-                      <option value="10">Oktober</option>
+                      <option value="10">October</option>
                       <option value="11">November</option>
-                      <option value="12">Desember</option>
+                      <option value="12">December</option>
                     </select>
                   </div>
                   <div>
-                    <label htmlFor="cx-expiryYear" className={labelClass}>Tahun Expired</label>
+                    <label htmlFor="cx-expiryYear" className={labelClass}>Expiry year</label>
                     <input
                       id="cx-expiryYear"
                       value={editForm.content?.expiryYear || ""}
@@ -314,11 +314,11 @@ export default function DashboardCustomEditor(props: DashboardCustomEditorProps)
                     className="h-4 w-4 rounded border-rule accent-[#1f45c9]"
                   />
                   <label htmlFor="noExpiry" className="text-sm text-ink-soft">
-                    Tidak ada masa berlaku (seumur hidup)
+                    No expiry date (lifetime)
                   </label>
                 </div>
                 <div className={groupClass}>
-                  <h4 className={groupTitleClass}>Detail tambahan</h4>
+                  <h4 className={groupTitleClass}>Extra details</h4>
                   <div className="grid gap-x-3 gap-y-5 sm:grid-cols-2">
                     <div>
                       <label htmlFor="cx-credentialId" className={labelClass}>Credential ID</label>
@@ -365,7 +365,7 @@ export default function DashboardCustomEditor(props: DashboardCustomEditorProps)
                           onClick={detectOgImage}
                           className="shrink-0 whitespace-nowrap rounded-md border border-rule bg-white px-3 py-2 text-sm font-medium text-ink transition-colors hover:border-ink-soft"
                         >
-                          Deteksi
+                          Detect
                         </button>
                       </div>
                     </div>
@@ -373,7 +373,7 @@ export default function DashboardCustomEditor(props: DashboardCustomEditorProps)
                 </div>
                 <div className={groupClass}>
                   <label htmlFor="cx-cert-skill-search" className={labelClass}>
-                    Skill terkait
+                    Related skills
                   </label>
                   <div className="relative">
                     <input
@@ -387,9 +387,9 @@ export default function DashboardCustomEditor(props: DashboardCustomEditorProps)
                         }
                       }}
                       className={inputClass}
-                      placeholder="Mis. TypeScript"
+                      placeholder="e.g. TypeScript"
                     />
-                    <p className={hintClass}>Ketik lalu tekan Enter, atau pilih dari saran.</p>
+                    <p className={hintClass}>Type and press Enter, or pick a suggestion.</p>
                     {certSkillSuggestions.length > 0 && (
                       <div className="absolute z-10 mt-1 w-full overflow-hidden rounded-md border border-rule bg-white shadow-sm">
                         {certSkillSuggestions.map((s: string) => (
@@ -414,7 +414,7 @@ export default function DashboardCustomEditor(props: DashboardCustomEditorProps)
                         {skill}
                         <button
                           type="button"
-                          aria-label={`Hapus ${skill}`}
+                          aria-label={`Remove ${skill}`}
                           onClick={() => removeCertSkill(skill)}
                           className="rounded px-0.5 text-ink-soft hover:text-red-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink/20"
                         >
@@ -425,14 +425,14 @@ export default function DashboardCustomEditor(props: DashboardCustomEditorProps)
                     {(!editForm.content?.skills ||
                       editForm.content.skills.length === 0) && (
                       <span className="text-xs text-ink-soft">
-                        Belum ada skill.
+                        No skills yet.
                       </span>
                     )}
                   </div>
                 </div>
                 <div className={groupClass}>
                   <label htmlFor="cx-cert-description" className={labelClass}>
-                    Deskripsi
+                    Description
                   </label>
                   <textarea
                     id="cx-cert-description"
@@ -447,11 +447,11 @@ export default function DashboardCustomEditor(props: DashboardCustomEditorProps)
                       })
                     }
                     className={inputClass + " h-24 resize-y"}
-                    placeholder="Deskripsi sertifikat..."
+                    placeholder="Certificate description..."
                   />
                 </div>
                 <div className={groupClass}>
-                  <h4 className={groupTitleClass}>Gambar sertifikat</h4>
+                  <h4 className={groupTitleClass}>Certificate image</h4>
                   <div>
                     <label htmlFor="cx-imageUrl" className={labelClass}>Image URL</label>
                     <input
@@ -471,7 +471,7 @@ export default function DashboardCustomEditor(props: DashboardCustomEditorProps)
                     />
                   </div>
                   <p className={hintClass}>
-                    URL gambar thumbnail sertifikat.
+                    URL of the certificate thumbnail image.
                   </p>
                 </div>
               </div>

@@ -72,7 +72,7 @@ export default function LoginPage() {
     setInfo('');
     try {
       await api.post('/api/otp/send', { email: form.email });
-      setInfo('Kode baru sudah dikirim.');
+      setInfo('New code sent.');
     } catch (err: unknown) {
       setError(getApiErrorMessage(err, 'Failed to resend OTP'));
     } finally {
@@ -84,50 +84,50 @@ export default function LoginPage() {
 
   if (otpSent) return (
     <AuthShell
-      title="Cek email kamu"
-      subtitle={<>Kami kirim kode 6 angka ke <span className="font-medium text-ink">{form.email}</span>. Berlaku 5 menit.</>}
+      title="Check your email"
+      subtitle={<>We sent a 6-digit code to <span className="font-medium text-ink">{form.email}</span>. It expires in 5 minutes.</>}
       footer={
         <div className="flex items-center justify-between">
           <button type="button" onClick={() => { setOtpSent(false); setOtp(''); setError(''); setInfo(''); }}
-            className="underline-offset-4 hover:text-ink hover:underline">← Ganti email</button>
+            className="underline-offset-4 hover:text-ink hover:underline">← Use a different email</button>
           <button type="button" onClick={handleResendOtp} disabled={resending}
             className="text-accent underline-offset-4 hover:underline disabled:opacity-50">
-            {resending ? 'Mengirim…' : 'Kirim ulang kode'}
+            {resending ? 'Sending…' : 'Resend code'}
           </button>
         </div>
       }>
       {error && <Notice tone="error">{error}</Notice>}
       {info && !error && <Notice tone="ok">{info}</Notice>}
       <form onSubmit={handleVerifyOtp} className="space-y-5">
-        <Field id="login-otp" label="Kode verifikasi" type="text" inputMode="numeric" autoComplete="one-time-code"
+        <Field id="login-otp" label="Verification code" type="text" inputMode="numeric" autoComplete="one-time-code"
           pattern="\d{6}" maxLength={6} placeholder="000000" value={otp} required autoFocus
           onChange={e => setOtp(e.target.value.replace(/\D/g, ''))}
           className="font-mono text-xl tracking-[0.4em]" />
-        <SubmitButton busy={otpLoading}>Masuk</SubmitButton>
+        <SubmitButton busy={otpLoading}>Log in</SubmitButton>
       </form>
     </AuthShell>
   );
 
   return (
     <AuthShell
-      title="Masuk"
-      subtitle="Lanjutkan ngerjain portfolio kamu."
-      footer={<>Belum punya akun? <Link href="/register" className="font-medium text-accent underline-offset-4 hover:underline">Daftar gratis</Link></>}>
+      title="Log in"
+      subtitle="Pick up where you left off."
+      footer={<>Don&apos;t have an account? <Link href="/register" className="font-medium text-accent underline-offset-4 hover:underline">Sign up free</Link></>}>
       {error && <Notice tone="error">{error}</Notice>}
       <form onSubmit={handleSubmit} className="space-y-5">
-        <Field id="login-email" label="Email" type="email" autoComplete="email" placeholder="nama@email.com"
+        <Field id="login-email" label="Email" type="email" autoComplete="email" placeholder="you@email.com"
           value={form.email} required onChange={e => setForm({ ...form, email: e.target.value })} />
         <div>
           <Field id="login-password" label="Password" type="password" autoComplete="current-password"
             value={form.password} required onChange={e => setForm({ ...form, password: e.target.value })} />
           <Link href="/forgot-password" className="mt-2 inline-block text-xs text-ink-soft underline-offset-4 hover:text-ink hover:underline">
-            Lupa password?
+            Forgot password?
           </Link>
         </div>
-        <SubmitButton busy={submitting}>Lanjut</SubmitButton>
+        <SubmitButton busy={submitting}>Continue</SubmitButton>
       </form>
       <OrDivider />
-      <GoogleButton label="Masuk dengan Google" />
+      <GoogleButton label="Log in with Google" />
     </AuthShell>
   );
 }

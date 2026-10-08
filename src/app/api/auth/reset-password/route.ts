@@ -12,7 +12,7 @@ export async function POST(request: NextRequest) {
 
     const { token, password } = await request.json();
     if (typeof token !== 'string' || typeof password !== 'string' || !token || !password) return errorResponse('Token and password required', 400);
-    if (password.length < MIN_PASSWORD_LENGTH) return errorResponse(`Password minimal ${MIN_PASSWORD_LENGTH} karakter / must be at least ${MIN_PASSWORD_LENGTH} characters`, 400);
+    if (password.length < MIN_PASSWORD_LENGTH) return errorResponse(`Password must be at least ${MIN_PASSWORD_LENGTH} characters`, 400);
 
     const { data: user } = await getSupabaseAdmin()
       .from('users')
@@ -21,7 +21,7 @@ export async function POST(request: NextRequest) {
       .gte('reset_token_expires', new Date().toISOString())
       .maybeSingle();
 
-    if (!user) return errorResponse('Token tidak valid atau sudah expired.', 400);
+    if (!user) return errorResponse('This link is invalid or has expired.', 400);
 
     const hashed = await bcrypt.hash(password, 10);
     await getSupabaseAdmin()
@@ -29,8 +29,8 @@ export async function POST(request: NextRequest) {
       .update({ password: hashed, reset_token: null, reset_token_expires: null })
       .eq('id', user.id);
 
-    return successResponse({ message: 'Password berhasil direset!' });
+    return successResponse({ message: 'Your password has been reset.' });
   } catch {
-    return errorResponse('Gagal reset password', 500);
+    return errorResponse("Couldn't reset the password", 500);
   }
 }

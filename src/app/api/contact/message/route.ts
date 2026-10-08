@@ -12,17 +12,17 @@ const EMAIL_RE = /^[^\s@<>()[\]\\,;:"]+@[^\s@<>()[\]\\,;:"]+\.[^\s@<>()[\]\\,;:"
 export async function POST(request: NextRequest) {
   try {
     const rl = await checkRateLimit(`message:${getClientId(request)}`, 'message');
-    if (!rl.allowed) return errorResponse('Terlalu banyak pesan. Coba lagi nanti.', 429);
+    if (!rl.allowed) return errorResponse('Too many messages. Please try again later.', 429);
 
     const body = await request.json();
     const name = typeof body?.name === 'string' ? body.name.trim() : '';
     const email = typeof body?.email === 'string' ? body.email.trim() : '';
     const message = typeof body?.message === 'string' ? body.message.trim() : '';
     const slug = typeof body?.slug === 'string' ? body.slug.trim() : '';
-    if (!name || !email || !message || !slug) return errorResponse('Semua field harus diisi', 400);
-    if (name.length > MAX_NAME_LENGTH) return errorResponse(`Nama maksimal ${MAX_NAME_LENGTH} karakter`, 400);
-    if (email.length > MAX_EMAIL_LENGTH || !EMAIL_RE.test(email)) return errorResponse('Format email tidak valid', 400);
-    if (message.length > MAX_MESSAGE_LENGTH) return errorResponse(`Pesan maksimal ${MAX_MESSAGE_LENGTH} karakter`, 400);
+    if (!name || !email || !message || !slug) return errorResponse('Please fill in all fields', 400);
+    if (name.length > MAX_NAME_LENGTH) return errorResponse(`Name can be at most ${MAX_NAME_LENGTH} characters`, 400);
+    if (email.length > MAX_EMAIL_LENGTH || !EMAIL_RE.test(email)) return errorResponse("That email address doesn't look right", 400);
+    if (message.length > MAX_MESSAGE_LENGTH) return errorResponse(`Message can be at most ${MAX_MESSAGE_LENGTH} characters`, 400);
 
     const { data: portfolio } = await getSupabaseAdmin()
       .from('portfolios')
@@ -45,10 +45,10 @@ export async function POST(request: NextRequest) {
       } catch (err) {
         console.error('[SMTP Error] Failed to send contact email:', err);
         // Return error so the user knows it failed, preventing silent data loss.
-        return errorResponse('Pesan tersimpan, tetapi gagal meneruskan ke email pemilik.', 502);
+        return errorResponse("Your message was saved, but we couldn't forward it to the owner's email.", 502);
       }
     }
 
-    return successResponse({ message: 'Pesan berhasil dikirim!' }, 201);
+    return successResponse({ message: 'Message sent.' }, 201);
   } catch (err) { return errorResponse(getErrorMessage(err)); }
 }

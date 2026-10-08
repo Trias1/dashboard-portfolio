@@ -81,7 +81,7 @@ export default function PublicPortfolioPage() {
   if (loading)
     return (
       <div className="flex min-h-screen items-center justify-center bg-paper font-sans" aria-busy="true">
-        <p className="text-sm text-ink-soft">Memuat portfolio…</p>
+        <p className="text-sm text-ink-soft">Loading portfolio…</p>
       </div>
     );
   if (notFound || !data)
@@ -89,10 +89,10 @@ export default function PublicPortfolioPage() {
       <main className="flex min-h-screen items-center bg-paper px-5 font-sans text-ink sm:px-10">
         <div className="mx-auto w-full max-w-xl">
           <p className="font-mono text-sm text-ink-soft">/portfolio/{slug}</p>
-          <h1 className="mt-2 font-display text-4xl font-semibold tracking-tight">Portfolio ini belum ada.</h1>
-          <p className="mt-3 text-ink-soft">Alamatnya mungkin salah, atau pemiliknya belum menerbitkan halaman ini.</p>
+          <h1 className="mt-2 font-display text-4xl font-semibold tracking-tight">This portfolio doesn&apos;t exist yet.</h1>
+          <p className="mt-3 text-ink-soft">The address might be wrong, or the owner hasn&apos;t published this page yet.</p>
           <Link href="/" className="mt-8 inline-block rounded-md bg-ink px-4 py-2.5 text-sm font-medium text-paper transition-colors hover:bg-black">
-            Ke beranda PortfolioKit
+            Go to the PortfolioKit home page
           </Link>
         </div>
       </main>

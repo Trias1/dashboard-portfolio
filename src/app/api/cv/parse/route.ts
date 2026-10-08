@@ -106,30 +106,30 @@ export async function POST(request: NextRequest) {
   try {
     const auth = await requireAuth(request);
     const rl = await checkRateLimit(`ai:${auth.id}`, 'ai');
-    if (!rl.allowed) return errorResponse('Terlalu banyak permintaan. Coba lagi beberapa menit lagi.', 429);
+    if (!rl.allowed) return errorResponse('Too many requests. Please try again in a few minutes.', 429);
 
     const formData = await request.formData();
     const file = formData.get('cv') || formData.get('file');
-    if (!file || typeof file === 'string') return errorResponse('Tidak ada file yang diunggah.', 400);
-    if (file.size > 10 * 1024 * 1024) return errorResponse('File terlalu besar (maksimal 10 MB).', 400);
+    if (!file || typeof file === 'string') return errorResponse('No file was uploaded.', 400);
+    if (file.size > 10 * 1024 * 1024) return errorResponse('File is too large (10 MB max).', 400);
 
     const name = (file.name || '').toLowerCase();
     const isPdf = file.type === 'application/pdf' || name.endsWith('.pdf');
     const isText = file.type === 'text/plain' || name.endsWith('.txt');
-    if (!isPdf && !isText) return errorResponse('Format file tidak didukung. Unggah CV dalam bentuk PDF.', 400);
+    if (!isPdf && !isText) return errorResponse('File type not supported. Please upload your CV as a PDF.', 400);
 
     const buffer = Buffer.from(await file.arrayBuffer());
     let rawText = '';
     if (isPdf) {
       if (buffer.subarray(0, 5).toString('latin1') !== '%PDF-') {
-        return errorResponse('File ini bukan PDF yang valid. Coba ekspor ulang CV ke PDF.', 400);
+        return errorResponse("This file isn't a valid PDF. Try exporting your CV to PDF again.", 400);
       }
       try {
         rawText = await pdfToText(buffer);
       } catch (pdfErr) {
         // Previously fell back to buffer.toString(), which "parsed" raw PDF bytes into garbage.
         console.error('[CV Parse] PDF extraction failed:', getErrorMessage(pdfErr));
-        return errorResponse('PDF tidak bisa dibaca. File mungkin terkunci (password) atau rusak.', 422);
+        return errorResponse("Couldn't read this PDF. It may be password-protected or damaged.", 422);
       }
     } else {
       rawText = buffer.toString('utf-8');
@@ -137,7 +137,7 @@ export async function POST(request: NextRequest) {
     rawText = cleanExtractedText(rawText).trim();
 
     if (rawText.length < 50) {
-      return errorResponse('Teks tidak bisa diambil dari PDF ini. Kemungkinan CV berupa gambar/hasil scan. Ekspor ulang CV dari Word atau Google Docs sebagai PDF, lalu coba lagi.', 422);
+      return errorResponse("Couldn't get any text out of this PDF. It's probably an image or a scan. Export your CV from Word or Google Docs as a PDF and try again.", 422);
     }
     console.log('[CV Parse] extracted %d chars', rawText.length);
 
@@ -192,8 +192,8 @@ export async function POST(request: NextRequest) {
     const notice = ai.status === 'ok'
       ? null
       : ai.status === 'not_configured'
-        ? 'AI belum dikonfigurasi di server, jadi CV dibaca dengan pencocokan kata kunci. Hasilnya bisa kurang lengkap — cek dulu sebelum menyimpan.'
-        : 'Layanan AI sedang tidak bisa dihubungi, jadi CV dibaca dengan pencocokan kata kunci. Hasilnya bisa kurang lengkap — cek dulu sebelum menyimpan.';
+        ? "AI isn't set up on the server, so your CV was read with keyword matching. Some details may be missing, so check before saving."
+        : "The AI service couldn't be reached, so your CV was read with keyword matching. Some details may be missing, so check before saving.";
 
     return successResponse({
       success: true,

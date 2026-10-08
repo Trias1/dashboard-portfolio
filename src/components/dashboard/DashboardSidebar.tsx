@@ -2,7 +2,6 @@
 
 interface DashboardSidebarProps {
   role?: string;
-  lang: "id" | "en";
   activeMenu: string;
   /** null = responsive default: collapsed below `md`, expanded from `md` up. */
   sidebarOpen: boolean | null;
@@ -43,7 +42,6 @@ function MenuIcon({ name }: { name: string }) {
 
 export default function DashboardSidebar({
   role,
-  lang,
   activeMenu,
   sidebarOpen,
   setActiveMenu,
@@ -59,13 +57,13 @@ export default function DashboardSidebar({
         ]
       : [
           { key: "builder", label: "Builder", icon: "builder" },
-          { key: "advisor", label: lang === "id" ? "Saran" : "Advisor", icon: "advisor" },
+          { key: "advisor", label: "Advisor", icon: "advisor" },
           {
             key: "analytics",
-            label: lang === "id" ? "Statistik" : "Analytics",
+            label: "Analytics",
             icon: "analytics",
           },
-          { key: "github", label: lang === "id" ? "Impor GitHub" : "GitHub import", icon: "github" },
+          { key: "github", label: "GitHub import", icon: "github" },
           { key: "cv", label: "CV", icon: "cv" },
         ];
 

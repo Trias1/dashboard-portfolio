@@ -62,7 +62,7 @@ const ym = (d?: string) => (d ? d.slice(0, 7).replace('-', '.') : '');
 function fmtDate(d?: string) {
   if (!d) return '';
   const date = new Date(d);
-  return Number.isNaN(date.getTime()) ? d : date.toLocaleDateString('id-ID', { year: 'numeric', month: 'short', day: '2-digit' });
+  return Number.isNaN(date.getTime()) ? d : date.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: '2-digit' });
 }
 const waLink = (phone: string, name?: string) =>
   `https://wa.me/${phone.replace(/[^0-9]/g, '').replace(/^0/, '62')}?text=Halo%20${encodeURIComponent(name || 'there')}%2C%20saya%20tertarik%20untuk%20bekerja%20sama!`;

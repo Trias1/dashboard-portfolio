@@ -17,31 +17,31 @@ export default function ForgotPasswordPage() {
       await api.post('/api/auth/forgot-password', { email });
       setSent(true);
     } catch (err: unknown) {
-      setError(getApiErrorMessage(err, 'Gagal mengirim email'));
+      setError(getApiErrorMessage(err, "Couldn't send the email"));
     } finally { setLoading(false); }
   };
 
-  const backToLogin = <Link href="/login" className="font-medium text-accent underline-offset-4 hover:underline">← Kembali ke halaman masuk</Link>;
+  const backToLogin = <Link href="/login" className="font-medium text-accent underline-offset-4 hover:underline">← Back to log in</Link>;
 
   if (sent) return (
     <AuthShell
-      title="Cek email kamu"
-      subtitle={<>Kalau <span className="font-medium text-ink">{email}</span> terdaftar, link untuk bikin password baru sudah dikirim. Link-nya berlaku 1 jam.</>}
+      title="Check your email"
+      subtitle={<>If <span className="font-medium text-ink">{email}</span> has an account, we sent a link to set a new password. The link expires in 1 hour.</>}
       footer={backToLogin}>
-      <p className="text-sm text-ink-soft">Tidak ada di inbox? Cek folder spam, atau coba lagi beberapa menit lagi.</p>
+      <p className="text-sm text-ink-soft">Not in your inbox? Check your spam folder, or try again in a few minutes.</p>
     </AuthShell>
   );
 
   return (
     <AuthShell
-      title="Lupa password"
-      subtitle="Masukkan email akunmu. Kami kirim link untuk bikin password baru."
+      title="Forgot password"
+      subtitle="Enter your account email and we'll send you a link to set a new password."
       footer={backToLogin}>
       {error && <Notice tone="error">{error}</Notice>}
       <form onSubmit={handleSubmit} className="space-y-5">
-        <Field id="forgot-email" label="Email" type="email" autoComplete="email" placeholder="nama@email.com"
+        <Field id="forgot-email" label="Email" type="email" autoComplete="email" placeholder="you@email.com"
           value={email} required onChange={e => setEmail(e.target.value)} />
-        <SubmitButton busy={loading}>Kirim link</SubmitButton>
+        <SubmitButton busy={loading}>Send link</SubmitButton>
       </form>
     </AuthShell>
   );

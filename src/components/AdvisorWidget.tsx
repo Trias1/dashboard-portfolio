@@ -80,35 +80,35 @@ function isGeneratedPayload(value: unknown): value is GeneratedPayload {
 
 /** Fallback text /api/advisor sends when its own upstream request fails. */
 const SERVER_FAILURE = /^sorry, something went wrong\.?$/i;
-const AI_UNAVAILABLE = 'Advisor belum bisa menjawab sekarang: layanan AI belum dikonfigurasi atau sedang tidak tersedia. Kamu tetap bisa mengisi semua bagian secara manual di Builder.';
-const GENERATE_UNAVAILABLE = 'Isi otomatis untuk bagian ini belum tersedia (layanan AI belum aktif). Isi bagian ini manual di Builder.';
+const AI_UNAVAILABLE = "Advisor can't answer right now: the AI service isn't set up or is unavailable. You can still fill in every section by hand in the Builder.";
+const GENERATE_UNAVAILABLE = "Auto-fill isn't available for this section (the AI service isn't active). Fill it in by hand in the Builder.";
 
 const ALL_SUGGESTED = [
-  'Rapihkan & lengkapi portfolio saya',
+  'Fill all my empty sections',
   'Analyze my portfolio',
-  'Isi bagian skills saya',
-  'Generate testimonials untuk portfolio',
-  'Suggest certificate untuk saya',
-  'Generate experience saya',
+  'Fill in my skills section',
+  'Generate testimonials for my portfolio',
+  'Suggest certificates for me',
+  'Generate my experience',
   'Generate my bio',
-  'Buat hero section',
-  'Generate services saya',
-  'Suggest experience saya',
-  'Generate project untuk portfolio',
-  'Apa yang kurang dari portfolio saya?',
-  'Gimana cara buat portfolio lebih menarik?',
-  'Tips untuk contact section',
-  'Cara dapat testimonial?',
-  'Tips design portfolio yang bagus?',
-  'Gimana cara portfolio mudah ditemukan recruiter?',
-  'Apa yang harus ada di bio yang menarik?',
+  'Create a hero section',
+  'Generate my services',
+  'Suggest experience for me',
+  'Generate a project for my portfolio',
+  "What's missing from my portfolio?",
+  'How do I make my portfolio stand out?',
+  'Tips for the contact section',
+  'How do I get testimonials?',
+  'What makes a good portfolio design?',
+  'How can recruiters find my portfolio?',
+  'What should a good bio include?',
 ];
 
 const pickSuggestions = () => [...ALL_SUGGESTED].sort(() => Math.random() - 0.5).slice(0, 4);
 
 export default function AdvisorWidget({ inline = false }: { inline?: boolean }) {
   const [messages, setMessages] = useState<Message[]>([
-    { role: 'assistant', content: 'Saya bisa memeriksa kelengkapan portfolio kamu, menyarankan apa yang perlu ditambah, dan membantu mengisi beberapa bagian.\n\nTekan tombol di bawah untuk memeriksa portfolio, atau tulis pertanyaan.', preview: { section: 'boom', data: null } }
+    { role: 'assistant', content: 'I can check how complete your portfolio is, suggest what to add, and help fill in some sections.\n\nUse the button below to check your portfolio, or ask a question.', preview: { section: 'boom', data: null } }
   ]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
@@ -161,7 +161,7 @@ export default function AdvisorWidget({ inline = false }: { inline?: boolean }) 
   const generateSection = async (section: string) => {
     reshuffleSuggestions();
     setLoading(true);
-    setMessages(prev => [...prev, { role: 'assistant', content: `Menyiapkan isi untuk bagian ${section}…`, tone: 'notice' }]);
+    setMessages(prev => [...prev, { role: 'assistant', content: `Drafting the ${section} section…`, tone: 'notice' }]);
     try {
       if (!getToken()) await initAuth();
       const res = await api.post<{ generated?: unknown }>(`/api/advisor/generate/${section}`);
@@ -186,7 +186,7 @@ export default function AdvisorWidget({ inline = false }: { inline?: boolean }) 
 
       replaceLast({
         role: 'assistant',
-        content: `Usulan untuk bagian **${section}**:\n\n${previewText}\n\nKalau cocok, simpan ke portfolio.`,
+        content: `Suggestion for **${section}**:\n\n${previewText}\n\nIf it looks right, save it to your portfolio.`,
         preview: { section, data: generated },
       });
     } catch {
@@ -217,8 +217,8 @@ export default function AdvisorWidget({ inline = false }: { inline?: boolean }) 
           updated[msgIndex] = {
             ...updated[msgIndex],
             content: updated[msgIndex].content + (failed
-              ? `\n\n${failed} bagian gagal disimpan. Isi bagian itu manual di Builder.`
-              : '\n\n**Semua bagian sudah disimpan.** Muat ulang preview untuk melihat hasilnya.'),
+              ? `\n\n${failed} section(s) could not be saved. Fill them in by hand in the Builder.`
+              : '\n\n**All sections saved.** Refresh the preview to see them.'),
             preview: undefined
           };
           return updated;
@@ -231,13 +231,13 @@ export default function AdvisorWidget({ inline = false }: { inline?: boolean }) 
         const updated = [...prev];
         updated[msgIndex] = {
           ...updated[msgIndex],
-          content: updated[msgIndex].content + '\n\n**Tersimpan.** Muat ulang preview untuk melihat perubahan.',
+          content: updated[msgIndex].content + '\n\n**Saved.** Refresh the preview to see the change.',
           preview: undefined
         };
         return updated;
       });
     } catch {
-      setMessages(prev => [...prev, { role: 'assistant', content: 'Gagal menyimpan. Coba lagi, atau isi bagian ini manual di Builder.', tone: 'notice' }]);
+      setMessages(prev => [...prev, { role: 'assistant', content: 'Could not save. Try again, or fill in this section by hand in the Builder.', tone: 'notice' }]);
     } finally {
       setApplying(null);
     }
@@ -289,14 +289,14 @@ export default function AdvisorWidget({ inline = false }: { inline?: boolean }) 
     });
 
     const sectionLabels: Record<string,string> = {
-      bio: 'Bio/About', hero: 'Hero Headline', experience: 'Pengalaman Kerja',
-      skills: 'Skills', projects: 'Projects', contact: 'Kontak'
+      bio: 'Bio/About', hero: 'Hero Headline', experience: 'Work Experience',
+      skills: 'Skills', projects: 'Projects', contact: 'Contact'
     };
 
     if (sectionsToGenerate.length === 0 && missingSections.length === 0) {
       setMessages(prev => [...prev, {
         role: 'assistant',
-        content: 'Semua bagian portfolio sudah terisi.\n\nMau saya bantu memperbaiki bagian tertentu? Tulis misalnya "improve bio saya".'
+        content: 'Every portfolio section is filled in.\n\nWant help improving one? Try something like "improve my bio".'
       }]);
       setLoading(false);
       return;
@@ -304,10 +304,10 @@ export default function AdvisorWidget({ inline = false }: { inline?: boolean }) 
 
     if (missingSections.length > 0) {
       const missingLabels = missingSections.map(s => `* **${sectionLabels[s] || s}**`).join('\n');
-      const dummyMsg = sectionsToGenerate.length > 0 ? `\n\nSementara itu saya coba siapkan contoh untuk bagian opsional yang masih kosong.` : '';
+      const dummyMsg = sectionsToGenerate.length > 0 ? `\n\nMeanwhile, I'll draft examples for the optional sections that are still empty.` : '';
       setMessages(prev => [...prev, {
         role: 'assistant',
-        content: `**Bagian penting yang belum diisi:**\n\n${missingLabels}\n\nIsi bagian-bagian ini di Builder dengan data asli kamu.${dummyMsg}`
+        content: `**Key sections still empty:**\n\n${missingLabels}\n\nFill these in the Builder with your real details.${dummyMsg}`
       }]);
       if (sectionsToGenerate.length === 0) {
         setLoading(false);
@@ -316,12 +316,12 @@ export default function AdvisorWidget({ inline = false }: { inline?: boolean }) 
     }
 
     const skipped = allSections.filter(s => !sectionsToGenerate.includes(s));
-    const skipMsg = skipped.length > 0 ? `\n\nSudah terisi (dilewati): ${skipped.join(', ')}` : '';
+    const skipMsg = skipped.length > 0 ? `\n\nAlready filled (skipped): ${skipped.join(', ')}` : '';
 
     setMessages(prev => [...prev, {
       role: 'assistant',
       tone: 'notice',
-      content: `Menyiapkan ${sectionsToGenerate.length} bagian…${skipMsg}`
+      content: `Drafting ${sectionsToGenerate.length} sections…${skipMsg}`
     }]);
 
     const results: GeneratedResult[] = [];
@@ -369,7 +369,7 @@ export default function AdvisorWidget({ inline = false }: { inline?: boolean }) 
 
     setMessages(prev => [...prev, {
       role: 'assistant',
-      content: `Usulan untuk ${results.length} bagian:\n\n${summaryText}\n\nPeriksa dulu, lalu simpan semuanya ke portfolio.`,
+      content: `Suggestions for ${results.length} sections:\n\n${summaryText}\n\nCheck them, then save them all to your portfolio.`,
       preview: { section: 'all', data: results }
     }]);
     setLoading(false);
@@ -391,6 +391,7 @@ export default function AdvisorWidget({ inline = false }: { inline?: boolean }) 
     const isGenerateIntent = userMsg.toLowerCase().includes('isi') ||
       userMsg.toLowerCase().includes('generate') ||
       userMsg.toLowerCase().includes('buat') ||
+      userMsg.toLowerCase().includes('create') ||
       userMsg.toLowerCase().includes('tambah') ||
       userMsg.toLowerCase().includes('fill');
 
@@ -443,7 +444,7 @@ export default function AdvisorWidget({ inline = false }: { inline?: boolean }) 
       // The route streams nothing when the AI key is missing, and a canned "Sorry…" token when the upstream call throws.
       if (!fullContent.trim() || SERVER_FAILURE.test(fullContent.trim())) replaceLast({ role: 'assistant', content: AI_UNAVAILABLE, tone: 'notice' });
     } catch {
-      replaceLast({ role: 'assistant', content: fullContent ? `${fullContent}\n\n(Jawaban terputus.)` : AI_UNAVAILABLE, tone: fullContent ? undefined : 'notice' });
+      replaceLast({ role: 'assistant', content: fullContent ? `${fullContent}\n\n(The answer was cut off.)` : AI_UNAVAILABLE, tone: fullContent ? undefined : 'notice' });
     } finally {
       setLoading(false);
     }
@@ -472,11 +473,11 @@ export default function AdvisorWidget({ inline = false }: { inline?: boolean }) 
       <header className="flex flex-shrink-0 flex-wrap items-end justify-between gap-3 border-b border-rule px-5 py-4 sm:px-8">
         <div>
           <h2 className="font-display text-2xl font-semibold tracking-tight">Advisor</h2>
-          <p className="mt-0.5 text-sm text-ink-soft">Saran untuk melengkapi portfolio. Jawaban dibuat AI; periksa sebelum disimpan.</p>
+          <p className="mt-0.5 text-sm text-ink-soft">Suggestions for completing your portfolio. Answers are AI-generated; check them before saving.</p>
         </div>
         {scorePercent !== null && (
-          <div className="flex items-center gap-3" aria-label={`Kelengkapan portfolio ${scorePercent} persen`}>
-            <span className="text-xs text-ink-soft">Kelengkapan</span>
+          <div className="flex items-center gap-3" aria-label={`Portfolio ${scorePercent} percent complete`}>
+            <span className="text-xs text-ink-soft">Completeness</span>
             <div className="h-1 w-28 overflow-hidden rounded-full bg-paper-deep">
               <div className="h-full bg-accent transition-[width] duration-300 motion-reduce:transition-none" style={{ width: `${scorePercent}%` }} />
             </div>
@@ -506,7 +507,7 @@ export default function AdvisorWidget({ inline = false }: { inline?: boolean }) 
                         onClick={() => applySection(msg.preview!.section, msg.preview!.data, i)}
                         disabled={applying !== null || loading}
                         className="mt-3 ml-3.5 rounded-md bg-ink px-3.5 py-2 text-sm font-medium text-paper transition-colors hover:bg-black disabled:cursor-not-allowed disabled:opacity-50">
-                        {applying !== null ? 'Menyimpan…' : msg.preview.section === 'all' ? 'Simpan semua ke portfolio' : msg.preview.section === 'boom' ? 'Periksa portfolio saya' : 'Simpan ke portfolio'}
+                        {applying !== null ? 'Saving…' : msg.preview.section === 'all' ? 'Save all to portfolio' : msg.preview.section === 'boom' ? 'Check my portfolio' : 'Save to portfolio'}
                       </button>
                     )}
                   </div>
@@ -516,7 +517,7 @@ export default function AdvisorWidget({ inline = false }: { inline?: boolean }) 
           })}
 
           {loading && last?.role === 'assistant' && last.content === '' && (
-            <p className="text-[13px] text-ink-soft" role="status">Advisor sedang menulis…</p>
+            <p className="text-[13px] text-ink-soft" role="status">Advisor is writing…</p>
           )}
           <div ref={messagesEndRef} />
         </div>
@@ -536,16 +537,16 @@ export default function AdvisorWidget({ inline = false }: { inline?: boolean }) 
             </div>
           )}
           <form className="flex items-center gap-2" onSubmit={(e) => { e.preventDefault(); sendMessage(); }}>
-            <label htmlFor="advisor-input" className="sr-only">Pertanyaan untuk Advisor</label>
+            <label htmlFor="advisor-input" className="sr-only">Question for the Advisor</label>
             <input id="advisor-input" ref={inputRef} value={input}
               onChange={e => setInput(e.target.value)}
-              placeholder='Contoh: "Apa yang kurang dari portfolio saya?"'
+              placeholder={'e.g. "What\'s missing from my portfolio?"'}
               disabled={loading}
               className="min-w-0 flex-1 rounded-md border border-rule bg-white px-3 py-2 text-sm text-ink placeholder:text-[#9a9aa0] outline-none transition-colors focus:border-ink focus:ring-2 focus:ring-ink/10 disabled:opacity-60"
             />
             <button type="submit" disabled={loading || !input.trim()}
               className="shrink-0 rounded-md bg-ink px-3.5 py-2 text-sm font-medium text-paper transition-colors hover:bg-black disabled:cursor-not-allowed disabled:opacity-50">
-              {loading ? 'Menunggu…' : 'Kirim'}
+              {loading ? 'Waiting…' : 'Send'}
             </button>
           </form>
         </div>

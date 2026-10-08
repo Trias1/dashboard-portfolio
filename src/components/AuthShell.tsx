@@ -14,13 +14,13 @@ export default function AuthShell({ title, subtitle, children, footer }: {
         <Link href="/" className="font-display font-semibold text-xl tracking-tight">PortfolioKit</Link>
         <div className="max-w-xs">
           <p className="font-display font-semibold text-3xl leading-snug">
-            Satu halaman yang menjelaskan apa yang kamu kerjakan.
+            One page that explains what you do.
           </p>
           <p className="mt-4 text-sm leading-relaxed text-ink-soft">
-            Isi datamu sekali, pilih tampilannya, bagikan link-nya. Bisa ganti template kapan saja tanpa mengetik ulang.
+            Add your details once, pick a layout, share the link. Switch templates any time without retyping anything.
           </p>
         </div>
-        <p className="text-xs text-ink-soft">Dibuat oleh Trias, di Indonesia.</p>
+        <p className="text-xs text-ink-soft">Made by Trias, in Indonesia.</p>
       </aside>
 
       <main className="flex min-h-screen flex-col px-5 py-8 sm:px-10 md:min-h-0 md:justify-center md:py-16">
@@ -51,7 +51,7 @@ export function SubmitButton({ busy, children }: { busy?: boolean; children: Rea
   return (
     <button type="submit" disabled={busy}
       className="w-full rounded-md bg-ink px-4 py-2.5 text-[15px] font-medium text-paper transition-colors hover:bg-black disabled:cursor-not-allowed disabled:opacity-60">
-      {busy ? 'Sebentar…' : children}
+      {busy ? 'One moment…' : children}
     </button>
   );
 }
@@ -81,7 +81,7 @@ export function GoogleButton({ label }: { label: string }) {
 export function OrDivider() {
   return (
     <div className="my-5 flex items-center gap-3 text-xs text-ink-soft">
-      <span className="h-px flex-1 bg-rule" />atau<span className="h-px flex-1 bg-rule" />
+      <span className="h-px flex-1 bg-rule" />or<span className="h-px flex-1 bg-rule" />
     </div>
   );
 }

@@ -24,16 +24,16 @@ function toCertification(value: unknown): CertificationItem {
   return typeof value === 'object' && value !== null ? (value as CertificationItem) : {};
 }
 
-const MONTHS_ID = [
-  'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
-  'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
+const MONTHS = [
+  'January', 'February', 'March', 'April', 'May', 'June',
+  'July', 'August', 'September', 'October', 'November', 'December'
 ];
 
 export function formatCertificationDate(cert: CertificationItem): string {
   if (cert.issueYear || cert.issueMonth) {
     if (cert.issueMonth && cert.issueYear) {
       const m = parseInt(String(cert.issueMonth));
-      if (m >= 1 && m <= 12) return `${MONTHS_ID[m - 1]} ${cert.issueYear}`;
+      if (m >= 1 && m <= 12) return `${MONTHS[m - 1]} ${cert.issueYear}`;
     }
     return cert.issueYear ? String(cert.issueYear) : '';
   }
@@ -41,11 +41,11 @@ export function formatCertificationDate(cert: CertificationItem): string {
 }
 
 export function formatCertExpiry(cert: CertificationItem): string {
-  if (cert.noExpiration || cert.noExpiry) return 'Tidak ada masa berlaku';
+  if (cert.noExpiration || cert.noExpiry) return 'No expiration date';
   if (cert.expiryYear || cert.expiryMonth) {
     if (cert.expiryMonth && cert.expiryYear) {
       const m = parseInt(String(cert.expiryMonth));
-      if (m >= 1 && m <= 12) return `${MONTHS_ID[m - 1]} ${cert.expiryYear}`;
+      if (m >= 1 && m <= 12) return `${MONTHS[m - 1]} ${cert.expiryYear}`;
     }
     return cert.expiryYear ? String(cert.expiryYear) : '';
   }
@@ -93,7 +93,7 @@ export default function CertificationSection({
               <p className={`mt-1 font-mono text-xs ${subTextColor}`}>
                 {issueDate}
                 {issueDate && expiryDate && ' · '}
-                {expiryDate && (cert.noExpiration || cert.noExpiry ? expiryDate : `berlaku s.d. ${expiryDate}`)}
+                {expiryDate && (cert.noExpiration || cert.noExpiry ? expiryDate : `Valid until ${expiryDate}`)}
               </p>
             )}
             {cert.description && (
@@ -106,7 +106,7 @@ export default function CertificationSection({
               <a href={credential} target="_blank" rel="noopener noreferrer"
                 className="mt-3 self-start text-sm font-medium underline underline-offset-4 hover:no-underline"
                 style={{ color: accentColor }}>
-                Lihat kredensial ↗
+                View credential ↗
               </a>
             )}
           </li>
@@ -118,7 +118,7 @@ export default function CertificationSection({
         <button type="button" onClick={() => setShowAll(!showAll)}
           className="text-sm font-medium underline underline-offset-4 hover:no-underline"
           style={{ color: accentColor }}>
-          {showAll ? 'Tampilkan lebih sedikit' : `Lihat ${items.length - initialCount} lainnya`}
+          {showAll ? 'Show less' : `Show ${items.length - initialCount} more`}
         </button>
       </div>
     )}

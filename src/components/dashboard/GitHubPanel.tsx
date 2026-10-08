@@ -24,7 +24,7 @@ interface Props {
 
 // Success messages start with this word; anything else is shown as an error.
 // (The old check `githubMsg.includes('')` was always true, so errors were painted green.)
-const SUCCESS_PREFIX = 'Berhasil';
+const SUCCESS_PREFIX = 'Imported';
 
 const inputCls = 'w-full rounded-md border border-rule bg-white px-3 py-2 text-sm text-ink placeholder:text-[#9a9aa0] outline-none transition-colors focus:border-ink focus:ring-2 focus:ring-ink/10';
 
@@ -38,7 +38,7 @@ export default function GitHubPanel({ githubUsername, setGithubUsername, githubP
       const res = await api.get<GitHubPreview>(`/api/github/preview?username=${encodeURIComponent(username)}`);
       setGithubPreview(res.data);
       setSelectedProjects(res.data.projects.map((p) => p.name));
-    } catch (err) { setGithubMsg(getApiErrorMessage(err, 'User GitHub tidak ditemukan.')); }
+    } catch (err) { setGithubMsg(getApiErrorMessage(err, 'GitHub user not found.')); }
     finally { setGithubLoading(false); }
   };
 
@@ -47,10 +47,10 @@ export default function GitHubPanel({ githubUsername, setGithubUsername, githubP
     try {
       const res = await api.post<{ imported: string[] }>('/api/github/import', { username, options: { ...githubOptions, selectedProjects } });
       const imported = res.data.imported || [];
-      setGithubMsg(imported.length ? `${SUCCESS_PREFIX} mengimpor: ${imported.join(', ')}.` : `${SUCCESS_PREFIX}, tapi tidak ada data baru yang diimpor.`);
+      setGithubMsg(imported.length ? `${SUCCESS_PREFIX}: ${imported.join(', ')}.` : `${SUCCESS_PREFIX}, but there was nothing new to add.`);
       loadPreview();
       if (onImport) onImport(imported);
-    } catch (err) { setGithubMsg(getApiErrorMessage(err, 'Import gagal. Coba lagi.')); }
+    } catch (err) { setGithubMsg(getApiErrorMessage(err, 'Import failed. Try again.')); }
     finally { setGithubImporting(false); }
   };
 
@@ -61,11 +61,11 @@ export default function GitHubPanel({ githubUsername, setGithubUsername, githubP
   return (
     <div className="flex-1 overflow-auto bg-paper">
       <div className="mx-auto max-w-3xl px-5 py-8 sm:px-8">
-        <h2 className="font-display text-2xl font-semibold tracking-tight text-ink">Impor dari GitHub</h2>
-        <p className="mt-1 text-sm text-ink-soft">Ambil bio, bahasa pemrograman, dan repositori publik dari profil GitHub.</p>
+        <h2 className="font-display text-2xl font-semibold tracking-tight text-ink">Import from GitHub</h2>
+        <p className="mt-1 text-sm text-ink-soft">Pull the bio, programming languages and public repositories from a GitHub profile.</p>
 
         <form className="mt-6" onSubmit={(e) => { e.preventDefault(); if (!githubLoading) handleSearch(); }}>
-          <label htmlFor="github-username" className="mb-1.5 block text-sm font-medium text-ink">Username GitHub</label>
+          <label htmlFor="github-username" className="mb-1.5 block text-sm font-medium text-ink">GitHub username</label>
           <div className="flex gap-2">
             <div className="relative flex-1">
               <span className="pointer-events-none absolute inset-y-0 left-3 flex items-center font-mono text-sm text-ink-soft">github.com/</span>
@@ -75,7 +75,7 @@ export default function GitHubPanel({ githubUsername, setGithubUsername, githubP
             </div>
             <button type="submit" disabled={githubLoading || !username}
               className="shrink-0 rounded-md bg-ink px-3.5 py-2 text-sm font-medium text-paper transition-colors hover:bg-black disabled:cursor-not-allowed disabled:opacity-50">
-              {githubLoading ? 'Mencari…' : 'Cari'}
+              {githubLoading ? 'Searching…' : 'Search'}
             </button>
           </div>
           {githubMsg && !githubPreview && <p role="alert" className="mt-2 text-[13px] text-red-700">{githubMsg}</p>}
@@ -91,8 +91,8 @@ export default function GitHubPanel({ githubUsername, setGithubUsername, githubP
                   <h3 className="text-base font-semibold text-ink">{githubPreview.profile.name}</h3>
                   {githubPreview.profile.bio && <p className="mt-0.5 text-[13px] text-ink-soft">{githubPreview.profile.bio}</p>}
                   <p className="mt-1.5 flex flex-wrap gap-x-4 gap-y-0.5 text-xs text-ink-soft">
-                    <span><span className="font-mono text-ink">{Number(githubPreview.profile.public_repos).toLocaleString("id-ID")}</span> repo</span>
-                    <span><span className="font-mono text-ink">{Number(githubPreview.profile.followers).toLocaleString("id-ID")}</span> pengikut</span>
+                    <span><span className="font-mono text-ink">{Number(githubPreview.profile.public_repos).toLocaleString("en-US")}</span> repos</span>
+                    <span><span className="font-mono text-ink">{Number(githubPreview.profile.followers).toLocaleString("en-US")}</span> followers</span>
                     {githubPreview.profile.location && <span>{githubPreview.profile.location}</span>}
                   </p>
                 </div>
@@ -100,7 +100,7 @@ export default function GitHubPanel({ githubUsername, setGithubUsername, githubP
 
               {githubPreview.languages.length > 0 && (
                 <div className="border-b border-rule px-5 py-3 text-[13px]">
-                  <span className="text-ink-soft">Bahasa utama: </span>
+                  <span className="text-ink-soft">Top languages: </span>
                   <span className="text-ink">{githubPreview.languages.join(', ')}</span>
                 </div>
               )}
@@ -109,12 +109,12 @@ export default function GitHubPanel({ githubUsername, setGithubUsername, githubP
                 <div>
                   <div className="flex items-center justify-between gap-3 px-5 py-2.5">
                     <p className="text-[13px] text-ink-soft">
-                      Repositori <span className="font-mono text-ink">{selectedProjects.length}/{projects.length}</span> dipilih
+                      <span className="font-mono text-ink">{selectedProjects.length}/{projects.length}</span> repositories selected
                     </p>
                     <button type="button"
                       onClick={() => setSelectedProjects(allSelected ? [] : projects.map((p) => p.name))}
                       className="text-[13px] text-accent underline-offset-2 hover:text-accent-dark hover:underline">
-                      {allSelected ? 'Kosongkan' : 'Pilih semua'}
+                      {allSelected ? 'Clear' : 'Select all'}
                     </button>
                   </div>
                   <ul className="max-h-80 divide-y divide-rule overflow-y-auto border-t border-rule">
@@ -128,11 +128,11 @@ export default function GitHubPanel({ githubUsername, setGithubUsername, githubP
                               className="mt-0.5 h-4 w-4 shrink-0 accent-[#1f45c9]" />
                             <span className="min-w-0 flex-1">
                               <span className="block truncate font-mono text-[13px] text-ink">{p.title}</span>
-                              <span className="block truncate text-[13px] text-ink-soft">{p.description || 'Tanpa deskripsi'}</span>
+                              <span className="block truncate text-[13px] text-ink-soft">{p.description || 'No description'}</span>
                             </span>
                             <span className="flex shrink-0 items-center gap-3 text-xs text-ink-soft">
                               {p.tech_stack && <span>{p.tech_stack}</span>}
-                              {p.stars > 0 && <span className="font-mono" title={`${p.stars} bintang`}>&#9733; {p.stars}</span>}
+                              {p.stars > 0 && <span className="font-mono" title={`${p.stars} stars`}>&#9733; {p.stars}</span>}
                             </span>
                           </label>
                         </li>
@@ -141,17 +141,17 @@ export default function GitHubPanel({ githubUsername, setGithubUsername, githubP
                   </ul>
                 </div>
               ) : (
-                <p className="px-5 py-4 text-[13px] text-ink-soft">Tidak ada repositori publik.</p>
+                <p className="px-5 py-4 text-[13px] text-ink-soft">No public repositories.</p>
               )}
             </section>
 
             <section className="rounded-lg border border-rule bg-white">
-              <h3 className="border-b border-rule px-5 py-3 text-sm font-semibold text-ink">Yang diimpor</h3>
+              <h3 className="border-b border-rule px-5 py-3 text-sm font-semibold text-ink">What to import</h3>
               <div className="divide-y divide-rule">
                 {[
-                  { key: 'bio' as const, label: 'Bio', desc: githubPreview.profile.bio || 'Profil ini tidak punya bio' },
-                  { key: 'skills' as const, label: 'Skills dari bahasa pemrograman', desc: githubPreview.languages.join(', ') || 'Tidak ada' },
-                  { key: 'projects' as const, label: `Project (${selectedProjects.length} repositori)`, desc: 'Repositori yang dicentang di atas' },
+                  { key: 'bio' as const, label: 'Bio', desc: githubPreview.profile.bio || 'This profile has no bio' },
+                  { key: 'skills' as const, label: 'Skills from programming languages', desc: githubPreview.languages.join(', ') || 'None' },
+                  { key: 'projects' as const, label: `Projects (${selectedProjects.length} repositories)`, desc: 'The repositories ticked above' },
                 ].map((opt) => (
                   <label key={opt.key} htmlFor={`gh-opt-${opt.key}`} className="flex cursor-pointer items-start gap-3 px-5 py-3">
                     <input id={`gh-opt-${opt.key}`} type="checkbox" checked={githubOptions[opt.key]}
@@ -173,7 +173,7 @@ export default function GitHubPanel({ githubUsername, setGithubUsername, githubP
                 <button type="button" onClick={handleImport}
                   disabled={githubImporting || !Object.values(githubOptions).some(Boolean) || (githubOptions.projects && !githubOptions.bio && !githubOptions.skills && selectedProjects.length === 0)}
                   className="rounded-md bg-ink px-3.5 py-2 text-sm font-medium text-paper transition-colors hover:bg-black disabled:cursor-not-allowed disabled:opacity-50">
-                  {githubImporting ? 'Mengimpor…' : 'Impor ke portfolio'}
+                  {githubImporting ? 'Importing…' : 'Import to portfolio'}
                 </button>
               </div>
             </section>

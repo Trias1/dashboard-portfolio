@@ -4,7 +4,6 @@ import type { DashboardUser } from "@/types";
 
 interface Props {
   user: DashboardUser | null;
-  lang: "id" | "en";
   open: boolean;
   onToggle: () => void;
   onProfile: () => void;
@@ -13,7 +12,6 @@ interface Props {
 
 export default function DashboardAccountMenu({
   user,
-  lang,
   open,
   onToggle,
   onProfile,
@@ -26,7 +24,7 @@ export default function DashboardAccountMenu({
         onClick={onToggle}
         aria-haspopup="menu"
         aria-expanded={open}
-        aria-label={lang === "id" ? "Menu akun" : "Account menu"}
+        aria-label="Account menu"
         className="flex items-center gap-2 rounded-md py-1 pl-1 pr-1.5 transition-colors hover:bg-paper-deep focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink/15"
       >
         <div className="flex h-7 w-7 items-center justify-center overflow-hidden rounded-full border border-rule bg-paper-deep text-xs font-semibold text-ink">
@@ -76,7 +74,7 @@ export default function DashboardAccountMenu({
             onClick={onProfile}
             className="mt-1 w-full px-3 py-1.5 text-left text-sm text-ink hover:bg-paper"
           >
-            {lang === "id" ? "Edit profil" : "Edit profile"}
+            Edit profile
           </button>
           <button
             type="button"
@@ -84,7 +82,7 @@ export default function DashboardAccountMenu({
             onClick={onLogout}
             className="w-full px-3 py-1.5 text-left text-sm text-red-700 hover:bg-red-50"
           >
-            {lang === "id" ? "Keluar" : "Log out"}
+            Log out
           </button>
         </div>
       )}

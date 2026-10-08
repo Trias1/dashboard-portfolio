@@ -38,9 +38,9 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     // Slug update
     if (body.slug) {
       const cleanSlug = body.slug.toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
-      if (cleanSlug.length < 3) return errorResponse('Slug minimal 3 karakter', 400);
+      if (cleanSlug.length < 3) return errorResponse('Slug must be at least 3 characters', 400);
       const { data: existing } = await getSupabaseAdmin().from('portfolios').select('id').eq('slug', cleanSlug).neq('id', id).maybeSingle();
-      if (existing) return errorResponse('Slug sudah digunakan', 400);
+      if (existing) return errorResponse('That slug is already taken', 400);
       updates.slug = cleanSlug;
     }
     // Publish toggle

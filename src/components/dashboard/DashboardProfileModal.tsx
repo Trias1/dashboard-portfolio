@@ -8,7 +8,6 @@ type ProfileForm = ProfileFormData;
 
 interface DashboardProfileModalProps {
   open: boolean;
-  lang: "id" | "en";
   profileForm: ProfileForm;
   profileMsg: string;
   profileError: string;
@@ -26,7 +25,6 @@ const labelClass = "mb-1.5 block text-sm font-medium text-ink";
 
 export default function DashboardProfileModal({
   open,
-  lang,
   profileForm,
   profileMsg,
   profileError,
@@ -55,10 +53,10 @@ export default function DashboardProfileModal({
         <div className="mb-5 flex items-start justify-between gap-4 border-b border-rule pb-4">
           <div>
             <h2 id="profile-modal-title" className="font-display text-lg font-semibold tracking-tight">
-              {lang === "id" ? "Profil akun" : "Account profile"}
+              Account profile
             </h2>
             <p className="mt-0.5 text-xs text-ink-soft">
-              {lang === "id" ? "Nama, email, password, dan foto." : "Name, email, password and photo."}
+              Name, email, password and photo.
             </p>
           </div>
           <button
@@ -85,7 +83,7 @@ export default function DashboardProfileModal({
           )}
           <div>
             <label htmlFor="profile-name" className={labelClass}>
-              {lang === "id" ? "Nama" : "Name"}
+              Name
             </label>
             <input
               id="profile-name"
@@ -113,7 +111,7 @@ export default function DashboardProfileModal({
           <div className="grid gap-4 sm:grid-cols-2">
             <div>
               <label htmlFor="profile-password" className={labelClass}>
-                {lang === "id" ? "Password baru" : "New password"}
+                New password
               </label>
               <input
                 id="profile-password"
@@ -132,7 +130,7 @@ export default function DashboardProfileModal({
             </div>
             <div>
               <label htmlFor="profile-confirm" className={labelClass}>
-                {lang === "id" ? "Ulangi password" : "Repeat password"}
+                Repeat password
               </label>
               <input
                 id="profile-confirm"
@@ -152,7 +150,7 @@ export default function DashboardProfileModal({
           </div>
           <div>
             <label htmlFor="profile-current-password" className={labelClass}>
-              {lang === "id" ? "Password saat ini" : "Current password"}
+              Current password
             </label>
             <input
               id="profile-current-password"
@@ -166,16 +164,12 @@ export default function DashboardProfileModal({
                 })
               }
               className={inputClass}
-              placeholder={
-                lang === "id"
-                  ? "Wajib jika mengganti email/password"
-                  : "Required to change email/password"
-              }
+              placeholder="Required to change email/password"
             />
           </div>
           <div>
             <p className={labelClass}>
-              {lang === "id" ? "Foto profil" : "Profile photo"}
+              Profile photo
             </p>
             <div className="flex items-center gap-3">
               <div className="h-12 w-12 shrink-0 overflow-hidden rounded-full border border-rule bg-paper-deep">
@@ -195,7 +189,7 @@ export default function DashboardProfileModal({
                 htmlFor="profile-photo-upload"
                 className="cursor-pointer rounded-md border border-rule bg-white px-3.5 py-2 text-sm font-medium text-ink transition-colors hover:border-ink-soft"
               >
-                {lang === "id" ? "Unggah foto" : "Upload photo"}
+                Upload photo
               </label>
               <input
                 id="profile-photo-upload"
@@ -227,7 +221,7 @@ export default function DashboardProfileModal({
               />
             </div>
             <label htmlFor="profile-photo-url" className="sr-only">
-              {lang === "id" ? "URL foto" : "Photo URL"}
+              Photo URL
             </label>
             <input
               id="profile-photo-url"
@@ -248,13 +242,13 @@ export default function DashboardProfileModal({
               onClick={onClose}
               className="rounded-md border border-rule bg-white px-3.5 py-2 text-sm font-medium text-ink transition-colors hover:border-ink-soft"
             >
-              {lang === "id" ? "Batal" : "Cancel"}
+              Cancel
             </button>
             <button
               type="submit"
               className="rounded-md bg-ink px-3.5 py-2 text-sm font-medium text-paper transition-colors hover:bg-black"
             >
-              {lang === "id" ? "Simpan" : "Save"}
+              Save
             </button>
           </div>
         </form>

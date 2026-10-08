@@ -1,123 +1,65 @@
 'use client';
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import TemplateShowcase from '@/components/TemplateShowcase';
 
-const copy = {
-  id: {
-    login: 'Masuk',
-    register: 'Daftar',
-    kicker: 'Portfolio online, gratis',
-    hero1: 'Portfolio yang menampilkan kerjamu,',
-    hero2: 'bukan template-nya.',
-    sub: 'Isi pengalaman, proyek, dan skill sekali. Pilih satu dari 17 tampilan, lalu bagikan link-nya ke klien atau HRD. Tidak perlu ngoding, tidak perlu kartu kredit.',
-    cta: 'Bikin portfolio',
-    demo: 'Lihat contohnya',
-    published: (n: number) => `${n} portfolio sudah terbit di sini.`,
-    howTitle: 'Cara kerjanya',
-    steps: [
-      { n: '01', title: 'Isi datamu', body: 'Profil, pengalaman, proyek, skill, sertifikat. Repo GitHub bisa diimpor langsung.' },
-      { n: '02', title: 'Pilih tampilan', body: 'Ada 17 template. Ganti kapan saja, isinya ikut pindah tanpa diketik ulang.' },
-      { n: '03', title: 'Terbitkan', body: 'Dapat link sendiri yang siap dibagikan. Bisa juga pakai domain milikmu.' },
-    ],
-    featTitle: 'Yang sudah ada di dalamnya',
-    features: [
-      ['Atur urutan bagian', 'Seret dan lepas: hero, tentang, pengalaman, proyek, kontak. Sembunyikan yang belum siap.'],
-      ['Sertifikat PDF', 'Unggah PDF, tampil sebagai pratinjau yang rapi di halamanmu.'],
-      ['Kontak langsung', 'Pengunjung bisa kirim pesan atau langsung chat WhatsApp.'],
-      ['Statistik kunjungan', 'Lihat berapa orang yang membuka portfolio kamu, per hari.'],
-      ['Enak di HP', 'Semua template dicek di layar kecil, karena kebanyakan orang membukanya dari HP.'],
-      ['Domain sendiri', 'Sambungkan domain pribadi kalau sudah punya.'],
-    ],
-    tplTitle: '17 tampilan.',
-    tplTitle2: 'Datamu tetap sama.',
-    tplLink: 'Coba semuanya di demo →',
-    closing: 'Bikin sekarang, rapikan pelan‑pelan.',
-    closingSub: 'Simpan setengah jadi juga boleh. Halamanmu baru tampil ke publik setelah kamu terbitkan.',
-    closingCta: 'Daftar gratis',
-    footer: 'Dibuat oleh Trias.',
-  },
-  en: {
-    login: 'Log in',
-    register: 'Sign up',
-    kicker: 'Online portfolio, free',
-    hero1: 'A portfolio that shows your work,',
-    hero2: 'not the template.',
-    sub: 'Add your experience, projects, and skills once. Pick one of 17 layouts, then share the link with clients or recruiters. No code, no credit card.',
-    cta: 'Build your portfolio',
-    demo: 'See an example',
-    published: (n: number) => `${n} portfolios published here so far.`,
-    howTitle: 'How it works',
-    steps: [
-      { n: '01', title: 'Add your details', body: 'Profile, experience, projects, skills, certificates. GitHub repos import directly.' },
-      { n: '02', title: 'Pick a layout', body: '17 templates. Switch any time and your content moves with you.' },
-      { n: '03', title: 'Publish', body: 'Get your own shareable link, or connect a domain you own.' },
-    ],
-    featTitle: "What's already inside",
-    features: [
-      ['Reorder sections', 'Drag and drop hero, about, experience, projects, contact. Hide what isn\'t ready.'],
-      ['PDF certificates', 'Upload a PDF and it shows as a clean preview on your page.'],
-      ['Direct contact', 'Visitors can send a message or open a WhatsApp chat.'],
-      ['Visit stats', 'See how many people opened your portfolio, per day.'],
-      ['Works on phones', 'Every template is checked on small screens, since that\'s where most people open it.'],
-      ['Custom domain', 'Connect your own domain if you have one.'],
-    ],
-    tplTitle: '17 layouts.',
-    tplTitle2: 'Same content.',
-    tplLink: 'Try them all in the demo →',
-    closing: 'Start now, polish it later.',
-    closingSub: 'Saving a half-finished page is fine. Nothing is public until you publish it.',
-    closingCta: 'Sign up free',
-    footer: 'Made by Trias.',
-  },
+const t = {
+  login: 'Log in',
+  register: 'Sign up',
+  kicker: 'Online portfolio, free',
+  hero1: 'A portfolio that shows your work,',
+  hero2: 'not the template.',
+  sub: 'Add your experience, projects, and skills once. Pick one of 17 layouts, then share the link with clients or recruiters. No code, no credit card.',
+  cta: 'Build your portfolio',
+  demo: 'See an example',
+  published: (n: number) => `${n} ${n === 1 ? 'portfolio' : 'portfolios'} published here so far.`,
+  howTitle: 'How it works',
+  steps: [
+    { n: '01', title: 'Add your details', body: 'Profile, experience, projects, skills, certificates. GitHub repos import directly.' },
+    { n: '02', title: 'Pick a layout', body: '17 templates. Switch any time and your content moves with you.' },
+    { n: '03', title: 'Publish', body: 'Get your own shareable link, or connect a domain you own.' },
+  ],
+  featTitle: "What's already inside",
+  features: [
+    ['Reorder sections', 'Drag and drop hero, about, experience, projects, contact. Hide what isn\'t ready.'],
+    ['PDF certificates', 'Upload a PDF and it shows as a clean preview on your page.'],
+    ['Direct contact', 'Visitors can send a message or open a WhatsApp chat.'],
+    ['Visit stats', 'See how many people opened your portfolio, per day.'],
+    ['Works on phones', 'Every template is checked on small screens, since that\'s where most people open it.'],
+    ['Custom domain', 'Connect your own domain if you have one.'],
+  ],
+  tplTitle: '17 layouts.',
+  tplTitle2: 'Same content.',
+  tplLink: 'Try them all in the demo →',
+  closing: 'Start now, polish it later.',
+  closingSub: 'Saving a half-finished page is fine. Nothing is public until you publish it.',
+  closingCta: 'Sign up free',
+  footer: 'Made by Trias.',
 };
 
-const templates = {
-  id: [
-    ['Modern', 'Gelap dan dinamis'], ['Creative', 'Sidebar, nuansa editorial'], ['Minimal', 'Fokus ke tipografi'],
-    ['Bold', 'Warna terang, kontras tinggi'], ['Classic', 'Kartu rapi dan terstruktur'], ['Neon', 'Grid ala cyberpunk'],
-    ['Glass', 'Panel transparan'], ['Nature', 'Warna tanah yang hangat'], ['Vibrant', 'Penuh warna'],
-    ['Retro', 'Monospace dan dot grid'], ['Immersive', 'Layar penuh, parallax'], ['Playful', 'Banyak interaksi kecil'],
-    ['Developer', 'Gaya terminal'], ['Swiss', 'Blok warna dan grid tegas'], ['White', 'Terang dan bersih'],
-    ['Agency', 'Ala studio kreatif'], ['BoldPersona', 'Huruf besar, sangat personal'],
-  ],
-  en: [
-    ['Modern', 'Dark and dynamic'], ['Creative', 'Sidebar, editorial feel'], ['Minimal', 'Typography first'],
-    ['Bold', 'Bright, high contrast'], ['Classic', 'Neat, structured cards'], ['Neon', 'Cyberpunk grid'],
-    ['Glass', 'Translucent panels'], ['Nature', 'Warm earthy tones'], ['Vibrant', 'Full of colour'],
-    ['Retro', 'Monospace and dot grid'], ['Immersive', 'Full screen, parallax'], ['Playful', 'Lots of small interactions'],
-    ['Developer', 'Terminal style'], ['Swiss', 'Colour blocks, strict grid'], ['White', 'Bright and clean'],
-    ['Agency', 'Creative studio look'], ['BoldPersona', 'Huge type, very personal'],
-  ],
-};
+const templates = [
+  { id: 'modern', name: 'Modern', desc: 'Big name, two-column work list' },
+  { id: 'creative', name: 'Creative', desc: 'Printed-portfolio sidebar' },
+  { id: 'minimal', name: 'Minimal', desc: 'One narrow column of text' },
+  { id: 'bold', name: 'Bold', desc: 'Poster type, solid blocks' },
+  { id: 'classic', name: 'Classic', desc: 'Reads like a CV' },
+  { id: 'neon', name: 'Neon', desc: 'Night flyer, outlined type' },
+  { id: 'glass', name: 'Glass', desc: 'Frosted header over a photo' },
+  { id: 'nature', name: 'Nature', desc: 'Field notebook' },
+  { id: 'vibrant', name: 'Vibrant', desc: 'Three flat colours' },
+  { id: 'retro', name: 'Retro', desc: 'Photocopied zine' },
+  { id: 'immersive', name: 'Immersive', desc: 'Full-bleed bands' },
+  { id: 'playful', name: 'Playful', desc: 'Sticker book' },
+  { id: 'developer', name: 'Developer', desc: 'Terminal / README' },
+  { id: 'swiss', name: 'Swiss', desc: 'Strict grid, big numerals' },
+  { id: 'white', name: 'White', desc: 'Quiet editorial' },
+  { id: 'agency', name: 'Agency', desc: 'Studio case studies' },
+  { id: 'boldpersona', name: 'BoldPersona', desc: 'Huge name, personal' },
+];
 
-// A small hand-built sample page so visitors can picture the result.
-function SamplePage() {
-  return (
-    <div className="relative mx-auto w-full max-w-sm rotate-[1.2deg] rounded-sm border border-rule bg-white p-6 shadow-[6px_8px_0_0_var(--color-paper-deep)]">
-      <div className="flex items-center justify-between border-b border-rule pb-3 text-[11px] text-ink-soft">
-        <span>rina.portfoliokit.id</span><span>Bandung</span>
-      </div>
-      <p className="mt-5 font-display font-semibold text-2xl leading-tight">Rina Aprilia</p>
-      <p className="text-sm text-ink-soft">Ilustrator & desainer kemasan</p>
-      <p className="mt-4 text-[13px] leading-relaxed text-ink-soft">
-        Enam tahun menggambar untuk label kopi, buku anak, dan UMKM makanan di Jawa Barat.
-      </p>
-      <div className="mt-5 grid grid-cols-3 gap-2" aria-hidden="true">
-        <div className="aspect-[4/5] bg-[#dbe2f5]" /><div className="aspect-[4/5] bg-[#d9e7dc]" /><div className="aspect-[4/5] bg-[#f0e1cf]" />
-      </div>
-      <dl className="mt-5 space-y-1.5 text-[12px]">
-        <div className="flex justify-between border-t border-rule pt-2"><dt>Kopi Lereng, kemasan</dt><dd className="text-ink-soft">2025</dd></div>
-        <div className="flex justify-between border-t border-rule pt-2"><dt>Buku &quot;Si Kancil Pulang&quot;</dt><dd className="text-ink-soft">2024</dd></div>
-      </dl>
-      <span className="mt-5 inline-block rounded-sm bg-accent px-2.5 py-1 text-[11px] font-medium text-white">Hubungi via WhatsApp</span>
-    </div>
-  );
-}
 
 export default function LandingPage() {
   const [count, setCount] = useState(0);
-  const [lang, setLang] = useState<'id' | 'en'>('id');
-  const t = copy[lang];
 
   useEffect(() => {
     fetch('/api/public/stats')
@@ -132,11 +74,6 @@ export default function LandingPage() {
         <div className="mx-auto flex max-w-6xl items-center justify-between px-5 py-4 sm:px-8">
           <Link href="/" className="font-display font-semibold text-xl tracking-tight">PortfolioKit</Link>
           <nav className="flex items-center gap-4 text-sm sm:gap-6">
-            <button type="button" onClick={() => setLang(lang === 'id' ? 'en' : 'id')}
-              aria-label={lang === 'id' ? 'Switch to English' : 'Ganti ke Bahasa Indonesia'}
-              className="text-ink-soft underline-offset-4 hover:text-ink hover:underline">
-              {lang === 'id' ? 'EN' : 'ID'}
-            </button>
             <Link href="/login" className="text-ink-soft underline-offset-4 hover:text-ink hover:underline">{t.login}</Link>
             <Link href="/register" className="rounded-md bg-ink px-3.5 py-2 font-medium text-paper transition-colors hover:bg-black">{t.register}</Link>
           </nav>
@@ -159,7 +96,7 @@ export default function LandingPage() {
             </div>
             {count > 0 && <p className="mt-8 text-sm text-ink-soft">{t.published(count)}</p>}
           </div>
-          <SamplePage />
+          <TemplateShowcase templates={templates} />
         </section>
 
         <section className="border-t border-rule">
@@ -198,7 +135,7 @@ export default function LandingPage() {
               <Link href="/demo" target="_blank" rel="noopener noreferrer" className="text-sm font-medium text-accent underline-offset-4 hover:underline">{t.tplLink}</Link>
             </div>
             <ol className="mt-10 grid gap-x-10 sm:grid-cols-2 lg:grid-cols-3">
-              {templates[lang].map(([name, desc], i) => (
+              {templates.map(({ name, desc }, i) => (
                 <li key={name} className="flex items-baseline gap-4 border-t border-rule py-3.5">
                   <span className="w-6 shrink-0 font-mono text-xs text-ink-soft">{String(i + 1).padStart(2, '0')}</span>
                   <span className="font-medium">{name}</span>

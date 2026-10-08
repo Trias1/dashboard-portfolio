@@ -286,7 +286,7 @@ export async function POST(request: NextRequest) {
     for (const title of [...new Set(allCustom.map((c) => c.title))]) newSections.push(`custom:${title}`);
 
     if (failed.length) {
-      return errorResponse(`Sebagian data gagal disimpan (${failed.join(', ')}). Data lain sudah tersimpan; coba simpan ulang atau isi bagian itu manual.`, 422);
+      return errorResponse(`Some sections couldn't be saved (${failed.join(', ')}). Everything else was saved; try saving again or fill those sections in by hand.`, 422);
     }
 
     return successResponse({
