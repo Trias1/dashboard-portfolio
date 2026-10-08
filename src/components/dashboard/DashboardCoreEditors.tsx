@@ -3,8 +3,9 @@
 import type { EditFormData, StringFieldKey } from "@/types";
 
 const inputClass =
-  "w-full rounded-xl border border-white/10 bg-slate-950/70 px-3 py-2.5 text-sm text-white outline-none focus:border-purple-400";
-const labelClass = "mb-1.5 block text-xs font-medium text-slate-400";
+  "w-full rounded-md border border-rule bg-white px-3 py-2 text-sm text-ink placeholder:text-[#9a9aa0] outline-none transition-colors focus:border-ink focus:ring-2 focus:ring-ink/10";
+const labelClass = "mb-1.5 block text-sm font-medium text-ink";
+const hintClass = "mt-1.5 text-xs text-ink-soft";
 const field = (
   label: string,
   key: StringFieldKey<EditFormData>,
@@ -14,16 +15,20 @@ const field = (
   area = false,
 ) => (
   <div>
-    <label className={labelClass}>{label}</label>
+    <label htmlFor={`ed-${key}`} className={labelClass}>
+      {label}
+    </label>
     {area ? (
       <textarea
+        id={`ed-${key}`}
         value={value[key] || ""}
         onChange={(event) => onChange({ ...value, [key]: event.target.value })}
-        className={`${inputClass} h-20 resize-none`}
+        className={`${inputClass} h-24 resize-y`}
         placeholder={placeholder}
       />
     ) : (
       <input
+        id={`ed-${key}`}
         value={value[key] || ""}
         onChange={(event) => onChange({ ...value, [key]: event.target.value })}
         className={inputClass}
@@ -41,7 +46,7 @@ export function HeroEditor({
   onChange: (value: EditFormData) => void;
 }) {
   return (
-    <div className="space-y-4">
+    <div className="space-y-5">
       {field("Greeting (optional)", "greeting", value, onChange, "Hi, I'm")}
       {field("Headline", "headline", value, onChange, "John Doe")}
       {field(
@@ -52,7 +57,7 @@ export function HeroEditor({
         "Building scalable products.",
         true,
       )}
-      <div className="grid gap-3 sm:grid-cols-2">
+      <div className="grid gap-x-3 gap-y-5 sm:grid-cols-2">
         {field("Primary CTA", "cta_text", value, onChange, "View Portfolio")}
         {field("Primary URL", "cta_url", value, onChange, "#projects")}
         {field(
@@ -88,7 +93,7 @@ export function ContactEditor({
   onChange: (value: EditFormData) => void;
 }) {
   return (
-    <div className="space-y-4">
+    <div className="space-y-5">
       {field("Email", "email", value, onChange, "your@email.com")}
       {field("Phone / WhatsApp", "phone", value, onChange, "+62...")}
       {field("Location", "location", value, onChange, "Jakarta, Indonesia")}
@@ -131,7 +136,7 @@ export function SkillsEditor({
     .map((item: string) => item.trim())
     .filter(Boolean);
   return (
-    <div className="space-y-4">
+    <div className="space-y-5">
       {field(
         "Category Title (optional)",
         "title",
@@ -140,8 +145,12 @@ export function SkillsEditor({
         "Frontend, Backend, DevOps...",
       )}
       <div className="relative">
-        <label className={labelClass}>Search & Add Skills</label>
+        <label htmlFor="ed-skill-search" className={labelClass}>
+          Add skills
+        </label>
         <input
+          id="ed-skill-search"
+          autoComplete="off"
           value={search}
           onChange={(event) => onSearch(event.target.value)}
           onKeyDown={(event) => {
@@ -151,16 +160,17 @@ export function SkillsEditor({
             }
           }}
           className={inputClass}
-          placeholder="Type and press Enter"
+          placeholder="e.g. TypeScript"
         />
+        <p className={hintClass}>Type a skill and press Enter, or pick a suggestion.</p>
         {suggestions.length > 0 && (
-          <div className="absolute z-10 mt-1 w-full overflow-hidden rounded-xl border border-white/10 bg-slate-900">
+          <div className="absolute z-10 mt-1 w-full overflow-hidden rounded-md border border-rule bg-white shadow-sm">
             {suggestions.map((item) => (
               <button
                 type="button"
                 key={item}
                 onClick={() => onAdd(item)}
-                className="block w-full px-4 py-2 text-left text-sm text-white hover:bg-white/10"
+                className="block w-full px-3 py-2 text-left text-sm text-ink hover:bg-paper-deep focus-visible:bg-paper-deep focus-visible:outline-none"
               >
                 {item}
               </button>
@@ -169,26 +179,31 @@ export function SkillsEditor({
         )}
       </div>
       <div>
-        <label className={labelClass}>Added Skills</label>
-        <div className="flex min-h-12 flex-wrap gap-2 rounded-xl border border-white/10 bg-slate-950/70 p-3">
+        <p id="ed-skill-list" className={labelClass}>
+          Added skills
+        </p>
+        <div
+          aria-labelledby="ed-skill-list"
+          className="flex min-h-11 flex-wrap items-center gap-1.5 rounded-md border border-rule bg-paper px-2.5 py-2"
+        >
           {skills.map((skill: string) => (
             <span
               key={skill}
-              className="inline-flex items-center gap-1 rounded-full bg-purple-500/15 px-3 py-1 text-xs text-purple-300"
+              className="inline-flex items-center gap-1.5 rounded border border-rule bg-white py-0.5 pl-2 pr-1 text-xs text-ink"
             >
               {skill}
               <button
                 type="button"
                 aria-label={`Remove ${skill}`}
                 onClick={() => onRemove(skill)}
-                className="text-slate-500 hover:text-red-300"
+                className="rounded px-0.5 text-ink-soft hover:text-red-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink/20"
               >
                 ×
               </button>
             </span>
           ))}
           {skills.length === 0 && (
-            <span className="text-xs text-slate-600">No skills added yet</span>
+            <span className="text-xs text-ink-soft">No skills yet.</span>
           )}
         </div>
       </div>

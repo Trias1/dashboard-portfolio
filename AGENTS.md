@@ -6,28 +6,19 @@ This version has breaking changes — APIs, conventions, and file structure may 
 
 # PortfolioKit Project Context
 
-## Templates (17 total)
-- `modern.tsx` — Default dark-elegant, animated particles, scroll progress bar, tech badges via TechBadge component
-- `creative.tsx` — Left sidebar layout, rounded cards, uses TechBadge for skills & project tech stack
-- `minimal.tsx` — Minimal typography-focused, clean layout, uses TechBadge for skills & project tech stack
-- `bold.tsx` — Gradient-heavy, neon glow effects, glassmorphism cards, animated particles, gradient titles
+Read README.md first (env vars, auth flow, branches: feature → staging (demo) → main (prod)).
 
-All templates receive `{ data, theme, isPreview? }` props and render portfolio sections.
+## Design rules (UI must not look AI-generated)
+- No purple/cyan gradients, gradient text, glows, blurred blobs, particles, glass cards everywhere, emoji icons, fade-in-on-scroll everywhere, hover-lift on every card.
+- App UI (landing, auth, dashboard) uses the tokens in src/app/globals.css: bg-paper, bg-paper-deep, text-ink, text-ink-soft, border-rule, accent (#1f45c9), accent-dark; font-display (Bricolage Grotesque) for titles, Geist for UI, mono for numbers/slugs. Do not make it look like Claude (no cream + serif + orange).
+- Shared form pieces: src/components/AuthShell.tsx (Field, SubmitButton, Notice).
 
-## Template Registration
-- `portfolio/[slug]/page.tsx` — imports all 17, routes by templateName
-- `dashboard/page.tsx` — template selector dropdown has 17 options
-- `demo/page.tsx` — 17 template buttons in the picker
+## Templates (17, src/templates/*.tsx)
+- Each has its own personality (see README "Templates"). Props: `{ data, theme, isPreview }`.
+- Derive text/border colours from `theme.bg` lightness and keep accent contrast ≥ 4.5:1; themes come from src/lib/sections.ts (`dark-space` #111214/#5b8def, `white` #ffffff/#1f45c9).
+- Render every section type, follow sections_order, use TechBadge (@/components/TechIcon) for skills/tech stacks, CertificationSection for certifications, ContactForm for contact.
+- Registered in src/app/portfolio/[slug]/page.tsx, the dashboard template picker (DashboardPreview) and src/app/demo/page.tsx.
 
-## Key Component: TechBadge
-- Import: `@/components/TechIcon`
-- Props: `{ name, accentColor, size?: 'sm'|'md', variant?: 'pill'|'outline'|'filled', textColor? }`
-- Always use TechBadge for skills/project tech_stack across all templates
-
-## Auth Pages
-- All use consistent gradient border card pattern, animated bg blobs, Framer Motion entrance
-- Theme switcher across login/register pages
-
-## Global CSS
-- Smooth scroll, custom scrollbar, selection colors, antialiasing
-- Tailwind CSS v4 with `@import "tailwindcss"` and `@theme` directive
+## Checks before pushing
+- `npx tsc --noEmit -p .`, `npm run lint` (0 errors), `npm run build` — the pre-push hook enforces lint + build.
+- No credentials in commits.

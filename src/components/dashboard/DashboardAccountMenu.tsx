@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import type { DashboardUser } from "@/types";
 
@@ -24,9 +24,12 @@ export default function DashboardAccountMenu({
       <button
         type="button"
         onClick={onToggle}
-        className="flex items-center gap-2 rounded-xl px-3 py-1.5 hover:bg-white/10"
+        aria-haspopup="menu"
+        aria-expanded={open}
+        aria-label={lang === "id" ? "Menu akun" : "Account menu"}
+        className="flex items-center gap-2 rounded-md py-1 pl-1 pr-1.5 transition-colors hover:bg-paper-deep focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink/15"
       >
-        <div className="h-8 w-8 overflow-hidden rounded-xl bg-purple-500 text-center leading-8 text-xs font-bold text-white">
+        <div className="flex h-7 w-7 items-center justify-center overflow-hidden rounded-full border border-rule bg-paper-deep text-xs font-semibold text-ink">
           {user?.photo_url ? (
             <img
               src={user.photo_url}
@@ -37,37 +40,51 @@ export default function DashboardAccountMenu({
             user?.name?.charAt(0)?.toUpperCase() || "?"
           )}
         </div>
-        <span className="hidden text-sm text-slate-300 sm:block">
+        <span className="hidden text-sm text-ink sm:block">
           {user?.name?.split(" ")[0]}
         </span>
-        <span className="text-xs text-slate-500">{open ? "⌃" : "⌄"}</span>
+        <svg
+          aria-hidden="true"
+          viewBox="0 0 16 16"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.5"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          className={`h-3 w-3 text-ink-soft transition-transform duration-150 ${open ? "rotate-180" : ""}`}
+        >
+          <path d="M4 6l4 4 4-4" />
+        </svg>
       </button>
       {open && (
-        <div className="absolute right-0 top-full z-50 mt-2 w-52 overflow-hidden rounded-2xl border border-white/10 bg-slate-900 shadow-2xl shadow-slate-950">
-          <div className="border-b border-white/10 px-4 py-3">
-            <p className="truncate text-sm font-medium text-white">
+        <div
+          role="menu"
+          className="absolute right-0 top-full z-50 mt-1.5 w-56 overflow-hidden rounded-md border border-rule bg-white py-1 shadow-[0_8px_24px_rgba(20,20,20,0.08)]"
+        >
+          <div className="border-b border-rule px-3 pb-2.5 pt-2">
+            <p className="truncate text-sm font-medium text-ink">
               {user?.name}
             </p>
-            <p className="truncate text-xs text-slate-500">{user?.email}</p>
-            <span
-              className={`mt-2 inline-block rounded-full px-2 py-0.5 text-xs ${user?.role === "superadmin" ? "bg-amber-500/15 text-amber-300" : "bg-purple-500/15 text-purple-300"}`}
-            >
+            <p className="truncate text-xs text-ink-soft">{user?.email}</p>
+            <p className="mt-1.5 font-mono text-[11px] text-ink-soft">
               {user?.role}
-            </span>
+            </p>
           </div>
           <button
             type="button"
+            role="menuitem"
             onClick={onProfile}
-            className="w-full px-4 py-3 text-left text-sm text-slate-300 hover:bg-white/10"
+            className="mt-1 w-full px-3 py-1.5 text-left text-sm text-ink hover:bg-paper"
           >
-            {lang === "id" ? "Edit Profil" : "Edit Profile"}
+            {lang === "id" ? "Edit profil" : "Edit profile"}
           </button>
           <button
             type="button"
+            role="menuitem"
             onClick={onLogout}
-            className="w-full border-t border-white/10 px-4 py-3 text-left text-sm text-red-300 hover:bg-red-500/10"
+            className="w-full px-3 py-1.5 text-left text-sm text-red-700 hover:bg-red-50"
           >
-            {lang === "id" ? "Keluar" : "Logout"}
+            {lang === "id" ? "Keluar" : "Log out"}
           </button>
         </div>
       )}

@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import { useMemo, useState } from 'react';
 import type { AdminStats, VercelLogEntry } from '@/types';
@@ -13,9 +13,15 @@ interface Props {
 }
 
 const levelStyles: Record<string, string> = {
-  error: 'bg-red-500/15 text-red-300',
-  warning: 'bg-yellow-500/15 text-yellow-300',
-  info: 'bg-blue-500/15 text-blue-300',
+  error: 'text-red-700',
+  warning: 'text-amber-700',
+  info: 'text-ink-soft',
+};
+
+const levelDots: Record<string, string> = {
+  error: 'bg-red-600',
+  warning: 'bg-amber-500',
+  info: 'bg-[#b0b0a8]',
 };
 
 export default function SuperadminPanel({ adminStats, vercelLogs, vercelLogsLoading, vercelLogsError, fetchAdminStats, fetchVercelLogs }: Props) {
@@ -26,58 +32,63 @@ export default function SuperadminPanel({ adminStats, vercelLogs, vercelLogsLoad
   );
 
   return (
-    <div className="flex-1 p-8 overflow-auto">
-      <div className="max-w-6xl mx-auto space-y-6">
-        <div className="flex items-center justify-between gap-4">
+    <div className="flex-1 overflow-auto bg-paper px-4 py-6 text-ink md:px-8 md:py-8">
+      <div className="mx-auto max-w-6xl space-y-6">
+        <div className="flex flex-wrap items-end justify-between gap-3">
           <div>
-            <h2 className="text-2xl font-bold text-white">Vercel Logs</h2>
-            <p className="text-sm text-gray-400 mt-1">Latest runtime events for the production deployment.</p>
+            <h2 className="font-display text-2xl font-semibold tracking-tight">Server logs</h2>
+            <p className="mt-1 text-sm text-ink-soft">Latest runtime events from the production deployment on Vercel.</p>
           </div>
-          <button onClick={() => { fetchAdminStats(); fetchVercelLogs(); }} className="text-xs px-4 py-2 rounded-lg border border-purple-900/30 text-gray-400 hover:text-white transition">
+          <button type="button" onClick={() => { fetchAdminStats(); fetchVercelLogs(); }} className="rounded-md border border-rule bg-white px-3 py-1.5 text-xs font-medium text-ink transition-colors hover:border-ink-soft">
             Refresh
           </button>
         </div>
         {adminStats && (
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <dl className="grid grid-cols-2 rounded-lg border border-rule bg-white md:grid-cols-4">
             {[
-              { label: 'Total Users', value: adminStats.users, icon: 'US' },
-              { label: 'Total Portfolios', value: adminStats.portfolios, icon: 'PF' },
-              { label: 'Published', value: adminStats.published, icon: 'PB' },
-              { label: 'Messages', value: adminStats.messages, icon: 'IN' },
-            ].map((stat) => (
-              <div key={stat.label} className="bg-[#0f0f2a] border border-purple-900/30 rounded-2xl p-5 text-center">
-                <div className="text-xs font-bold tracking-widest text-purple-300 mb-2" aria-hidden="true">{stat.icon}</div>
-                <div className="text-2xl font-bold text-white mb-1">{stat.value}</div>
-                <div className="text-xs text-gray-400">{stat.label}</div>
+              { label: 'Users', value: adminStats.users },
+              { label: 'Portfolios', value: adminStats.portfolios },
+              { label: 'Published', value: adminStats.published },
+              { label: 'Messages', value: adminStats.messages },
+            ].map((stat, index) => (
+              <div key={stat.label} className={`px-5 py-4 ${index % 2 === 1 ? 'border-l border-rule' : ''} ${index >= 2 ? 'border-t border-rule md:border-t-0' : ''} ${index === 2 ? 'md:border-l' : ''}`}>
+                <dt className="text-xs text-ink-soft">{stat.label}</dt>
+                <dd className="mt-1 font-mono text-2xl tabular-nums text-ink">{stat.value}</dd>
               </div>
             ))}
-          </div>
+          </dl>
         )}
-        <div className="bg-[#0f0f2a] border border-purple-900/30 rounded-2xl overflow-hidden">
-          <div className="flex gap-2 p-4 border-b border-purple-900/20">
-            {['all', 'error', 'warning', 'info'].map((level) => (
-              <button key={level} onClick={() => setLevelFilter(level)} className={`rounded-full px-3 py-1 text-xs ${levelFilter === level ? 'bg-purple-600 text-white' : 'bg-white/5 text-gray-400 hover:text-white'}`}>
-                {level === 'all' ? 'All' : level[0].toUpperCase() + level.slice(1)}
-              </button>
-            ))}
+        <section className="overflow-hidden rounded-lg border border-rule bg-white">
+          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-rule px-4 py-3">
+            <h3 className="text-sm font-medium">Events</h3>
+            <div role="group" aria-label="Filter by level" className="flex overflow-hidden rounded-md border border-rule text-xs">
+              {['all', 'error', 'warning', 'info'].map((level) => (
+                <button key={level} type="button" aria-pressed={levelFilter === level} onClick={() => setLevelFilter(level)} className={`px-2.5 py-1 transition-colors ${levelFilter === level ? 'bg-paper-deep font-medium text-ink' : 'text-ink-soft hover:text-ink'}`}>
+                  {level === 'all' ? 'All' : level[0].toUpperCase() + level.slice(1)}
+                </button>
+              ))}
+            </div>
           </div>
-          {vercelLogsLoading && <p className="p-6 text-sm text-gray-400">Loading Vercel logs...</p>}
-          {!vercelLogsLoading && vercelLogsError && <p className="p-6 text-sm text-red-300">{vercelLogsError}</p>}
-          {!vercelLogsLoading && !vercelLogsError && visibleLogs.length === 0 && <p className="p-6 text-sm text-gray-400">No Vercel logs found.</p>}
+          {vercelLogsLoading && <p className="p-6 text-sm text-ink-soft">Loading logs…</p>}
+          {!vercelLogsLoading && vercelLogsError && <p role="alert" className="p-6 text-sm text-red-700">{vercelLogsError}</p>}
+          {!vercelLogsLoading && !vercelLogsError && visibleLogs.length === 0 && <p className="p-6 text-sm text-ink-soft">No logs found.</p>}
           {!vercelLogsLoading && !vercelLogsError && visibleLogs.length > 0 && (
-            <div className="divide-y divide-purple-900/20">
+            <div className="divide-y divide-rule">
               {visibleLogs.map((log) => (
-                <div key={log.id} className="p-4 flex flex-col gap-2 md:flex-row md:items-start md:gap-4">
-                  <span className={`rounded-full px-2 py-1 text-[11px] uppercase ${levelStyles[log.level] || levelStyles.info}`}>{log.level}</span>
+                <div key={log.id} className="flex flex-col gap-1.5 px-4 py-3 md:flex-row md:items-start md:gap-4">
+                  <span className={`inline-flex w-20 shrink-0 items-center gap-1.5 font-mono text-[11px] uppercase ${levelStyles[log.level] || levelStyles.info}`}>
+                    <span aria-hidden="true" className={`h-1.5 w-1.5 rounded-full ${levelDots[log.level] || levelDots.info}`} />
+                    {log.level}
+                  </span>
                   <div className="min-w-0 flex-1">
-                    <p className="text-sm text-gray-200 break-words">{log.message}</p>
-                    <p className="text-xs text-gray-500 mt-1">{new Date(log.timestamp).toLocaleString()} · {log.route || log.deployment}{log.status ? ` · ${log.status}` : ''}</p>
+                    <p className="break-words text-sm text-ink">{log.message}</p>
+                    <p className="mt-1 font-mono text-[11px] text-ink-soft">{new Date(log.timestamp).toLocaleString()} · {log.route || log.deployment}{log.status ? ` · ${log.status}` : ''}</p>
                   </div>
                 </div>
               ))}
             </div>
           )}
-        </div>
+        </section>
       </div>
     </div>
   );

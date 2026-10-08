@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 export default function DashboardHeader({
   children,
@@ -6,7 +6,7 @@ export default function DashboardHeader({
   children: React.ReactNode;
 }) {
   return (
-    <header className="min-h-16 shrink-0 bg-slate-950/75 border-b border-white/10 px-4 md:px-6 flex items-center justify-between backdrop-blur-xl">
+    <header className="flex min-h-14 shrink-0 items-center justify-between border-b border-rule bg-paper px-4 md:px-5">
       {children}
     </header>
   );

@@ -20,8 +20,17 @@ interface DashboardCustomEditorProps {
   detectOgImage: () => void;
 }
 
+// The parent still passes inputClass/labelClass (kept in the props contract), but the
+// editor uses the dashboard's own light form styles so it matches the other editors.
+const inputClass =
+  "w-full rounded-md border border-rule bg-white px-3 py-2 text-sm text-ink placeholder:text-[#9a9aa0] outline-none transition-colors focus:border-ink focus:ring-2 focus:ring-ink/10";
+const labelClass = "mb-1.5 block text-sm font-medium text-ink";
+const hintClass = "mt-1.5 text-xs text-ink-soft";
+const groupClass = "border-t border-rule pt-5";
+const groupTitleClass = "mb-3 text-xs font-medium uppercase tracking-wide text-ink-soft";
+
 export default function DashboardCustomEditor(props: DashboardCustomEditorProps) {
-  const { activeSection, normalizeCustomTitle, typedSectionMap, editForm, setEditForm, inputClass, labelClass, certSkillSearch, handleCertSkillSearch, addCertSkill, certSkillSuggestions, removeCertSkill, detectOgImage } = props;
+  const { activeSection, normalizeCustomTitle, typedSectionMap, editForm, setEditForm, certSkillSearch, handleCertSkillSearch, addCertSkill, certSkillSuggestions, removeCertSkill, detectOgImage } = props;
         const sectionLabel = normalizeCustomTitle(activeSection.label);
         const subType = typedSectionMap[sectionLabel] || null;
         const isTypedSection = Boolean(subType);
@@ -29,10 +38,11 @@ export default function DashboardCustomEditor(props: DashboardCustomEditorProps)
         if (isTypedSection && subType) {
           const editorMap: Record<string, React.ReactElement> = {
             education: (
-              <div className="space-y-4">
+              <div className="space-y-5">
                 <div>
-                  <label className={labelClass}>Institution</label>
+                  <label htmlFor="cx-institution" className={labelClass}>Institution</label>
                   <input
+                    id="cx-institution"
                     value={editForm.content?.institution || ""}
                     onChange={(e) =>
                       setEditForm({
@@ -48,8 +58,9 @@ export default function DashboardCustomEditor(props: DashboardCustomEditorProps)
                   />
                 </div>
                 <div>
-                  <label className={labelClass}>Degree</label>
+                  <label htmlFor="cx-degree" className={labelClass}>Degree</label>
                   <input
+                    id="cx-degree"
                     value={editForm.content?.degree || ""}
                     onChange={(e) =>
                       setEditForm({
@@ -65,8 +76,9 @@ export default function DashboardCustomEditor(props: DashboardCustomEditorProps)
                   />
                 </div>
                 <div>
-                  <label className={labelClass}>Field</label>
+                  <label htmlFor="cx-field" className={labelClass}>Field</label>
                   <input
+                    id="cx-field"
                     value={editForm.content?.field || ""}
                     onChange={(e) =>
                       setEditForm({
@@ -81,10 +93,11 @@ export default function DashboardCustomEditor(props: DashboardCustomEditorProps)
                     placeholder="Computer Science"
                   />
                 </div>
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-2 gap-x-3 gap-y-5">
                   <div>
-                    <label className={labelClass}>Start</label>
+                    <label htmlFor="cx-start_date" className={labelClass}>Start</label>
                     <input
+                      id="cx-start_date"
                       value={editForm.content?.start_date?.slice(0, 7) || ""}
                       onChange={(e) =>
                         setEditForm({
@@ -97,12 +110,13 @@ export default function DashboardCustomEditor(props: DashboardCustomEditorProps)
                       }
                       className={inputClass}
                       placeholder="2020"
-                      style={{ colorScheme: "dark" }}
+                      style={{ colorScheme: "light" }}
                     />
                   </div>
                   <div>
-                    <label className={labelClass}>End</label>
+                    <label htmlFor="cx-end_date" className={labelClass}>End</label>
                     <input
+                      id="cx-end_date"
                       value={editForm.content?.end_date?.slice(0, 7) || ""}
                       onChange={(e) =>
                         setEditForm({
@@ -115,13 +129,14 @@ export default function DashboardCustomEditor(props: DashboardCustomEditorProps)
                       }
                       className={inputClass}
                       placeholder="2024"
-                      style={{ colorScheme: "dark" }}
+                      style={{ colorScheme: "light" }}
                     />
                   </div>
                 </div>
                 <div>
-                  <label className={labelClass}>GPA</label>
+                  <label htmlFor="cx-gpa" className={labelClass}>GPA</label>
                   <input
+                    id="cx-gpa"
                     value={editForm.content?.gpa || ""}
                     onChange={(e) =>
                       setEditForm({
@@ -139,10 +154,11 @@ export default function DashboardCustomEditor(props: DashboardCustomEditorProps)
               </div>
             ),
             certification: (
-              <div className="space-y-4">
+              <div className="space-y-5">
                 <div>
-                  <label className={labelClass}>Nama Sertifikat *</label>
+                  <label htmlFor="cx-name" className={labelClass}>Nama Sertifikat *</label>
                   <input
+                    id="cx-name"
                     value={editForm.content?.name || ""}
                     onChange={(e) =>
                       setEditForm({
@@ -158,8 +174,9 @@ export default function DashboardCustomEditor(props: DashboardCustomEditorProps)
                   />
                 </div>
                 <div>
-                  <label className={labelClass}>Organisasi Penerbit *</label>
+                  <label htmlFor="cx-issuer" className={labelClass}>Organisasi Penerbit *</label>
                   <input
+                    id="cx-issuer"
                     value={editForm.content?.issuer || ""}
                     onChange={(e) =>
                       setEditForm({
@@ -174,10 +191,11 @@ export default function DashboardCustomEditor(props: DashboardCustomEditorProps)
                     placeholder="Amazon Web Services"
                   />
                 </div>
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-2 gap-x-3 gap-y-5">
                   <div>
-                    <label className={labelClass}>Bulan Terbit</label>
+                    <label htmlFor="cx-issueMonth" className={labelClass}>Bulan Terbit</label>
                     <select
+                      id="cx-issueMonth"
                       value={editForm.content?.issueMonth || ""}
                       onChange={(e) =>
                         setEditForm({
@@ -206,8 +224,9 @@ export default function DashboardCustomEditor(props: DashboardCustomEditorProps)
                     </select>
                   </div>
                   <div>
-                    <label className={labelClass}>Tahun Terbit *</label>
+                    <label htmlFor="cx-issueYear" className={labelClass}>Tahun Terbit *</label>
                     <input
+                      id="cx-issueYear"
                       value={editForm.content?.issueYear || ""}
                       onChange={(e) =>
                         setEditForm({
@@ -220,14 +239,15 @@ export default function DashboardCustomEditor(props: DashboardCustomEditorProps)
                       }
                       className={inputClass}
                       placeholder="2024"
-                      style={{ colorScheme: "dark" }}
+                      style={{ colorScheme: "light" }}
                     />
                   </div>
                 </div>
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-2 gap-x-3 gap-y-5">
                   <div>
-                    <label className={labelClass}>Bulan Expired</label>
+                    <label htmlFor="cx-expiryMonth" className={labelClass}>Bulan Expired</label>
                     <select
+                      id="cx-expiryMonth"
                       value={editForm.content?.expiryMonth || ""}
                       onChange={(e) =>
                         setEditForm({
@@ -256,8 +276,9 @@ export default function DashboardCustomEditor(props: DashboardCustomEditorProps)
                     </select>
                   </div>
                   <div>
-                    <label className={labelClass}>Tahun Expired</label>
+                    <label htmlFor="cx-expiryYear" className={labelClass}>Tahun Expired</label>
                     <input
+                      id="cx-expiryYear"
                       value={editForm.content?.expiryYear || ""}
                       onChange={(e) =>
                         setEditForm({
@@ -270,11 +291,11 @@ export default function DashboardCustomEditor(props: DashboardCustomEditorProps)
                       }
                       className={inputClass}
                       placeholder="2027"
-                      style={{ colorScheme: "dark" }}
+                      style={{ colorScheme: "light" }}
                     />
                   </div>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="-mt-2 flex items-center gap-2">
                   <input
                     type="checkbox"
                     id="noExpiry"
@@ -290,20 +311,19 @@ export default function DashboardCustomEditor(props: DashboardCustomEditorProps)
                         },
                       })
                     }
-                    className="w-4 h-4 rounded border-purple-500 bg-[#1a1a3a] text-purple-600 focus:ring-purple-500"
+                    className="h-4 w-4 rounded border-rule accent-[#1f45c9]"
                   />
-                  <label htmlFor="noExpiry" className="text-sm text-gray-300">
+                  <label htmlFor="noExpiry" className="text-sm text-ink-soft">
                     Tidak ada masa berlaku (seumur hidup)
                   </label>
                 </div>
-                <div className="border-t border-purple-900/20 pt-4">
-                  <h4 className="text-sm font-semibold text-gray-300 mb-3">
-                    Detail Tambahan
-                  </h4>
-                  <div className="grid grid-cols-2 gap-3">
+                <div className={groupClass}>
+                  <h4 className={groupTitleClass}>Detail tambahan</h4>
+                  <div className="grid gap-x-3 gap-y-5 sm:grid-cols-2">
                     <div>
-                      <label className={labelClass}>Credential ID</label>
+                      <label htmlFor="cx-credentialId" className={labelClass}>Credential ID</label>
                       <input
+                        id="cx-credentialId"
                         value={editForm.content?.credentialId || ""}
                         onChange={(e) =>
                           setEditForm({
@@ -319,9 +339,10 @@ export default function DashboardCustomEditor(props: DashboardCustomEditorProps)
                       />
                     </div>
                     <div>
-                      <label className={labelClass}>Credential URL</label>
+                      <label htmlFor="cx-credentialUrl" className={labelClass}>Credential URL</label>
                       <div className="flex gap-2">
                         <input
+                          id="cx-credentialUrl"
                           value={
                             editForm.content?.credentialUrl ||
                             editForm.content?.credential_url ||
@@ -340,9 +361,9 @@ export default function DashboardCustomEditor(props: DashboardCustomEditorProps)
                           placeholder="https://credential.example.com/verify/..."
                         />
                         <button
+                          type="button"
                           onClick={detectOgImage}
-                          className="px-3 py-2 rounded-lg text-xs font-medium text-white whitespace-nowrap"
-                          style={{ backgroundColor: "var(--accent, #8b5cf6)" }}
+                          className="shrink-0 whitespace-nowrap rounded-md border border-rule bg-white px-3 py-2 text-sm font-medium text-ink transition-colors hover:border-ink-soft"
                         >
                           Deteksi
                         </button>
@@ -350,12 +371,14 @@ export default function DashboardCustomEditor(props: DashboardCustomEditorProps)
                     </div>
                   </div>
                 </div>
-                <div className="border-t border-purple-900/20 pt-4">
-                  <h4 className="text-sm font-semibold text-gray-300 mb-3">
-                    Skill Terkait
-                  </h4>
+                <div className={groupClass}>
+                  <label htmlFor="cx-cert-skill-search" className={labelClass}>
+                    Skill terkait
+                  </label>
                   <div className="relative">
                     <input
+                      id="cx-cert-skill-search"
+                      autoComplete="off"
                       value={certSkillSearch}
                       onChange={(e) => handleCertSkillSearch(e.target.value)}
                       onKeyDown={(e) => {
@@ -364,15 +387,17 @@ export default function DashboardCustomEditor(props: DashboardCustomEditorProps)
                         }
                       }}
                       className={inputClass}
-                      placeholder="Ketik untuk mencari... (Enter untuk tambah)"
+                      placeholder="Mis. TypeScript"
                     />
+                    <p className={hintClass}>Ketik lalu tekan Enter, atau pilih dari saran.</p>
                     {certSkillSuggestions.length > 0 && (
-                      <div className="absolute z-10 w-full mt-1 bg-[#1a1a3a] border border-purple-900/30 rounded-lg overflow-hidden">
+                      <div className="absolute z-10 mt-1 w-full overflow-hidden rounded-md border border-rule bg-white shadow-sm">
                         {certSkillSuggestions.map((s: string) => (
                           <button
+                            type="button"
                             key={s}
                             onClick={() => addCertSkill(s)}
-                            className="w-full text-left px-4 py-2 text-sm text-white hover:bg-purple-900/30 transition"
+                            className="block w-full px-3 py-2 text-left text-sm text-ink hover:bg-paper-deep focus-visible:bg-paper-deep focus-visible:outline-none"
                           >
                             {s}
                           </button>
@@ -380,34 +405,37 @@ export default function DashboardCustomEditor(props: DashboardCustomEditorProps)
                       </div>
                     )}
                   </div>
-                  <div className="flex flex-wrap gap-2 min-h-[40px] p-3 bg-[#1a1a3a] border border-purple-900/30 rounded-lg mt-2">
+                  <div className="mt-3 flex min-h-11 flex-wrap items-center gap-1.5 rounded-md border border-rule bg-paper px-2.5 py-2">
                     {(editForm.content?.skills || []).map((skill: string) => (
                       <span
                         key={skill}
-                        className="flex items-center gap-1 px-3 py-1 bg-purple-600/30 text-purple-300 text-xs rounded-full"
+                        className="inline-flex items-center gap-1.5 rounded border border-rule bg-white py-0.5 pl-2 pr-1 text-xs text-ink"
                       >
                         {skill}
                         <button
+                          type="button"
+                          aria-label={`Hapus ${skill}`}
                           onClick={() => removeCertSkill(skill)}
-                          className="hover:text-red-400 ml-1"
+                          className="rounded px-0.5 text-ink-soft hover:text-red-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink/20"
                         >
-                          *
+                          ×
                         </button>
                       </span>
                     ))}
                     {(!editForm.content?.skills ||
                       editForm.content.skills.length === 0) && (
-                      <span className="text-gray-500 text-xs">
-                        Belum ada skill ditambahkan
+                      <span className="text-xs text-ink-soft">
+                        Belum ada skill.
                       </span>
                     )}
                   </div>
                 </div>
-                <div className="border-t border-purple-900/20 pt-4">
-                  <h4 className="text-sm font-semibold text-gray-300 mb-3">
+                <div className={groupClass}>
+                  <label htmlFor="cx-cert-description" className={labelClass}>
                     Deskripsi
-                  </h4>
+                  </label>
                   <textarea
+                    id="cx-cert-description"
                     value={editForm.content?.description || ""}
                     onChange={(e) =>
                       setEditForm({
@@ -418,17 +446,16 @@ export default function DashboardCustomEditor(props: DashboardCustomEditorProps)
                         },
                       })
                     }
-                    className={inputClass + " h-20 resize-none"}
+                    className={inputClass + " h-24 resize-y"}
                     placeholder="Deskripsi sertifikat..."
                   />
                 </div>
-                <div className="border-t border-purple-900/20 pt-4">
-                  <h4 className="text-sm font-semibold text-gray-300 mb-3">
-                    Gambar Sertifikat
-                  </h4>
+                <div className={groupClass}>
+                  <h4 className={groupTitleClass}>Gambar sertifikat</h4>
                   <div>
-                    <label className={labelClass}>Image URL</label>
+                    <label htmlFor="cx-imageUrl" className={labelClass}>Image URL</label>
                     <input
+                      id="cx-imageUrl"
                       value={editForm.content?.imageUrl || ""}
                       onChange={(e) =>
                         setEditForm({
@@ -443,17 +470,18 @@ export default function DashboardCustomEditor(props: DashboardCustomEditorProps)
                       placeholder="https://example.com/certificate.jpg"
                     />
                   </div>
-                  <p className="text-xs text-gray-500 mt-1">
-                    URL gambar thumbnail sertifikat
+                  <p className={hintClass}>
+                    URL gambar thumbnail sertifikat.
                   </p>
                 </div>
               </div>
             ),
             specialization: (
-              <div className="space-y-4">
+              <div className="space-y-5">
                 <div>
-                  <label className={labelClass}>Specialization</label>
+                  <label htmlFor="cx-body" className={labelClass}>Specialization</label>
                   <textarea
+                    id="cx-body"
                     value={editForm.content?.body || ""}
                     onChange={(e) =>
                       setEditForm({
@@ -464,17 +492,18 @@ export default function DashboardCustomEditor(props: DashboardCustomEditorProps)
                         },
                       })
                     }
-                    className={inputClass + " h-24 resize-none"}
+                    className={inputClass + " h-28 resize-y"}
                     placeholder="e.g. Cardiology: heart disease specialist"
                   />
                 </div>
               </div>
             ),
             language: (
-              <div className="space-y-4">
+              <div className="space-y-5">
                 <div>
-                  <label className={labelClass}>Language</label>
+                  <label htmlFor="cx-language" className={labelClass}>Language</label>
                   <input
+                    id="cx-language"
                     value={editForm.content?.language || ""}
                     onChange={(e) =>
                       setEditForm({
@@ -490,8 +519,9 @@ export default function DashboardCustomEditor(props: DashboardCustomEditorProps)
                   />
                 </div>
                 <div>
-                  <label className={labelClass}>Proficiency</label>
+                  <label htmlFor="cx-proficiency" className={labelClass}>Proficiency</label>
                   <select
+                    id="cx-proficiency"
                     value={editForm.content?.proficiency || ""}
                     onChange={(e) =>
                       setEditForm({
@@ -515,10 +545,11 @@ export default function DashboardCustomEditor(props: DashboardCustomEditorProps)
               </div>
             ),
             award: (
-              <div className="space-y-4">
+              <div className="space-y-5">
                 <div>
-                  <label className={labelClass}>Title</label>
+                  <label htmlFor="cx-title" className={labelClass}>Title</label>
                   <input
+                    id="cx-title"
                     value={editForm.content?.title || ""}
                     onChange={(e) =>
                       setEditForm({
@@ -534,8 +565,9 @@ export default function DashboardCustomEditor(props: DashboardCustomEditorProps)
                   />
                 </div>
                 <div>
-                  <label className={labelClass}>Issuer</label>
+                  <label htmlFor="cx-issuer" className={labelClass}>Issuer</label>
                   <input
+                    id="cx-issuer"
                     value={editForm.content?.issuer || ""}
                     onChange={(e) =>
                       setEditForm({
@@ -551,8 +583,9 @@ export default function DashboardCustomEditor(props: DashboardCustomEditorProps)
                   />
                 </div>
                 <div>
-                  <label className={labelClass}>Date</label>
+                  <label htmlFor="cx-date" className={labelClass}>Date</label>
                   <input
+                    id="cx-date"
                     value={editForm.content?.date || ""}
                     onChange={(e) =>
                       setEditForm({
@@ -564,16 +597,17 @@ export default function DashboardCustomEditor(props: DashboardCustomEditorProps)
                       })
                     }
                     className={inputClass}
-                    style={{ colorScheme: "dark" }}
+                    style={{ colorScheme: "light" }}
                   />
                 </div>
               </div>
             ),
             organization: (
-              <div className="space-y-4">
+              <div className="space-y-5">
                 <div>
-                  <label className={labelClass}>Name</label>
+                  <label htmlFor="cx-name" className={labelClass}>Name</label>
                   <input
+                    id="cx-name"
                     value={editForm.content?.name || ""}
                     onChange={(e) =>
                       setEditForm({
@@ -589,8 +623,9 @@ export default function DashboardCustomEditor(props: DashboardCustomEditorProps)
                   />
                 </div>
                 <div>
-                  <label className={labelClass}>Role</label>
+                  <label htmlFor="cx-role" className={labelClass}>Role</label>
                   <input
+                    id="cx-role"
                     value={editForm.content?.role || ""}
                     onChange={(e) =>
                       setEditForm({
@@ -605,10 +640,11 @@ export default function DashboardCustomEditor(props: DashboardCustomEditorProps)
                     placeholder="Member"
                   />
                 </div>
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-2 gap-x-3 gap-y-5">
                   <div>
-                    <label className={labelClass}>Start</label>
+                    <label htmlFor="cx-start_date" className={labelClass}>Start</label>
                     <input
+                      id="cx-start_date"
                       value={editForm.content?.start_date?.slice(0, 7) || ""}
                       onChange={(e) =>
                         setEditForm({
@@ -620,12 +656,13 @@ export default function DashboardCustomEditor(props: DashboardCustomEditorProps)
                         })
                       }
                       className={inputClass}
-                      style={{ colorScheme: "dark" }}
+                      style={{ colorScheme: "light" }}
                     />
                   </div>
                   <div>
-                    <label className={labelClass}>End</label>
+                    <label htmlFor="cx-end_date" className={labelClass}>End</label>
                     <input
+                      id="cx-end_date"
                       value={editForm.content?.end_date?.slice(0, 7) || ""}
                       onChange={(e) =>
                         setEditForm({
@@ -637,13 +674,14 @@ export default function DashboardCustomEditor(props: DashboardCustomEditorProps)
                         })
                       }
                       className={inputClass}
-                      style={{ colorScheme: "dark" }}
+                      style={{ colorScheme: "light" }}
                     />
                   </div>
                 </div>
                 <div>
-                  <label className={labelClass}>Description</label>
+                  <label htmlFor="cx-description" className={labelClass}>Description</label>
                   <textarea
+                    id="cx-description"
                     value={editForm.content?.description || ""}
                     onChange={(e) =>
                       setEditForm({
@@ -654,7 +692,7 @@ export default function DashboardCustomEditor(props: DashboardCustomEditorProps)
                         },
                       })
                     }
-                    className={inputClass + " h-20 resize-none"}
+                    className={inputClass + " h-24 resize-y"}
                   />
                 </div>
               </div>
@@ -664,10 +702,11 @@ export default function DashboardCustomEditor(props: DashboardCustomEditorProps)
         }
 
         return (
-          <div className="space-y-4">
+          <div className="space-y-5">
             <div>
-              <label className={labelClass}>Section Title</label>
+              <label htmlFor="cx-section-title" className={labelClass}>Section title</label>
               <input
+                id="cx-section-title"
                 value={editForm.title || ""}
                 onChange={(e) =>
                   setEditForm({ ...editForm, title: e.target.value })
@@ -677,8 +716,9 @@ export default function DashboardCustomEditor(props: DashboardCustomEditorProps)
               />
             </div>
             <div>
-              <label className={labelClass}>Type</label>
+              <label htmlFor="cx-section-type" className={labelClass}>Type</label>
               <select
+                id="cx-section-type"
                 value={editForm.type || "text"}
                 onChange={(e) =>
                   setEditForm({ ...editForm, type: e.target.value })
@@ -691,8 +731,9 @@ export default function DashboardCustomEditor(props: DashboardCustomEditorProps)
               </select>
             </div>
             <div>
-              <label className={labelClass}>Content</label>
+              <label htmlFor="cx-section-content" className={labelClass}>Content</label>
               <textarea
+                id="cx-section-content"
                 value={
                   typeof editForm.content === "string"
                     ? editForm.content
@@ -704,7 +745,7 @@ export default function DashboardCustomEditor(props: DashboardCustomEditorProps)
                     content: { body: e.target.value },
                   })
                 }
-                className={inputClass + " h-32 resize-none"}
+                className={inputClass + " h-36 resize-y"}
                 placeholder="Write anything here..."
               />
             </div>

@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { ReactNode, useState } from "react";
 import api, { getApiErrorMessage } from "@/lib/api";
@@ -13,6 +13,13 @@ interface Props {
   setPortfolio: (value: DashboardPortfolio) => void;
   account: ReactNode;
 }
+
+const quietInput =
+  "rounded-md border border-rule bg-white px-2 py-1 font-mono text-xs text-ink outline-none focus:border-ink focus:ring-2 focus:ring-ink/10";
+const textButton =
+  "rounded px-1.5 py-0.5 text-xs font-medium text-ink-soft hover:bg-paper-deep hover:text-ink";
+const linkish =
+  "truncate text-xs text-ink-soft underline-offset-2 hover:text-ink hover:underline";
 
 export default function DashboardPortfolioControls({
   portfolio,
@@ -57,39 +64,44 @@ export default function DashboardPortfolioControls({
     }
   };
   return (
-    <div className="flex w-full flex-wrap items-center justify-between gap-3 py-2">
-      <div className="flex min-w-0 flex-wrap items-center gap-2 text-sm">
-        <span className="text-xs uppercase tracking-[0.16em] text-slate-500">
-          {activeMenu === "superadmin" ? "PortfolioKit Admin" : "Portfolio"}
-        </span>
+    <div className="flex w-full flex-wrap items-center justify-between gap-x-4 gap-y-2 py-2">
+      <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1 text-sm">
+        {!isAdmin && (
+          <span className="text-sm font-medium text-ink">Admin</span>
+        )}
         {isAdmin && (
           <>
-            <span className="max-w-48 truncate font-medium text-white">
-              {portfolio?.title || "Untitled portfolio"}
+            <span className="max-w-48 truncate font-medium text-ink">
+              {portfolio?.title || (lang === "id" ? "Portfolio tanpa judul" : "Untitled portfolio")}
             </span>
             {portfolio && (
-              <span
-                className={`rounded-full px-2 py-0.5 text-xs ${portfolio.is_published ? "bg-emerald-500/15 text-emerald-300" : "bg-slate-500/15 text-slate-400"}`}
-              >
+              <span className="inline-flex items-center gap-1.5 text-xs text-ink-soft">
+                <span
+                  aria-hidden="true"
+                  className={`h-1.5 w-1.5 rounded-full ${portfolio.is_published ? "bg-emerald-600" : "bg-[#b0b0a8]"}`}
+                />
                 {portfolio.is_published ? "Live" : "Draft"}
               </span>
             )}
             {portfolio && !editingSlug && (
               <button
                 type="button"
+                title={lang === "id" ? "Ubah alamat" : "Change address"}
                 onClick={() => {
                   setSlug(portfolio.slug);
                   setEditingSlug(true);
                   setSlugError("");
                 }}
-                className="text-xs text-slate-500 hover:text-purple-300"
+                className={`max-w-56 font-mono ${linkish}`}
               >
-                /{portfolio.slug}
+                /portfolio/{portfolio.slug}
               </button>
             )}
             {editingSlug && (
-              <div className="flex items-center gap-1">
+              <div className="flex flex-wrap items-center gap-1">
+                <label htmlFor="portfolio-slug" className="sr-only">Slug</label>
                 <input
+                  id="portfolio-slug"
                   autoFocus
                   value={slug}
                   onChange={(event) =>
@@ -103,24 +115,16 @@ export default function DashboardPortfolioControls({
                     if (event.key === "Enter") saveSlug();
                     if (event.key === "Escape") setEditingSlug(false);
                   }}
-                  className="w-32 rounded-lg border border-purple-400 bg-slate-900 px-2 py-1 text-xs text-white"
+                  className={`w-36 ${quietInput}`}
                 />
-                <button
-                  type="button"
-                  onClick={saveSlug}
-                  className="text-xs text-emerald-300"
-                >
-                  Save
+                <button type="button" onClick={saveSlug} className="rounded px-1.5 py-0.5 text-xs font-medium text-accent hover:bg-paper-deep hover:text-accent-dark">
+                  {lang === "id" ? "Simpan" : "Save"}
                 </button>
-                <button
-                  type="button"
-                  onClick={() => setEditingSlug(false)}
-                  className="text-xs text-slate-500"
-                >
-                  Cancel
+                <button type="button" onClick={() => setEditingSlug(false)} className={textButton}>
+                  {lang === "id" ? "Batal" : "Cancel"}
                 </button>
                 {slugError && (
-                  <span className="text-xs text-red-300">{slugError}</span>
+                  <span role="alert" className="text-xs text-red-700">{slugError}</span>
                 )}
               </div>
             )}
@@ -132,14 +136,16 @@ export default function DashboardPortfolioControls({
                   setEditingDomain(true);
                   setDomainError("");
                 }}
-                className="text-xs text-slate-500 hover:text-purple-300"
+                className={`max-w-48 ${portfolio.custom_domain ? "font-mono " : ""}${linkish}`}
               >
-                {portfolio.custom_domain || "+ domain"}
+                {portfolio.custom_domain || (lang === "id" ? "Pasang domain" : "Add domain")}
               </button>
             )}
             {editingDomain && (
-              <div className="flex items-center gap-1">
+              <div className="flex flex-wrap items-center gap-1">
+                <label htmlFor="portfolio-domain" className="sr-only">Domain</label>
                 <input
+                  id="portfolio-domain"
                   autoFocus
                   value={domain}
                   onChange={(event) =>
@@ -149,25 +155,17 @@ export default function DashboardPortfolioControls({
                     if (event.key === "Enter") saveDomain();
                     if (event.key === "Escape") setEditingDomain(false);
                   }}
-                  className="w-36 rounded-lg border border-purple-400 bg-slate-900 px-2 py-1 text-xs text-white"
+                  className={`w-40 ${quietInput}`}
                   placeholder="domain.com"
                 />
-                <button
-                  type="button"
-                  onClick={saveDomain}
-                  className="text-xs text-emerald-300"
-                >
-                  Save
+                <button type="button" onClick={saveDomain} className="rounded px-1.5 py-0.5 text-xs font-medium text-accent hover:bg-paper-deep hover:text-accent-dark">
+                  {lang === "id" ? "Simpan" : "Save"}
                 </button>
-                <button
-                  type="button"
-                  onClick={() => setEditingDomain(false)}
-                  className="text-xs text-slate-500"
-                >
-                  Cancel
+                <button type="button" onClick={() => setEditingDomain(false)} className={textButton}>
+                  {lang === "id" ? "Batal" : "Cancel"}
                 </button>
                 {domainError && (
-                  <span className="text-xs text-red-300">{domainError}</span>
+                  <span role="alert" className="text-xs text-red-700">{domainError}</span>
                 )}
               </div>
             )}
@@ -175,32 +173,46 @@ export default function DashboardPortfolioControls({
         )}
       </div>
       <div className="flex items-center gap-2">
-        {portfolio && isAdmin && (
-          <button
-            type="button"
-            onClick={onTogglePublish}
-            className={`rounded-xl px-3 py-1.5 text-xs font-medium ${portfolio.is_published ? "bg-red-500/15 text-red-300" : "bg-emerald-500/15 text-emerald-300"}`}
-          >
-            {portfolio.is_published ? "Unpublish" : "Publish"}
-          </button>
-        )}
         {portfolio?.is_published && (
           <a
             href={`/portfolio/${portfolio.slug}`}
             target="_blank"
-            className="rounded-xl bg-purple-500/15 px-3 py-1.5 text-xs font-medium text-purple-300"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1 rounded-md border border-rule bg-white px-2.5 py-1.5 text-xs font-medium text-ink transition-colors hover:border-ink-soft"
           >
-            View live
+            {lang === "id" ? "Lihat" : "View live"}
+            <svg aria-hidden="true" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="h-3 w-3">
+              <path d="M6 3h7v7 M13 3L4 12" />
+            </svg>
           </a>
         )}
-        <button
-          type="button"
-          onClick={() => onLangChange(lang === "id" ? "en" : "id")}
-          className="rounded-xl border border-white/10 px-2.5 py-1.5 text-xs text-slate-300"
-        >
-          {lang.toUpperCase()}
-        </button>
-        <div className="h-6 w-px bg-white/10" />
+        {portfolio && isAdmin && (
+          <button
+            type="button"
+            onClick={onTogglePublish}
+            className={portfolio.is_published
+              ? "rounded-md border border-rule bg-white px-2.5 py-1.5 text-xs font-medium text-ink-soft transition-colors hover:border-ink-soft hover:text-ink"
+              : "rounded-md bg-ink px-3 py-1.5 text-xs font-medium text-paper transition-colors hover:bg-black"}
+          >
+            {portfolio.is_published
+              ? (lang === "id" ? "Batalkan terbit" : "Unpublish")
+              : (lang === "id" ? "Terbitkan" : "Publish")}
+          </button>
+        )}
+        <div role="group" aria-label="Language" className="flex overflow-hidden rounded-md border border-rule bg-white text-[11px] font-medium">
+          {(["id", "en"] as const).map((code) => (
+            <button
+              key={code}
+              type="button"
+              aria-pressed={lang === code}
+              onClick={() => { if (lang !== code) onLangChange(code); }}
+              className={`px-2 py-1.5 font-mono uppercase transition-colors ${lang === code ? "bg-paper-deep text-ink" : "text-ink-soft hover:text-ink"}`}
+            >
+              {code}
+            </button>
+          ))}
+        </div>
+        <div className="mx-0.5 h-5 w-px bg-rule" aria-hidden="true" />
         {account}
       </div>
     </div>

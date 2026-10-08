@@ -42,7 +42,7 @@ export async function sendVerificationEmail(email: string, name: string, token: 
     from: sender.from,
     to: email,
     subject: 'Verify Your Email',
-    html: `<div style="font-family:Arial,sans-serif;max-width:400px;margin:0 auto;padding:20px;background:#0f0f2a;color:white;border-radius:12px"><h2 style="color:#a855f7;">Welcome, ${escapeHtml(name)}!</h2><p>Thanks for registering! Please verify your email to activate your account.</p><a href="${escapeHtml(verifyUrl)}" style="display:block;text-align:center;background:#a855f7;color:white;padding:14px 24px;border-radius:8px;text-decoration:none;font-weight:bold;margin:20px 0">Verify Email</a><p style="color:#9ca3af;font-size:12px">This link expires in 24 hours.</p></div>`,
+    html: `<div style="font-family:-apple-system,Segoe UI,Helvetica,Arial,sans-serif;max-width:480px;margin:0 auto;padding:32px 24px;background:#ffffff;color:#141414;line-height:1.55"><p style="margin:0 0 24px;font-weight:600;font-size:16px">PortfolioKit</p><h1 style="margin:0 0 8px;font-size:22px">Halo, ${escapeHtml(name)}.</h1><p style="margin:0 0 20px">Tinggal satu langkah: konfirmasi email ini supaya akunmu aktif.</p><a href="${escapeHtml(verifyUrl)}" style="display:inline-block;background:#1f45c9;color:#ffffff;padding:11px 18px;border-radius:6px;text-decoration:none;font-weight:600;margin:8px 0 4px">Konfirmasi email</a><p style="margin:32px 0 0;padding-top:16px;border-top:1px solid #dcdcd5;color:#55555a;font-size:12px">Link ini berlaku 24 jam. Kalau kamu tidak merasa mendaftar, abaikan email ini.</p></div>`,
   });
 }
 
@@ -52,7 +52,7 @@ export async function sendOTP(email: string, otp: string) {
     from: sender.from,
     to: email,
     subject: 'Your OTP Code',
-    html: `<div style="font-family:Arial,sans-serif;max-width:400px;margin:0 auto;padding:20px;background:#0f0f2a;color:white;border-radius:12px"><h2 style="color:#a855f7;">Verification Code</h2><p>Your OTP code is:</p><div style="font-size:36px;font-weight:bold;color:#a855f7;letter-spacing:8px;text-align:center;padding:20px;background:#1a1a3a;border-radius:8px;margin:20px 0">${escapeHtml(otp)}</div><p style="color:#9ca3af;font-size:12px">This code expires in 5 minutes.</p></div>`,
+    html: `<div style="font-family:-apple-system,Segoe UI,Helvetica,Arial,sans-serif;max-width:480px;margin:0 auto;padding:32px 24px;background:#ffffff;color:#141414;line-height:1.55"><p style="margin:0 0 24px;font-weight:600;font-size:16px">PortfolioKit</p><h1 style="margin:0 0 8px;font-size:22px">Kode masuk kamu</h1><p style="margin:0 0 16px">Masukkan kode ini di halaman masuk:</p><p style="margin:0;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:32px;font-weight:700;letter-spacing:6px">${escapeHtml(otp)}</p><p style="margin:32px 0 0;padding-top:16px;border-top:1px solid #dcdcd5;color:#55555a;font-size:12px">Kode berlaku 5 menit. Jangan berikan kode ini ke siapa pun.</p></div>`,
   });
 }
 
@@ -63,7 +63,7 @@ export async function sendResetPassword(email: string, name: string, token: stri
     from: sender.from,
     to: email,
     subject: 'Reset Password - PortfolioKit',
-    html: `<div style="font-family:Arial,sans-serif;max-width:400px;margin:0 auto;padding:20px;background:#0f0f2a;color:white;border-radius:12px"><h2 style="color:#a855f7;">Reset Password</h2><p>Halo ${escapeHtml(name)}! Kamu meminta reset password akun PortfolioKit kamu.</p><a href="${escapeHtml(resetUrl)}" style="display:block;text-align:center;background:#a855f7;color:white;padding:14px 24px;border-radius:8px;text-decoration:none;font-weight:bold;margin:20px 0">Reset Password</a><p style="color:#9ca3af;font-size:12px">Link ini berlaku selama 1 jam.</p></div>`,
+    html: `<div style="font-family:-apple-system,Segoe UI,Helvetica,Arial,sans-serif;max-width:480px;margin:0 auto;padding:32px 24px;background:#ffffff;color:#141414;line-height:1.55"><p style="margin:0 0 24px;font-weight:600;font-size:16px">PortfolioKit</p><h1 style="margin:0 0 8px;font-size:22px">Bikin password baru</h1><p style="margin:0 0 20px">Halo ${escapeHtml(name)}, ada permintaan reset password untuk akun PortfolioKit kamu.</p><a href="${escapeHtml(resetUrl)}" style="display:inline-block;background:#1f45c9;color:#ffffff;padding:11px 18px;border-radius:6px;text-decoration:none;font-weight:600;margin:8px 0 4px">Bikin password baru</a><p style="margin:32px 0 0;padding-top:16px;border-top:1px solid #dcdcd5;color:#55555a;font-size:12px">Link ini berlaku 1 jam. Kalau bukan kamu yang meminta, abaikan saja — password lama tetap berlaku.</p></div>`,
   });
 }
 
@@ -74,6 +74,6 @@ export async function sendContactNotification(ownerEmail: string, name: string, 
     to: headerSafe(ownerEmail, 320),
     replyTo: headerSafe(email, 320),
     subject: `New message from ${headerSafe(name, 100)} - PortfolioKit`,
-    html: `<div style="font-family:Arial,sans-serif;max-width:500px;margin:0 auto;padding:20px"><h2 style="color:#a855f7">New Message!</h2><div style="background:#f8f9fa;border-radius:8px;padding:16px;margin:16px 0"><p><strong>From:</strong> ${escapeHtml(name)}</p><p><strong>Email:</strong> ${escapeHtml(email)}</p><p><strong>Message:</strong></p><p style="background:white;padding:12px;border-radius:6px;border-left:3px solid #a855f7;white-space:pre-wrap">${escapeHtml(message)}</p></div></div>`,
+    html: `<div style="font-family:-apple-system,Segoe UI,Helvetica,Arial,sans-serif;max-width:480px;margin:0 auto;padding:32px 24px;background:#ffffff;color:#141414;line-height:1.55"><p style="margin:0 0 24px;font-weight:600;font-size:16px">PortfolioKit</p><h1 style="margin:0 0 16px;font-size:22px">Pesan baru dari portfolio kamu</h1><p style="margin:0">${escapeHtml(name)} &lt;${escapeHtml(email)}&gt;</p><p style="margin:12px 0 0;padding:12px 14px;border-left:3px solid #1f45c9;background:#fafaf7;white-space:pre-wrap">${escapeHtml(message)}</p><p style="margin:32px 0 0;padding-top:16px;border-top:1px solid #dcdcd5;color:#55555a;font-size:12px">Balas email ini untuk menjawab langsung ke pengirim.</p></div>`,
   });
 }

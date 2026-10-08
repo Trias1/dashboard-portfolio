@@ -22,127 +22,161 @@ interface Props {
   onImport?: (sectionsImported: string[]) => void;
 }
 
+// Success messages start with this word; anything else is shown as an error.
+// (The old check `githubMsg.includes('')` was always true, so errors were painted green.)
+const SUCCESS_PREFIX = 'Berhasil';
+
+const inputCls = 'w-full rounded-md border border-rule bg-white px-3 py-2 text-sm text-ink placeholder:text-[#9a9aa0] outline-none transition-colors focus:border-ink focus:ring-2 focus:ring-ink/10';
+
 export default function GitHubPanel({ githubUsername, setGithubUsername, githubPreview, setGithubPreview, githubLoading, setGithubLoading, githubImporting, setGithubImporting, githubMsg, setGithubMsg, githubOptions, setGithubOptions, selectedProjects, setSelectedProjects, loadPreview, onImport }: Props) {
+  const username = githubUsername.trim().replace(/^@/, '').replace(/^https?:\/\/github\.com\//i, '').replace(/\/.*$/, '');
+
   const handleSearch = async () => {
-    if (!githubUsername) return;
+    if (!username) return;
     setGithubLoading(true); setGithubPreview(null); setGithubMsg('');
     try {
-      const res = await api.get<GitHubPreview>(`/api/github/preview?username=${githubUsername}`);
+      const res = await api.get<GitHubPreview>(`/api/github/preview?username=${encodeURIComponent(username)}`);
       setGithubPreview(res.data);
       setSelectedProjects(res.data.projects.map((p) => p.name));
-    } catch (err) { setGithubMsg(' ' + getApiErrorMessage(err, 'User tidak ditemukan')); }
+    } catch (err) { setGithubMsg(getApiErrorMessage(err, 'User GitHub tidak ditemukan.')); }
     finally { setGithubLoading(false); }
   };
 
+  const handleImport = async () => {
+    setGithubImporting(true); setGithubMsg('');
+    try {
+      const res = await api.post<{ imported: string[] }>('/api/github/import', { username, options: { ...githubOptions, selectedProjects } });
+      const imported = res.data.imported || [];
+      setGithubMsg(imported.length ? `${SUCCESS_PREFIX} mengimpor: ${imported.join(', ')}.` : `${SUCCESS_PREFIX}, tapi tidak ada data baru yang diimpor.`);
+      loadPreview();
+      if (onImport) onImport(imported);
+    } catch (err) { setGithubMsg(getApiErrorMessage(err, 'Import gagal. Coba lagi.')); }
+    finally { setGithubImporting(false); }
+  };
+
+  const isSuccess = githubMsg.startsWith(SUCCESS_PREFIX);
+  const projects = githubPreview?.projects || [];
+  const allSelected = projects.length > 0 && selectedProjects.length === projects.length;
+
   return (
-    <div className="flex-1 p-8 overflow-auto">
-      <div className="max-w-3xl mx-auto">
-        <h2 className="text-2xl font-bold text-white mb-2"> GitHub Import</h2>
-        <p className="text-gray-400 text-sm mb-6">Import data dari GitHub profile kamu  -  bio, skills, dan projects otomatis masuk ke portfolio!</p>
-        <div className="bg-[#0f0f2a] border border-purple-900/30 rounded-2xl p-6 mb-6">
-          <label className="block text-sm font-medium text-gray-300 mb-2">GitHub Username</label>
-          <div className="flex gap-3">
-            <input value={githubUsername} onChange={e => setGithubUsername(e.target.value)}
-              onKeyDown={e => e.key === 'Enter' && !githubLoading && handleSearch()}
-              className="flex-1 bg-[#1a1a3a] border border-purple-900/30 rounded-lg px-4 py-2.5 text-white placeholder-gray-500 focus:outline-none focus:border-purple-500 text-sm"
-              placeholder="contoh: torvalds" />
-            <button onClick={handleSearch} disabled={githubLoading || !githubUsername}
-              className="px-6 py-2.5 bg-purple-600 hover:bg-purple-700 disabled:opacity-50 text-white text-sm rounded-lg transition font-medium">
-              {githubLoading ? '' : ' Cari'}
+    <div className="flex-1 overflow-auto bg-paper">
+      <div className="mx-auto max-w-3xl px-5 py-8 sm:px-8">
+        <h2 className="font-display text-2xl font-semibold tracking-tight text-ink">Impor dari GitHub</h2>
+        <p className="mt-1 text-sm text-ink-soft">Ambil bio, bahasa pemrograman, dan repositori publik dari profil GitHub.</p>
+
+        <form className="mt-6" onSubmit={(e) => { e.preventDefault(); if (!githubLoading) handleSearch(); }}>
+          <label htmlFor="github-username" className="mb-1.5 block text-sm font-medium text-ink">Username GitHub</label>
+          <div className="flex gap-2">
+            <div className="relative flex-1">
+              <span className="pointer-events-none absolute inset-y-0 left-3 flex items-center font-mono text-sm text-ink-soft">github.com/</span>
+              <input id="github-username" value={githubUsername} onChange={(e) => setGithubUsername(e.target.value)}
+                autoComplete="off" spellCheck={false}
+                className={`${inputCls} pl-[6.6rem] font-mono`} placeholder="username" />
+            </div>
+            <button type="submit" disabled={githubLoading || !username}
+              className="shrink-0 rounded-md bg-ink px-3.5 py-2 text-sm font-medium text-paper transition-colors hover:bg-black disabled:cursor-not-allowed disabled:opacity-50">
+              {githubLoading ? 'Mencari…' : 'Cari'}
             </button>
           </div>
-          {githubMsg && !githubPreview && <p className="mt-3 text-sm text-red-400">{githubMsg}</p>}
-        </div>
+          {githubMsg && !githubPreview && <p role="alert" className="mt-2 text-[13px] text-red-700">{githubMsg}</p>}
+        </form>
 
         {githubPreview && (
-          <div className="space-y-4">
-            <div className="bg-[#0f0f2a] border border-purple-900/30 rounded-2xl p-6">
-              <div className="flex items-center gap-4 mb-4">
-                <img src={githubPreview.profile.avatar} alt="" className="w-16 h-16 rounded-full border-2 border-purple-500" />
-                <div>
-                  <h3 className="text-lg font-bold text-white">{githubPreview.profile.name}</h3>
-                  {githubPreview.profile.bio && <p className="text-sm text-gray-400 mt-1">{githubPreview.profile.bio}</p>}
-                  <div className="flex gap-4 mt-2 text-xs text-gray-500">
-                    <span> {githubPreview.profile.public_repos} repos</span>
-                    <span> {githubPreview.profile.followers} followers</span>
-                    {githubPreview.profile.location && <span> {githubPreview.profile.location}</span>}
-                  </div>
+          <div className="mt-6 space-y-6">
+            <section className="rounded-lg border border-rule bg-white">
+              <div className="flex items-start gap-4 border-b border-rule px-5 py-4">
+                {/* eslint-disable-next-line @next/next/no-img-element -- GitHub avatar, remote host not configured for next/image */}
+                <img src={githubPreview.profile.avatar} alt={`Avatar ${githubPreview.profile.name}`} className="h-12 w-12 shrink-0 rounded-full border border-rule" />
+                <div className="min-w-0">
+                  <h3 className="text-base font-semibold text-ink">{githubPreview.profile.name}</h3>
+                  {githubPreview.profile.bio && <p className="mt-0.5 text-[13px] text-ink-soft">{githubPreview.profile.bio}</p>}
+                  <p className="mt-1.5 flex flex-wrap gap-x-4 gap-y-0.5 text-xs text-ink-soft">
+                    <span><span className="font-mono text-ink">{Number(githubPreview.profile.public_repos).toLocaleString("id-ID")}</span> repo</span>
+                    <span><span className="font-mono text-ink">{Number(githubPreview.profile.followers).toLocaleString("id-ID")}</span> pengikut</span>
+                    {githubPreview.profile.location && <span>{githubPreview.profile.location}</span>}
+                  </p>
                 </div>
               </div>
+
               {githubPreview.languages.length > 0 && (
-                <div className="mb-4">
-                  <p className="text-xs text-gray-400 mb-2">Top Languages:</p>
-                  <div className="flex flex-wrap gap-2">
-                    {githubPreview.languages.map((l: string) => (
-                      <span key={l} className="text-xs px-2 py-1 rounded-full" style={{ backgroundColor: '#a855f720', color: '#a855f7' }}>{l}</span>
-                    ))}
-                  </div>
+                <div className="border-b border-rule px-5 py-3 text-[13px]">
+                  <span className="text-ink-soft">Bahasa utama: </span>
+                  <span className="text-ink">{githubPreview.languages.join(', ')}</span>
                 </div>
               )}
-              {githubPreview.projects.length > 0 && (
+
+              {projects.length > 0 ? (
                 <div>
-                  <div className="flex items-center justify-between mb-2">
-                    <p className="text-xs text-gray-400">Pilih projects ({selectedProjects.length}/{githubPreview.projects.length} dipilih):</p>
-                    <div className="flex gap-2">
-                      <button onClick={() => setSelectedProjects(githubPreview.projects.map((p) => p.name))} className="text-xs text-purple-400 hover:text-purple-300">Pilih Semua</button>
-                      <span className="text-gray-600">|</span>
-                      <button onClick={() => setSelectedProjects([])} className="text-xs text-gray-400 hover:text-gray-300">Reset</button>
-                    </div>
+                  <div className="flex items-center justify-between gap-3 px-5 py-2.5">
+                    <p className="text-[13px] text-ink-soft">
+                      Repositori <span className="font-mono text-ink">{selectedProjects.length}/{projects.length}</span> dipilih
+                    </p>
+                    <button type="button"
+                      onClick={() => setSelectedProjects(allSelected ? [] : projects.map((p) => p.name))}
+                      className="text-[13px] text-accent underline-offset-2 hover:text-accent-dark hover:underline">
+                      {allSelected ? 'Kosongkan' : 'Pilih semua'}
+                    </button>
                   </div>
-                  <div className="space-y-2 max-h-60 overflow-y-auto pr-1">
-                    {githubPreview.projects.map((p, i) => (
-                      <label key={i} className="flex items-center gap-3 p-3 bg-[#1a1a3a] rounded-lg cursor-pointer hover:bg-[#1a1a4a] transition">
-                        <input type="checkbox" checked={selectedProjects.includes(p.name)}
-                          onChange={e => { if (e.target.checked) setSelectedProjects((prev) => [...prev, p.name]); else setSelectedProjects((prev) => prev.filter((n) => n !== p.name)); }}
-                          className="accent-purple-500 flex-shrink-0" />
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm text-white font-medium truncate">{p.title}</p>
-                          <p className="text-xs text-gray-500 truncate">{p.description || 'Tidak ada deskripsi'}</p>
-                        </div>
-                        <div className="flex items-center gap-2 flex-shrink-0">
-                          {p.tech_stack && <span className="text-xs text-gray-500">{p.tech_stack}</span>}
-                          {p.stars > 0 && <span className="text-xs text-yellow-500">{p.stars}</span>}
-                        </div>
-                      </label>
-                    ))}
-                  </div>
+                  <ul className="max-h-80 divide-y divide-rule overflow-y-auto border-t border-rule">
+                    {projects.map((p) => {
+                      const id = `gh-repo-${p.name}`;
+                      return (
+                        <li key={p.name}>
+                          <label htmlFor={id} className="flex cursor-pointer items-start gap-3 px-5 py-2.5 transition-colors hover:bg-paper">
+                            <input id={id} type="checkbox" checked={selectedProjects.includes(p.name)}
+                              onChange={(e) => { if (e.target.checked) setSelectedProjects((prev) => [...prev, p.name]); else setSelectedProjects((prev) => prev.filter((n) => n !== p.name)); }}
+                              className="mt-0.5 h-4 w-4 shrink-0 accent-[#1f45c9]" />
+                            <span className="min-w-0 flex-1">
+                              <span className="block truncate font-mono text-[13px] text-ink">{p.title}</span>
+                              <span className="block truncate text-[13px] text-ink-soft">{p.description || 'Tanpa deskripsi'}</span>
+                            </span>
+                            <span className="flex shrink-0 items-center gap-3 text-xs text-ink-soft">
+                              {p.tech_stack && <span>{p.tech_stack}</span>}
+                              {p.stars > 0 && <span className="font-mono" title={`${p.stars} bintang`}>&#9733; {p.stars}</span>}
+                            </span>
+                          </label>
+                        </li>
+                      );
+                    })}
+                  </ul>
                 </div>
+              ) : (
+                <p className="px-5 py-4 text-[13px] text-ink-soft">Tidak ada repositori publik.</p>
               )}
-            </div>
-            <div className="bg-[#0f0f2a] border border-purple-900/30 rounded-2xl p-6">
-              <h3 className="text-sm font-semibold text-gray-300 mb-4">Pilih yang mau diimport:</h3>
-              <div className="space-y-3 mb-6">
+            </section>
+
+            <section className="rounded-lg border border-rule bg-white">
+              <h3 className="border-b border-rule px-5 py-3 text-sm font-semibold text-ink">Yang diimpor</h3>
+              <div className="divide-y divide-rule">
                 {[
-                  { key: 'bio', label: 'Bio/Deskripsi', desc: githubPreview.profile.bio || 'Tidak ada bio' },
-                  { key: 'skills', label: 'Skills (dari languages)', desc: githubPreview.languages.join(', ') || 'Tidak ada' },
-                  { key: 'projects', label: `Projects (${selectedProjects.length} dipilih)`, desc: 'GitHub repositories yang kamu centang' },
-                ].map(opt => (
-                  <label key={opt.key} className="flex items-start gap-3 cursor-pointer">
-                    <input type="checkbox" checked={githubOptions[opt.key as keyof typeof githubOptions]}
-                      onChange={e => setGithubOptions((prev) => ({...prev, [opt.key]: e.target.checked}))}
-                      className="mt-1 accent-purple-500" />
-                    <div>
-                      <p className="text-sm text-white font-medium">{opt.label}</p>
-                      <p className="text-xs text-gray-500 truncate max-w-md">{opt.desc}</p>
-                    </div>
+                  { key: 'bio' as const, label: 'Bio', desc: githubPreview.profile.bio || 'Profil ini tidak punya bio' },
+                  { key: 'skills' as const, label: 'Skills dari bahasa pemrograman', desc: githubPreview.languages.join(', ') || 'Tidak ada' },
+                  { key: 'projects' as const, label: `Project (${selectedProjects.length} repositori)`, desc: 'Repositori yang dicentang di atas' },
+                ].map((opt) => (
+                  <label key={opt.key} htmlFor={`gh-opt-${opt.key}`} className="flex cursor-pointer items-start gap-3 px-5 py-3">
+                    <input id={`gh-opt-${opt.key}`} type="checkbox" checked={githubOptions[opt.key]}
+                      onChange={(e) => setGithubOptions((prev) => ({ ...prev, [opt.key]: e.target.checked }))}
+                      className="mt-0.5 h-4 w-4 accent-[#1f45c9]" />
+                    <span className="min-w-0">
+                      <span className="block text-sm text-ink">{opt.label}</span>
+                      <span className="block truncate text-[13px] text-ink-soft">{opt.desc}</span>
+                    </span>
                   </label>
                 ))}
               </div>
-              {githubMsg && <p className="mb-3 text-sm" style={{ color: githubMsg.includes('') ? '#22c55e' : '#ef4444' }}>{githubMsg}</p>}
-              <button onClick={async () => {
-                setGithubImporting(true); setGithubMsg('');
-                try {
-                  const res = await api.post<{ imported: string[] }>('/api/github/import', { username: githubUsername, options: { ...githubOptions, selectedProjects } });
-                  setGithubMsg(` Berhasil import: ${res.data.imported.join(', ')}!`);
-                  loadPreview();
-                  if (onImport) onImport(res.data.imported || []);
-                } catch (err) { setGithubMsg(' ' + getApiErrorMessage(err, 'Import gagal')); }
-                finally { setGithubImporting(false); }
-              }} disabled={githubImporting || !Object.values(githubOptions).some(Boolean)}
-                className="w-full py-3 bg-purple-600 hover:bg-purple-700 disabled:opacity-50 text-white rounded-xl font-medium transition text-sm">
-                {githubImporting ? ' Mengimport...' : ' Import ke Portfolio'}
-              </button>
-            </div>
+              <div className="space-y-3 border-t border-rule px-5 py-4">
+                {githubMsg && (
+                  <p role={isSuccess ? 'status' : 'alert'} className={`rounded-md border px-3 py-2 text-[13px] ${isSuccess ? 'border-emerald-200 bg-emerald-50 text-emerald-800' : 'border-red-200 bg-red-50 text-red-800'}`}>
+                    {githubMsg}
+                  </p>
+                )}
+                <button type="button" onClick={handleImport}
+                  disabled={githubImporting || !Object.values(githubOptions).some(Boolean) || (githubOptions.projects && !githubOptions.bio && !githubOptions.skills && selectedProjects.length === 0)}
+                  className="rounded-md bg-ink px-3.5 py-2 text-sm font-medium text-paper transition-colors hover:bg-black disabled:cursor-not-allowed disabled:opacity-50">
+                  {githubImporting ? 'Mengimpor…' : 'Impor ke portfolio'}
+                </button>
+              </div>
+            </section>
           </div>
         )}
       </div>

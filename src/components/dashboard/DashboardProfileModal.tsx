@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { motion } from "framer-motion";
 import api, { getApiErrorMessage } from "@/lib/api";
@@ -21,8 +21,8 @@ interface DashboardProfileModalProps {
 }
 
 const inputClass =
-  "w-full rounded-xl border border-white/10 bg-slate-950/70 px-3 py-2.5 text-sm text-white outline-none transition focus:border-purple-400";
-const labelClass = "mb-1.5 block text-xs font-medium text-slate-400";
+  "w-full rounded-md border border-rule bg-white px-3 py-2 text-sm text-ink placeholder:text-[#9a9aa0] outline-none transition-colors focus:border-ink focus:ring-2 focus:ring-ink/10";
+const labelClass = "mb-1.5 block text-sm font-medium text-ink";
 
 export default function DashboardProfileModal({
   open,
@@ -39,49 +39,56 @@ export default function DashboardProfileModal({
 
   return (
     <div
-      className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/80 px-4 backdrop-blur-sm"
+      className="fixed inset-0 z-[100] flex items-center justify-center bg-ink/30 px-4"
       onClick={onClose}
     >
       <motion.div
-        initial={{ opacity: 0, y: 12, scale: 0.98 }}
-        animate={{ opacity: 1, y: 0, scale: 1 }}
-        className="max-h-[90vh] w-full max-w-md overflow-y-auto rounded-3xl border border-white/10 bg-slate-900 p-5 shadow-2xl shadow-purple-950/40"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="profile-modal-title"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.15 }}
+        className="max-h-[90vh] w-full max-w-md overflow-y-auto rounded-lg border border-rule bg-white p-5 text-ink shadow-[0_12px_32px_rgba(20,20,20,0.12)]"
         onClick={(event) => event.stopPropagation()}
       >
-        <div className="mb-5 flex items-center justify-between">
+        <div className="mb-5 flex items-start justify-between gap-4 border-b border-rule pb-4">
           <div>
-            <p className="text-[10px] uppercase tracking-[0.2em] text-purple-300">
-              Account
-            </p>
-            <h2 className="text-lg font-semibold text-white">
-              {lang === "id" ? "Edit Profil" : "Edit Profile"}
+            <h2 id="profile-modal-title" className="font-display text-lg font-semibold tracking-tight">
+              {lang === "id" ? "Profil akun" : "Account profile"}
             </h2>
+            <p className="mt-0.5 text-xs text-ink-soft">
+              {lang === "id" ? "Nama, email, password, dan foto." : "Name, email, password and photo."}
+            </p>
           </div>
           <button
             type="button"
             aria-label="Close profile modal"
             onClick={onClose}
-            className="h-9 w-9 rounded-xl border border-white/10 text-slate-400 hover:bg-white/10 hover:text-white"
+            className="-mr-1.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-ink-soft hover:bg-paper hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink/15"
           >
-            ×
+            <svg aria-hidden="true" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" className="h-3.5 w-3.5">
+              <path d="M4 4l8 8 M12 4l-8 8" />
+            </svg>
           </button>
         </div>
         <form onSubmit={onSubmit} className="space-y-4">
           {profileError && (
-            <div className="rounded-xl border border-red-500/30 bg-red-500/10 px-3 py-2 text-xs text-red-300">
+            <div role="alert" className="rounded-md border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-800">
               {profileError}
             </div>
           )}
           {profileMsg && (
-            <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-xs text-emerald-300">
+            <div role="status" className="rounded-md border border-emerald-300 bg-emerald-50 px-3 py-2 text-sm text-emerald-800">
               {profileMsg}
             </div>
           )}
           <div>
-            <label className={labelClass}>
+            <label htmlFor="profile-name" className={labelClass}>
               {lang === "id" ? "Nama" : "Name"}
             </label>
             <input
+              id="profile-name"
               value={profileForm.name}
               onChange={(event) =>
                 setProfileForm({ ...profileForm, name: event.target.value })
@@ -91,8 +98,9 @@ export default function DashboardProfileModal({
             />
           </div>
           <div>
-            <label className={labelClass}>Email</label>
+            <label htmlFor="profile-email" className={labelClass}>Email</label>
             <input
+              id="profile-email"
               type="email"
               value={profileForm.email}
               onChange={(event) =>
@@ -104,10 +112,12 @@ export default function DashboardProfileModal({
           </div>
           <div className="grid gap-4 sm:grid-cols-2">
             <div>
-              <label className={labelClass}>
-                {lang === "id" ? "Password Baru" : "New Password"}
+              <label htmlFor="profile-password" className={labelClass}>
+                {lang === "id" ? "Password baru" : "New password"}
               </label>
               <input
+                id="profile-password"
+                autoComplete="new-password"
                 type="password"
                 value={profileForm.password}
                 onChange={(event) =>
@@ -121,10 +131,12 @@ export default function DashboardProfileModal({
               />
             </div>
             <div>
-              <label className={labelClass}>
-                {lang === "id" ? "Konfirmasi" : "Confirm"}
+              <label htmlFor="profile-confirm" className={labelClass}>
+                {lang === "id" ? "Ulangi password" : "Repeat password"}
               </label>
               <input
+                id="profile-confirm"
+                autoComplete="new-password"
                 type="password"
                 value={profileForm.confirmPassword}
                 onChange={(event) =>
@@ -139,10 +151,11 @@ export default function DashboardProfileModal({
             </div>
           </div>
           <div>
-            <label className={labelClass}>
-              {lang === "id" ? "Password Saat Ini" : "Current Password"}
+            <label htmlFor="profile-current-password" className={labelClass}>
+              {lang === "id" ? "Password saat ini" : "Current password"}
             </label>
             <input
+              id="profile-current-password"
               type="password"
               autoComplete="current-password"
               value={profileForm.currentPassword || ""}
@@ -161,11 +174,11 @@ export default function DashboardProfileModal({
             />
           </div>
           <div>
-            <label className={labelClass}>
-              {lang === "id" ? "Foto Profil" : "Profile Photo"}
-            </label>
+            <p className={labelClass}>
+              {lang === "id" ? "Foto profil" : "Profile photo"}
+            </p>
             <div className="flex items-center gap-3">
-              <div className="h-14 w-14 shrink-0 overflow-hidden rounded-2xl border border-white/10 bg-slate-950">
+              <div className="h-12 w-12 shrink-0 overflow-hidden rounded-full border border-rule bg-paper-deep">
                 {profileForm.photo_url ? (
                   <img
                     src={profileForm.photo_url}
@@ -173,16 +186,16 @@ export default function DashboardProfileModal({
                     className="h-full w-full object-cover"
                   />
                 ) : (
-                  <div className="flex h-full items-center justify-center text-slate-600">
+                  <div className="flex h-full items-center justify-center text-sm text-ink-soft">
                     ?
                   </div>
                 )}
               </div>
               <label
                 htmlFor="profile-photo-upload"
-                className="cursor-pointer rounded-xl bg-purple-500 px-4 py-2 text-sm font-medium text-white hover:bg-purple-400"
+                className="cursor-pointer rounded-md border border-rule bg-white px-3.5 py-2 text-sm font-medium text-ink transition-colors hover:border-ink-soft"
               >
-                {lang === "id" ? "Upload Foto" : "Upload Photo"}
+                {lang === "id" ? "Unggah foto" : "Upload photo"}
               </label>
               <input
                 id="profile-photo-upload"
@@ -213,7 +226,11 @@ export default function DashboardProfileModal({
                 }}
               />
             </div>
+            <label htmlFor="profile-photo-url" className="sr-only">
+              {lang === "id" ? "URL foto" : "Photo URL"}
+            </label>
             <input
+              id="profile-photo-url"
               value={profileForm.photo_url}
               onChange={(event) =>
                 setProfileForm({
@@ -225,19 +242,19 @@ export default function DashboardProfileModal({
               placeholder="https://..."
             />
           </div>
-          <div className="flex gap-2 pt-2">
-            <button
-              type="submit"
-              className="flex-1 rounded-xl bg-purple-500 py-2.5 text-sm font-semibold text-white hover:bg-purple-400"
-            >
-              {lang === "id" ? "Simpan" : "Save"}
-            </button>
+          <div className="flex justify-end gap-2 border-t border-rule pt-4">
             <button
               type="button"
               onClick={onClose}
-              className="rounded-xl border border-white/10 px-4 py-2.5 text-sm text-slate-300 hover:bg-white/10"
+              className="rounded-md border border-rule bg-white px-3.5 py-2 text-sm font-medium text-ink transition-colors hover:border-ink-soft"
             >
               {lang === "id" ? "Batal" : "Cancel"}
+            </button>
+            <button
+              type="submit"
+              className="rounded-md bg-ink px-3.5 py-2 text-sm font-medium text-paper transition-colors hover:bg-black"
+            >
+              {lang === "id" ? "Simpan" : "Save"}
             </button>
           </div>
         </form>

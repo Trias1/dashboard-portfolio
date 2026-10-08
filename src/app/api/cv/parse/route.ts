@@ -4,522 +4,33 @@ import { errorResponse, successResponse, getErrorMessage } from '@/lib/utils';
 import { checkRateLimit } from '@/lib/rate-limit';
 import PDF2JSON from 'pdf2json';
 import Groq from 'groq-sdk';
-import type { CvListKey, KeywordCvResult, ParsedCv, ParsedCvItem } from '@/types/api';
+import type { ParsedCv, ParsedCvItem } from '@/types/api';
+import {
+  cleanExtractedText, estimateConfidence, extractByKeyword, extractExperienceFromRawText,
+  mergeResults, normalizeAiResult, pagesToText, parseAiJson, sanitizeJson, CV_LIST_KEYS,
+} from '@/lib/cv-parser';
 
-const groq = new Groq({ apiKey: process.env.NINE_ROUTER_API_KEY || '', baseURL: process.env.NINE_ROUTER_BASE_URL || 'https://router.zeen.my.id/v1' });
+const PDF_TIMEOUT_MS = 20_000;
+const AI_TIMEOUT_MS = 30_000;
 
-function pdfParse(buffer: Buffer): Promise<{ text: string }> {
+type AiStatus = 'ok' | 'not_configured' | 'failed';
+
+function pdfToText(buffer: Buffer): Promise<string> {
   return new Promise((resolve, reject) => {
+    const timer = setTimeout(() => reject(new Error('PDF parse timeout')), PDF_TIMEOUT_MS);
     const pdfParser = new PDF2JSON();
-    pdfParser.on('pdfParser_dataError', (err) => reject(err));
+    pdfParser.on('pdfParser_dataError', (err) => { clearTimeout(timer); reject(err instanceof Error ? err : new Error(String(err?.parserError || err))); });
     pdfParser.on('pdfParser_dataReady', (data) => {
-      const text = (data.Pages || []).map((page) =>
-        (page.Texts || []).map((t) =>
-          decodeURIComponent((t.R || []).map((r) => r.T).join(''))
-        ).join(' ')
-      ).join('\n');
-      resolve({ text });
+      clearTimeout(timer);
+      try { resolve(pagesToText(data.Pages || [])); } catch (e) { reject(e); }
     });
-    pdfParser.parseBuffer(buffer);
+    try { pdfParser.parseBuffer(buffer); } catch (e) { clearTimeout(timer); reject(e); }
   });
 }
 
-function sanitizeJson(obj: unknown): unknown {
-  if (typeof obj === 'string') return obj.replace(/\u0000/g, '');
-  if (Array.isArray(obj)) return obj.map(sanitizeJson);
-  if (obj && typeof obj === 'object') {
-    const result: Record<string, unknown> = {};
-    for (const [k, v] of Object.entries(obj)) result[k] = sanitizeJson(v);
-    return result;
-  }
-  return obj;
-}
-
-function repairJson(raw: string): ParsedCv {
-  try { return JSON.parse(raw); } catch {}
-
-  let cleaned = raw.replace(/```json\s*/gi, '').replace(/```\s*$/g, '').trim();
-
-  const openC = (cleaned.match(/\{/g) || []).length;
-  const closeC = (cleaned.match(/\}/g) || []).length;
-  const openA = (cleaned.match(/\[/g) || []).length;
-  const closeA = (cleaned.match(/\]/g) || []).length;
-
-  cleaned = cleaned.replace(/,\s*([}\]])/g, '$1');
-
-  const quoteCount = (cleaned.match(/"/g) || []).length;
-  if (quoteCount % 2 !== 0) cleaned += '"';
-
-  for (let i = 0; i < openC - closeC; i++) cleaned += '}';
-  for (let i = 0; i < openA - closeA; i++) cleaned += ']';
-
-  try { return JSON.parse(cleaned); } catch {}
-
-  const parsed: ParsedCv = {};
-  const nameMatch = raw.match(/name["']?\s*[:=]\s*["']([^"']+)/i);
-  if (nameMatch) parsed.about = { name: nameMatch[1] };
-  const emailMatch = raw.match(/email["']?\s*[:=]\s*["']([^"']+@[^"']+)["']/i);
-  if (emailMatch) { parsed.contact = { email: emailMatch[1] }; }
-  return parsed;
-}
-
-function extractByKeyword(rawText: string) {
-  const lines = rawText.split('\n').map(l => l.trim()).filter(Boolean);
-  const fallback: KeywordCvResult = {
-    experiences: [], education: [], skills: [], projects: [],
-    certifications: [], specializationAreas: [], languages: [],
-    awards: [], organizations: [], customSections: [],
-  };
-
-  // Detect section keywords in raw text (for debug)
-  const sectionKeywordsFoundInText: string[] = [];
-  const keywordChecks = [
-    { rx: /\b(experience|work|employment|pengalaman)\b/i, name: 'Experience' },
-    { rx: /\b(education|university|school|pendidikan|universitas)\b/i, name: 'Education' },
-    { rx: /\b(skills?|keahlian|kemampuan)\b/i, name: 'Skills' },
-    { rx: /\b(certification|certificate|sertifikasi|sertifikat)\b/i, name: 'Certification' },
-    { rx: /\b(specialization|specialis|spesialisasi)\b/i, name: 'Specialization' },
-    { rx: /\b(projects?|portfolio|proyek)\b/i, name: 'Projects' },
-    { rx: /\b(languages?|bahasa)\b/i, name: 'Languages' },
-    { rx: /\b(awards?|achievement|penghargaan)\b/i, name: 'Awards' },
-    { rx: /\b(organizations?|organisasi|anggota)\b/i, name: 'Organizations' },
-    { rx: /\b(training|courses?|pelatihan)\b/i, name: 'Training' },
-  ];
-  for (const c of keywordChecks) {
-    if (c.rx.test(rawText)) sectionKeywordsFoundInText.push(c.name);
-  }
-
-  // Name: first substantial line (not a section header)
-  const skipHeaders = /^(education|experience|work\s*history|employment|skills|projects|certification|certificates|specialization|expertise|languages|achievements|awards|interests|references|training|courses|publications|volunteer|objective|summary|profile|contact|personal\s*data|additional)/i;
-  for (const line of lines) {
-    if (line.length > 2 && line.length < 80 && !skipHeaders.test(line) && !line.match(/@|http|phone|tel|email|\d{5,}/i)) {
-      fallback.about = { name: line, title: '', bio: '' };
-      break;
-    }
-  }
-
-  // Email
-  const emailMatch = rawText.match(/([a-zA-Z0-9._-]+@[a-zA-Z0-9._-]+\.[a-zA-Z0-9_-]+)/);
-  if (emailMatch) fallback.contact = { email: emailMatch[1] };
-
-  // Phone
-  const phoneMatch = rawText.match(/(?:\+?62|0)[0-9]{8,15}/);
-  if (phoneMatch) {
-    if (!fallback.contact) fallback.contact = {};
-    fallback.contact.phone = phoneMatch[0];
-  }
-
-  // Title: line after name
-  const aboutName = fallback.about?.name;
-  if (aboutName) {
-    const nameIdx = lines.findIndex((l: string) =>
-      l.toLowerCase().includes(aboutName.toLowerCase())
-    );
-    if (nameIdx >= 0 && nameIdx + 1 < lines.length) {
-      const next = lines[nameIdx + 1].trim();
-      if (next.length < 120 && !next.match(/@|http|phone|tel|email|^\d/i)) {
-        fallback.hero = { headline: next, subheadline: '' };
-      }
-    }
-  }
-
-  // Section detection  -  universal, prefix-tolerant, ANY profession
-  // Match BOTH exact header lines AND lines that START with a recognized header
-  const sectionHeaders = [
-    { rx: /^(?:education|educational|academic|qualification|pendidikan)/i, name: 'education' },
-    { rx: /^(?:job\s+experience|work\s+experience|customer\s+experience|work\s*history|employment|professional\s+background|professional\s+experience|pengalaman\s+kerja|pengalaman)/i, name: 'experience' },
-    { rx: /^(?:skills?|competenc(?:ies|y)|keahlian|kemampuan|expertise)/i, name: 'skills' },
-    { rx: /^(?:projects?|project\s+experience|portfolio|proyek)/i, name: 'projects' },
-    { rx: /^(?:certification|certifications|certificate|certificates|sertifikasi|sertifikat|licenses?|lisensi)/i, name: 'certification' },
-    { rx: /^(?:specialization|specializations|specialis|spesialisasi|area\s+of\s+expertise)/i, name: 'specialization' },
-    { rx: /^(?:languages?|bahasa)/i, name: 'languages' },
-    { rx: /^(?:awards?|achievements?|honors|penghargaan)/i, name: 'awards' },
-    { rx: /^(?:organizations?|membership|organisasi|keanggotaan|affiliation|anggota)/i, name: 'organizations' },
-    { rx: /^(?:publications?|research|penelitian|publikasi)/i, name: 'publications' },
-    { rx: /^(?:training|trainings|courses?|workshop|pelatihan)/i, name: 'training' },
-    { rx: /^(?:volunteer|volunteering|voluntary|relawan)/i, name: 'volunteer' },
-    { rx: /^(?:interests?|hobbies?|hobi)/i, name: 'interests' },
-    { rx: /^(?:references?|referensi)/i, name: 'references' },
-    { rx: /^(?:objective|career\s+objective|summary|professional\s+summary|profil|ringkasan)/i, name: 'summary' },
-  ];
-
-  let currentSection: string | null = null;
-  const sections: Record<string, string> = {};
-
-  // Log first 20 lines for debugging
-  console.log('[CV Parse] First 20 lines:', JSON.stringify(lines.slice(0, 20)));
-
-  for (const line of lines) {
-    const clean = line.replace(/^[\s*\-\*#oOK\d.)]*\s*/, '').trim();
-    if (!clean || clean.length < 2) continue;
-    let matched = false;
-
-    // 1. Primary match: line starts with a known header keyword
-    for (const sh of sectionHeaders) {
-      if (sh.rx.test(clean)) {
-        currentSection = sh.name;
-        sections[currentSection] = sections[currentSection] || '';
-        matched = true;
-        break;
-      }
-    }
-
-    // 2. Secondary match: line CONTAINS a header keyword as first word (after prefix removal)
-    if (!matched) {
-      const firstWord = clean.split(/[\s:,;]/)[0]?.toLowerCase() || '';
-      for (const sh of sectionHeaders) {
-        // Extract the primary keyword from each header pattern
-        const primaryKeyword = sh.rx.source.replace(/^\^\(\\?:\\?:?/, '').replace(/\\[bB].*$/, '').split('|')[0].replace(/\\s\+\*/g, '');
-        if (firstWord === primaryKeyword.toLowerCase() || firstWord === primaryKeyword.toLowerCase() + 's' || firstWord === primaryKeyword.toLowerCase().replace(/s$/, '')) {
-          currentSection = sh.name;
-          sections[currentSection] = sections[currentSection] || '';
-          matched = true;
-          break;
-        }
-      }
-    }
-
-    if (!matched && currentSection && clean.length > 2) {
-      sections[currentSection] += (sections[currentSection] ? '\n' : '') + clean;
-    }
-  }
-
-  // 3. If still no sections found, try aggressive scan  -  look for ANY keyword match in each line
-  if (Object.keys(sections).length === 0) {
-    console.log('[CV Parse] Primary detection failed, trying aggressive header scan...');
-    const nameMap: Record<string, string> = { education: 'education', experience: 'experience', skill: 'skills', certification: 'certification', project: 'projects', language: 'languages', award: 'awards', organization: 'organizations', specialization: 'specialization', training: 'training', summary: 'summary', objective: 'objective' };
-    // Build a regex that finds section keywords in running text
-    const headerInTextRx = /\b(education|experience|skills?|certification|certifications?|projects?|languages?|awards?|organizations?|specialization|training|summary|objective)\b\s*(?::|-)/i;
-    for (const line of lines) {
-      const clean = line.replace(/^[\s*\-\*#oOK\d.)]*\s*/, '').trim();
-      if (!clean) continue;
-      const anyMatch = clean.match(headerInTextRx);
-      if (anyMatch) {
-        const found = anyMatch[1].toLowerCase().replace(/s$/, '');
-        const canonicalName = nameMap[found];
-        if (canonicalName) {
-          currentSection = canonicalName;
-          sections[currentSection] = sections[currentSection] || '';
-          const contentAfter = clean.slice(anyMatch.index! + anyMatch[0].length).trim();
-          if (contentAfter) {
-            sections[currentSection] += contentAfter;
-          }
-        }
-      } else if (currentSection && clean.length > 2) {
-        sections[currentSection] += (sections[currentSection] ? '\n' : '') + clean;
-      }
-    }
-  }
-
-  console.log('[CV Parse] Keyword sections detected:', Object.keys(sections));
-
-  // Map experience
-  if (sections.experience) {
-    const expLines = sections.experience.split('\n').filter(Boolean);
-    for (const el of expLines) {
-      const companyMatch = el.match(/(?:at|di|@)\s+(.+)/i);
-      const dateMatch = el.match(/(\d{4})\s*[-\-to]+\s*(\d{4}|present|now|sekarang)/i);
-      fallback.experiences.push({
-        position: el.replace(/at\s+.+/i, '').replace(/di\s+.+/i, '').replace(/@\s+.+/i, '').trim(),
-        company: companyMatch?.[1]?.trim() || '',
-        start_date: dateMatch?.[1] || '',
-        end_date: dateMatch?.[2] || '',
-        description: '',
-      });
-    }
-  }
-
-  // Map skills  -  flat or categorized
-  if (sections.skills) {
-    const skillLines = sections.skills.split('\n').filter(Boolean);
-    const categoryRx = /^([A-Za-z\s/]+?)[:;]\s*(.+)/;
-    const cats: ParsedCvItem[] = [];
-    for (const sl of skillLines) {
-      const cm = sl.match(categoryRx);
-      if (cm) {
-        cats.push({ title: cm[1].trim(), skills: cm[2].trim() });
-      }
-    }
-    if (cats.length) {
-      fallback.skills = cats;
-    } else {
-      fallback.skills = [{ title: 'Skills', skills: sections.skills.replace(/\n/g, ', ').replace(/\s+/g, ' ').trim() }];
-    }
-  }
-
-  // Map education
-  if (sections.education) {
-    const edLines = sections.education.split('\n').filter(Boolean);
-    for (const el of edLines) {
-      const yearsMatch = el.match(/(\d{4})\s*[-\-]+\s*(\d{4}|present|now)/i);
-      fallback.education.push({
-        institution: el.replace(/\(?\d{4}[^)]*\)?/g, '').trim(),
-        degree: '',
-        field: '',
-        start_date: yearsMatch?.[1] || '',
-        end_date: yearsMatch?.[2] || '',
-      });
-    }
-  }
-
-  // Map certifications
-  if (sections.certification) {
-    const certLines = sections.certification.split('\n').filter(Boolean);
-    for (const cl of certLines) {
-      const yearMatch = cl.match(/(\d{4})/);
-      fallback.certifications.push({
-        name: cl.replace(/\(?\d{4}[^)]*\)?/g, '').trim(),
-        issuer: '',
-        date: yearMatch?.[1] || '',
-      });
-    }
-  }
-
-  // Map languages
-  if (sections.languages) {
-    const langLines = sections.languages.split('\n').filter(Boolean);
-    for (const ll of langLines) {
-      const parts = ll.split(/[:\--]/).map((s: string) => s.trim());
-      if (parts.length >= 2) {
-        fallback.languages.push({ language: parts[0], proficiency: parts[1] });
-      } else {
-        fallback.languages.push({ language: ll.trim(), proficiency: '' });
-      }
-    }
-  }
-
-  // Map awards
-  if (sections.awards) {
-    const awardLines = sections.awards.split('\n').filter(Boolean);
-    for (const al of awardLines) {
-      const yearMatch = al.match(/(\d{4})/);
-      fallback.awards.push({
-        title: al.replace(/\(?\d{4}[^)]*\)?/g, '').trim(),
-        issuer: '',
-        date: yearMatch?.[1] || '',
-      });
-    }
-  }
-
-  // Map organizations
-  if (sections.organizations) {
-    const orgLines = sections.organizations.split('\n').filter(Boolean);
-    for (const ol of orgLines) {
-      const roleMatch = ol.match(/as\s+(.+)/i);
-      const yearsMatch = ol.match(/(\d{4})\s*[-\-]+\s*(\d{4}|present|now)/i);
-      fallback.organizations.push({
-        name: ol.replace(/as\s+.+/i, '').replace(/\(?\d{4}[^)]*\)?/g, '').trim(),
-        role: roleMatch?.[1]?.trim() || '',
-        start_date: yearsMatch?.[1] || '',
-        end_date: yearsMatch?.[2] || '',
-      });
-    }
-  }
-
-  // Map projects (including customer_experience content)
-  if (sections.projects) {
-    const projLines = sections.projects.split('\n').filter(Boolean);
-    for (const pl of projLines) {
-      // Format: "Title - Customer" or "Title - Customer"
-      const [titlePart, ...rest] = pl.split(/[- - -]/).map((s: string) => s.trim());
-      const customer = rest.join(' - ').trim();
-      const dateMatch = pl.match(/(\d{4})\s*[-\-to]+\s*(\d{4}|present|now|sekarang)/i);
-      fallback.projects.push({
-        title: titlePart || pl,
-        customer: customer || '',
-        assignmentBy: '',
-        startDate: dateMatch?.[1] || '',
-        endDate: dateMatch?.[2] || '',
-        status: '',
-        description: pl,
-        tech_stack: '',
-        demo_url: '',
-        github_url: '',
-      });
-    }
-  }
-
-  // Map specialization areas
-  if (sections.specialization) {
-    const specLines = sections.specialization.split('\n').filter(Boolean);
-    fallback.specializationAreas = specLines.map((s: string) => s.replace(/^[*\-\*]\s*/, '').trim()).filter(Boolean);
-  }
-
-  // Remaining known sections as customSections
-  const remaining: Record<string, string> = {
-    objective: 'Objective',
-    summary: 'Professional Summary',
-    publications: 'Publications',
-    training: 'Training & Courses',
-    volunteer: 'Volunteer Experience',
-    interests: 'Interests',
-    references: 'References',
-  };
-  for (const [key, label] of Object.entries(remaining)) {
-    if (sections[key]?.trim()) {
-      fallback.customSections.push({ title: label, type: 'text', content: { body: sections[key].trim() } });
-    }
-  }
-
-  // Add debug info to fallback object for logging
-  fallback._sectionKeywordsFound = sectionKeywordsFoundInText;
-  fallback._sections = sections;
-
-  return fallback;
-}
-
-function extractExperienceFromRawText(rawText: string) {
-  const compact = rawText.replace(/\s+/g, ' ').trim();
-  const match = compact.match(/(?:job\s+experience|work\s+experience|professional\s+experience|employment)([\s\S]*?)(?:\bEducation\b|\bProject\s+Experience\b|\bProjects?\b|\bCertificate\b|\bCertification\b|\bSkills\b)/i);
-  if (!match?.[1]) return [];
-
-  const body = match[1];
-  const companyMatches = [...body.matchAll(/((?:PT|CV|UD|LLC|Inc\.?|Ltd\.?|Company)\s+[A-Z][A-Za-z0-9&.,\-\s()]+?)(?:,\s*[^|]+)?\s*\|\s*(?:Fulltime|Full-time|Contract|Bootcamp|Internship|Part-time|Online|Hybrid|Onsite)/gi)];
-  const experiences: ParsedCvItem[] = [];
-
-  for (let i = 0; i < companyMatches.length; i++) {
-    const company = companyMatches[i][1].replace(/\s+/g, ' ').trim();
-    const start = companyMatches[i].index || 0;
-    const end = i + 1 < companyMatches.length ? (companyMatches[i + 1].index || body.length) : body.length;
-    const block = body.slice(start, end).replace(/\s+/g, ' ');
-    const roleMatches = [...block.matchAll(/([A-Z][A-Za-z/&\-\s]+?)\s+as\s+a\s+(?:Full\s*-?\s*Time|contract|part\s*-?\s*time|bootcamp|internship)[^,]*,\s*([A-Za-z]+\s+\d{4})\s*(?:-|to)\s*([A-Za-z]+\s+\d{4}|Present|Now|Sekarang)/gi)];
-
-    for (let r = 0; r < roleMatches.length; r++) {
-      const roleStart = (roleMatches[r].index || 0) + roleMatches[r][0].length;
-      const roleEnd = r + 1 < roleMatches.length ? (roleMatches[r + 1].index || block.length) : block.length;
-      const description = block.slice(roleStart, roleEnd).replace(/\s*\*\s*/g, '\n* ').trim();
-      experiences.push({
-        company,
-        position: roleMatches[r][1].replace(/\s+/g, ' ').trim(),
-        start_date: roleMatches[r][2].trim(),
-        end_date: roleMatches[r][3].trim(),
-        description,
-      });
-    }
-  }
-
-  return experiences;
-}
-
-function estimateConfidence(parsed: ParsedCv, rawText: string): { score: number; warnings: string[] } {
-  const warnings: string[] = [];
-  let score = 50;
-  const low = rawText.toLowerCase();
-
-  if (parsed.about?.name) { score += 10; } else { warnings.push('Nama tidak ditemukan'); }
-  if (parsed.contact?.email) { score += 5; } else if (!low.includes('@')) { warnings.push('Email tidak ditemukan'); }
-  if (parsed.contact?.phone) { score += 5; }
-
-  // Experience
-  const hasExpKeywords = /\b(experience|work|employment|job|pengalaman|bekerja|perusahaan)\b/i.test(rawText);
-  if (parsed.experiences?.length) {
-    score += Math.min(parsed.experiences.length * 5, 15);
-  } else if (hasExpKeywords) {
-    warnings.push('Pengalaman kerja terdeteksi di teks tapi gagal diparse');
-    score -= 10;
-  } else {
-    warnings.push('Pengalaman kerja tidak ditemukan di CV');
-  }
-
-  // Education
-  const hasEduKeywords = /\b(education|university|school|degree|sarjana|s1|s2|s3|pendidikan|universitas)\b/i.test(rawText);
-  if (parsed.education?.length) {
-    score += 10;
-  } else if (hasEduKeywords) {
-    warnings.push('Pendidikan terdeteksi di teks tapi gagal diparse');
-    score -= 10;
-  } else {
-    warnings.push('Pendidikan tidak ditemukan di CV');
-  }
-
-  // Skills
-  const hasSkillKeywords = /\b(skills|skill|keahlian|kemampuan|kompetensi)\b/i.test(rawText);
-  if (parsed.skills?.length) {
-    score += 5;
-  } else if (hasSkillKeywords) {
-    warnings.push('Skills terdeteksi di teks tapi gagal diparse');
-    score -= 5;
-  }
-
-  // Certifications
-  const hasCertKeywords = /\b(certification|certificate|certified|sertifikasi|sertifikat|license)\b/i.test(rawText);
-  if (parsed.certifications?.length) {
-    score += 5;
-  } else if (hasCertKeywords) {
-    warnings.push('Sertifikasi terdeteksi di teks tapi gagal diparse');
-    score -= 5;
-  }
-
-  if (rawText.length < 500) warnings.push('Teks yang diekstrak sangat pendek (' + rawText.length + ' chars), format PDF mungkin tidak didukung penuh');
-
-  // Count section keywords found in raw text
-  const sectionKeywordChecks = [
-    /\b(experience|work|employment|pengalaman)\b/i,
-    /\b(education|university|school|pendidikan|universitas)\b/i,
-    /\b(skills?|keahlian|kemampuan)\b/i,
-    /\b(certification|certificate|sertifikasi|sertifikat)\b/i,
-    /\b(specialization|specialis|spesialisasi)\b/i,
-    /\b(projects?|portfolio|proyek)\b/i,
-    /\b(languages?|bahasa)\b/i,
-    /\b(awards?|achievement|penghargaan)\b/i,
-    /\b(organizations?|organisasi|anggota)\b/i,
-  ];
-  const foundKeywordCount = sectionKeywordChecks.filter(r => r.test(rawText)).length;
-
-  // Only cap at 20 if truly no data AND no section keywords found
-  const hasAnyData = parsed.about?.name || parsed.education?.length || parsed.experiences?.length ||
-    parsed.skills?.length || parsed.certifications?.length || parsed.projects?.length;
-  if (!hasAnyData && foundKeywordCount === 0) {
-    score = Math.min(score, 20);
-    warnings.push('CV tidak dapat diparse secara otomatis. Silakan isi manual.');
-  } else if (!hasAnyData && foundKeywordCount > 0) {
-    // Section keywords found but parsing failed  -  keep score moderate, don't crash to 20
-    score = Math.max(score, 35);
-    warnings.push('Section terdeteksi di teks tapi gagal diparse. Lihat raw text debug.');
-  }
-
-  return { score: Math.max(score, 5), warnings };
-}
-
-export async function POST(request: NextRequest) {
-  try {
-    const auth = await requireAuth(request);
-    const rl = await checkRateLimit(`ai:${auth.id}`, 'ai');
-    if (!rl.allowed) return errorResponse('Too many requests. Please try again later.', 429);
-    const formData = await request.formData();
-    const file = (formData.get('cv') || formData.get('file')) as File | null;
-    if (!file || typeof file === 'string') return errorResponse('No file uploaded', 400);
-    if (file.size > 10 * 1024 * 1024) return errorResponse('File too large (max 10MB)', 400);
-
-    const buffer = Buffer.from(await file.arrayBuffer());
-    let rawText = '';
-    let charsExtracted = 0;
-
-    try {
-      const pdfData = await pdfParse(buffer);
-      rawText = pdfData.text?.trim() || '';
-    } catch {
-      rawText = buffer.toString('utf-8').replace(/[^\x20-\x7E\n]/g, ' ').trim();
-    }
-
-    charsExtracted = rawText.length;
-
-    if (!rawText || rawText.length < 50) {
-      return errorResponse('PDF text could not be extracted or is too short', 400);
-    }
-
-    console.log('[CV Parse] Raw text length:', rawText.length);
-    console.log('[CV Parse] Raw text full:\n' + rawText);
-
-    // Try AI parsing via Groq
-    let parsed: ParsedCv = {};
-    let aiUsed = false;
-    let aiRawResponse = '';
-    if (process.env.NINE_ROUTER_API_KEY) {
-      try {
-        console.log('[CV Parse] Calling Groq AI...');
-        const promptText = `You are a universal CV parser for ALL professions (doctor, lawyer, teacher, developer, designer, accountant, nurse, etc.).
-Return ONLY valid JSON  -  no explanation, no markdown.
+function buildPrompt(rawText: string) {
+  return `You are a universal CV parser for ALL professions (doctor, lawyer, teacher, developer, designer, accountant, nurse, etc.).
+Return ONLY valid JSON - no explanation, no markdown.
 
 Parse this CV into this EXACT JSON structure:
 
@@ -543,127 +54,120 @@ GUIDELINES:
 - Extract EVERY section you find in the CV. Map each to the closest schema field.
 - "experiences" = work history, employment, professional experience (any profession)
 - "education" = schools, universities, degrees, academic qualifications
-- "skills" = technical skills, soft skills, competencies (group by category if possible)
+- "skills" = technical skills, soft skills, competencies (group by category if possible; "skills" is a comma-separated string)
 - "certifications" = certificates, licenses, professional certifications, training completion
-- "specializationAreas" = areas of expertise, specialization, fields of practice (e.g. "Cardiology", "Corporate Law", "React Development")
+- "specializationAreas" = areas of expertise, specialization, fields of practice
 - "languages" = human languages with proficiency level
 - "awards" = achievements, honors, recognitions
 - "organizations" = professional memberships, associations, organizational affiliations
 - "customSections" = anything that doesn't fit above: publications, volunteer, interests, references, etc.
-- "Customer Experience" sections: each entry is a project  -  put them in projects[], NOT in customSections
-- Projects with same title but different customers: set different "customer" field values, DO NOT merge them into one
-
-EXAMPLES:
-- Doctor: experiences = hospitals/clinics, education = medical school, certifications = medical license, specializationAreas = cardiology
-- Lawyer: experiences = law firms, education = law school, certifications = bar admission, specializationAreas = corporate law
-- Teacher: experiences = schools, education = teaching degree, certifications = teaching license
-- Developer: experiences = tech companies, skills = programming languages, projects = apps/websites
+- "Customer Experience" sections: each entry is a project - put them in projects[], NOT in customSections
+- Projects with same title but different customers: set different "customer" field values, DO NOT merge them
+- Dates: keep "Mon YYYY" or "YYYY" as written; use "Present" for ongoing roles.
+- Put job description bullet points in "description", one per line.
 
 Fill as much as possible. Use empty strings for missing fields. Keep arrays empty if no data.
 
 CV:
 ${rawText.substring(0, 15000)}`;
+}
 
-        console.log('[CV Parse] Nine Router API key present:', !!process.env.NINE_ROUTER_API_KEY);
-        const completion = await groq.chat.completions.create({
-          model: process.env.NINE_ROUTER_MODEL || 'Projects',
-          messages: [{ role: 'user', content: promptText }],
-          temperature: 0.1,
-          max_tokens: 8000,
-        });
+async function parseWithAi(rawText: string): Promise<{ status: AiStatus; data: ParsedCv | null; detail?: string }> {
+  const apiKey = process.env.NINE_ROUTER_API_KEY;
+  if (!apiKey) return { status: 'not_configured', data: null };
+  try {
+    const groq = new Groq({
+      apiKey,
+      baseURL: process.env.NINE_ROUTER_BASE_URL || 'https://router.zeen.my.id/v1',
+      timeout: AI_TIMEOUT_MS,
+      maxRetries: 0,
+    });
+    const completion = await groq.chat.completions.create({
+      model: process.env.NINE_ROUTER_MODEL || 'Projects',
+      messages: [{ role: 'user', content: buildPrompt(rawText) }],
+      temperature: 0.1,
+      max_tokens: 8000,
+    });
+    const aiText = completion.choices?.[0]?.message?.content || '';
+    const parsed = aiText ? parseAiJson(aiText) : null;
+    if (!parsed) {
+      console.error('[CV Parse] AI returned no usable JSON (length %d)', aiText.length);
+      return { status: 'failed', data: null, detail: 'invalid_json' };
+    }
+    return { status: 'ok', data: normalizeAiResult(parsed) };
+  } catch (aiErr) {
+    const status = typeof aiErr === 'object' && aiErr !== null && 'status' in aiErr ? String(aiErr.status) : 'unknown';
+    console.error(`[CV Parse] AI request failed [${status}]: ${getErrorMessage(aiErr)}`);
+    return { status: 'failed', data: null, detail: status };
+  }
+}
 
-        const aiText = completion.choices?.[0]?.message?.content || '';
-        aiRawResponse = aiText;
-        console.log('[CV Parse] Nine Router response length:', aiText.length);
-        console.log('[CV Parse] Nine Router raw response:\n' + aiText);
-        if (aiText) {
-          try {
-            parsed = repairJson(aiText);
-            console.log('[CV Parse] repairJson success, parsed keys:', Object.keys(parsed));
-            aiUsed = true;
-          } catch (repairErr) {
-            console.error('[CV Parse] repairJson failed:', getErrorMessage(repairErr), 'response was:', aiText);
-          }
-        } else {
-          console.error('[CV Parse] Groq returned empty response');
-        }
-      } catch (aiErr) {
-        const errObj = typeof aiErr === 'object' && aiErr !== null ? aiErr : null;
-        const status = (errObj && 'status' in errObj && errObj.status) || (errObj && 'code' in errObj && errObj.code) || 'unknown';
-        const message = getErrorMessage(aiErr, '') || String(aiErr);
-        console.error(`[CV Parse] Nine Router API error [${status}]: ${message}`);
-        const errResponse = errObj && 'response' in errObj && typeof errObj.response === 'object' && errObj.response !== null ? errObj.response : null;
-        const errData = errResponse && 'data' in errResponse ? errResponse.data : undefined;
-        if (errData) {
-          console.error('[CV Parse] Groq error details:', JSON.stringify(errData));
-        }
-        if (status === 401) console.error('[CV Parse] NINE_ROUTER_API_KEY invalid or missing');
-        else if (status === 429) console.error('[CV Parse] Rate limited by Groq');
-        else if (status === 400) console.error('[CV Parse] Bad request to Groq (model error?)');
+export async function POST(request: NextRequest) {
+  try {
+    const auth = await requireAuth(request);
+    const rl = await checkRateLimit(`ai:${auth.id}`, 'ai');
+    if (!rl.allowed) return errorResponse('Terlalu banyak permintaan. Coba lagi beberapa menit lagi.', 429);
+
+    const formData = await request.formData();
+    const file = formData.get('cv') || formData.get('file');
+    if (!file || typeof file === 'string') return errorResponse('Tidak ada file yang diunggah.', 400);
+    if (file.size > 10 * 1024 * 1024) return errorResponse('File terlalu besar (maksimal 10 MB).', 400);
+
+    const name = (file.name || '').toLowerCase();
+    const isPdf = file.type === 'application/pdf' || name.endsWith('.pdf');
+    const isText = file.type === 'text/plain' || name.endsWith('.txt');
+    if (!isPdf && !isText) return errorResponse('Format file tidak didukung. Unggah CV dalam bentuk PDF.', 400);
+
+    const buffer = Buffer.from(await file.arrayBuffer());
+    let rawText = '';
+    if (isPdf) {
+      if (buffer.subarray(0, 5).toString('latin1') !== '%PDF-') {
+        return errorResponse('File ini bukan PDF yang valid. Coba ekspor ulang CV ke PDF.', 400);
+      }
+      try {
+        rawText = await pdfToText(buffer);
+      } catch (pdfErr) {
+        // Previously fell back to buffer.toString(), which "parsed" raw PDF bytes into garbage.
+        console.error('[CV Parse] PDF extraction failed:', getErrorMessage(pdfErr));
+        return errorResponse('PDF tidak bisa dibaca. File mungkin terkunci (password) atau rusak.', 422);
       }
     } else {
-      console.log('[CV Parse] NINE_ROUTER_API_KEY not set, skipping AI');
+      rawText = buffer.toString('utf-8');
     }
+    rawText = cleanExtractedText(rawText).trim();
 
-    // Keyword extraction  -  ALWAYS run as supplement (not just fallback)
+    if (rawText.length < 50) {
+      return errorResponse('Teks tidak bisa diambil dari PDF ini. Kemungkinan CV berupa gambar/hasil scan. Ekspor ulang CV dari Word atau Google Docs sebagai PDF, lalu coba lagi.', 422);
+    }
+    console.log('[CV Parse] extracted %d chars', rawText.length);
+
+    const ai = await parseWithAi(rawText);
     const keywordResult = extractByKeyword(rawText);
+    const sectionSplits = keywordResult._sections || {};
+    delete keywordResult._sections;
+    delete keywordResult._sectionKeywordsFound;
 
-    // Merge strategy:
-    // 1. If AI failed entirely, use keyword result as base
-    // 2. Always supplement: keyword result fills any section AI missed or returned empty
-    if (!aiUsed || !parsed.about?.name) {
-      parsed = { ...keywordResult, ...parsed, about: { ...keywordResult.about, ...parsed.about }, contact: { ...keywordResult.contact, ...parsed.contact } };
-    } else {
-      // Supplement EVERY section  -  keyword result adds to what AI found
-      for (const key of ['experiences', 'education', 'skills', 'projects', 'certifications', 'specializationAreas', 'languages', 'awards', 'organizations', 'customSections'] satisfies CvListKey[]) {
-        const aiArr = parsed[key] || [];
-        const kwArr = keywordResult[key] || [];
-        if (kwArr.length > 0 && aiArr.length === 0) {
-          parsed[key] = kwArr;
-        } else if (kwArr.length > 0 && aiArr.length > 0) {
-          // Merge: add keyword items that don't duplicate AI items
-          const aiTitles = new Set(aiArr.map((item) => JSON.stringify(item)));
-          for (const kwItem of kwArr) {
-            if (!aiTitles.has(JSON.stringify(kwItem))) {
-              aiArr.push(kwItem);
-            }
-          }
-          parsed[key] = aiArr;
-        }
-      }
-      // Fill missing about/contact from keyword result
-      if (!parsed.about?.name && keywordResult.about?.name) parsed.about = { ...keywordResult.about, ...parsed.about };
-      if (!parsed.contact?.email && keywordResult.contact?.email) parsed.contact = { ...parsed.contact, ...keywordResult.contact };
-    }
+    const parsed = mergeResults(ai.data, keywordResult);
 
-    // Ensure all fields exist
-    const defaultFields = { experiences: [], education: [], skills: [], projects: [], certifications: [], specializationAreas: [], languages: [], awards: [], organizations: [], customSections: [] };
-    for (const [key, val] of Object.entries(defaultFields)) {
-      if (!parsed[key]) parsed[key] = val;
-    }
-    if (!parsed.about) parsed.about = { name: '', title: '', bio: '' };
-    if (!parsed.hero) parsed.hero = { headline: '', subheadline: '' };
-    if (!parsed.contact) parsed.contact = { email: '', phone: '', location: '', linkedin: '', website: '' };
-
-    if (!parsed.experiences?.length) {
+    if (!(parsed.experiences as unknown[] | undefined)?.length) {
       const rawExperiences = extractExperienceFromRawText(rawText);
-      if (rawExperiences.length) {
-        parsed.experiences = rawExperiences;
-        console.log(`[CV Parse] Raw text experience fallback extracted ${rawExperiences.length} items`);
-      }
+      if (rawExperiences.length) parsed.experiences = rawExperiences;
     }
 
-    // Post-processing: dedup customSections that overlap with main sections
+    // Drop custom text sections that only repeat content already captured in main sections.
     const mainTextSet = new Set<string>();
-    for (const key of ['experiences', 'projects', 'education', 'skills', 'certifications', 'specializationAreas', 'languages', 'awards', 'organizations'] satisfies CvListKey[]) {
+    for (const key of CV_LIST_KEYS) {
+      if (key === 'customSections') continue;
       for (const item of (parsed[key] || [])) {
-        // Plain-string entries (e.g. specialization areas) have none of these fields.
-        const texts = typeof item === 'string' ? [] : [item.title, item.name, item.area, item.position, item.company, item.institution, item.description, item.skills].filter(Boolean);
-        for (const t of texts) mainTextSet.add(String(t).toLowerCase().trim().slice(0, 300));
+        if (typeof item === 'string') continue;
+        for (const t of [item.title, item.name, item.area, item.position, item.company, item.institution, item.description, item.skills]) {
+          if (t) mainTextSet.add(String(t).toLowerCase().trim().slice(0, 300));
+        }
       }
     }
     parsed.customSections = (parsed.customSections || []).filter((cs) => {
-      if (typeof cs === 'string') return true;
+      if (typeof cs === 'string') return false;
+      if (!cs.title) return false;
       const body = typeof cs.content?.body === 'string' ? cs.content.body.toLowerCase().trim() : '';
       if (!body) return true;
       for (const mainText of mainTextSet) {
@@ -672,76 +176,35 @@ ${rawText.substring(0, 15000)}`;
       return true;
     });
 
-    // Post-processing: dedup project titles  -  append customer for uniqueness
+    // Same project title for different customers: make titles unique.
     const titleGroups: Record<string, ParsedCvItem[]> = {};
     for (const p of (parsed.projects || [])) {
-      if (typeof p !== 'string' && p.title) {
-        titleGroups[p.title] = titleGroups[p.title] || [];
-        titleGroups[p.title].push(p);
-      }
+      if (typeof p !== 'string' && p.title) (titleGroups[String(p.title)] ||= []).push(p);
     }
     for (const [title, items] of Object.entries(titleGroups)) {
-      if (items.length > 1) {
-        for (const item of items) {
-          if (item.customer) {
-            item.title = `${title}  -  ${item.customer}`;
-          }
-        }
-      }
+      if (items.length > 1) for (const item of items) if (item.customer) item.title = `${title} - ${item.customer}`;
     }
 
-    // Confidence & warnings
     const { score, warnings } = estimateConfidence(parsed, rawText);
     parsed.confidence = score;
     parsed.warnings = warnings;
 
-    // Detect which section keywords exist in raw text (for debugging)
-    const sectionKeywordsFound: string[] = [];
-    const allChecks = [
-      /\b(experience|work|employment|pengalaman)\b/i,
-      /\b(education|university|school|pendidikan|universitas)\b/i,
-      /\b(skills|keahlian|kemampuan)\b/i,
-      /\b(certification|certificate|sertifikasi|sertifikat)\b/i,
-      /\b(specialization|specialis|spesialisasi)\b/i,
-      /\b(project|portfolio|proyek)\b/i,
-      /\b(languages?|bahasa)\b/i,
-      /\b(awards?|achievement|penghargaan)\b/i,
-      /\b(organization|organisasi|anggota)\b/i,
-      /\b(training|course|pelatihan)\b/i,
-    ];
-    const sectionNames = ['Experience', 'Education', 'Skills', 'Certification', 'Specialization', 'Projects', 'Languages', 'Awards', 'Organizations', 'Training'];
-    for (let i = 0; i < allChecks.length; i++) {
-      if (allChecks[i].test(rawText)) sectionKeywordsFound.push(sectionNames[i]);
-    }
-
-    // Strip internal debug keys from parsed data before sending
-    delete parsed._sectionKeywordsFound;
-    delete parsed._sections;
-
-    // Include full raw text and section split debug
-    const sectionDebug = keywordResult?._sections || {};
-    const kwSectionKeys = keywordResult?._sectionKeywordsFound || [];
+    const notice = ai.status === 'ok'
+      ? null
+      : ai.status === 'not_configured'
+        ? 'AI belum dikonfigurasi di server, jadi CV dibaca dengan pencocokan kata kunci. Hasilnya bisa kurang lengkap — cek dulu sebelum menyimpan.'
+        : 'Layanan AI sedang tidak bisa dihubungi, jadi CV dibaca dengan pencocokan kata kunci. Hasilnya bisa kurang lengkap — cek dulu sebelum menyimpan.';
 
     return successResponse({
       success: true,
       data: sanitizeJson(parsed),
-      chars_extracted: charsExtracted,
+      chars_extracted: rawText.length,
       raw_text_preview: rawText.substring(0, 4000),
-      raw_text_full: rawText,  // always send full text
       raw_text_length: rawText.length,
-      ai_used: aiUsed,
-      ai_raw_response: aiRawResponse || undefined,
-      section_keywords_found: sectionKeywordsFound,
-      section_debug: {
-        keyword_fallback_sections: Object.keys(keywordResult).filter(k => !k.startsWith('_')),
-        raw_sections_found: kwSectionKeys,
-        keyword_section_splits: sectionDebug,
-      },
+      ai_used: ai.status === 'ok',
+      ai_status: ai.status,
+      notice,
+      section_debug: { keyword_section_splits: Object.keys(sectionSplits) },
     });
   } catch (err) { return errorResponse(getErrorMessage(err)); }
 }
-
-
-
-
-

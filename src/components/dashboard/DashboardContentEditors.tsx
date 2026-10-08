@@ -4,8 +4,30 @@ import api, { getApiErrorMessage } from "@/lib/api";
 import type { EditFormData, StringFieldKey } from "@/types";
 
 const inputClass =
-  "w-full rounded-xl border border-white/10 bg-slate-950/70 px-3 py-2.5 text-sm text-white outline-none focus:border-purple-400";
-const labelClass = "mb-1.5 block text-xs font-medium text-slate-400";
+  "w-full rounded-md border border-rule bg-white px-3 py-2 text-sm text-ink placeholder:text-[#9a9aa0] outline-none transition-colors focus:border-ink focus:ring-2 focus:ring-ink/10";
+const labelClass = "mb-1.5 block text-sm font-medium text-ink";
+const dropClass =
+  "flex flex-wrap items-center gap-3 rounded-md border border-dashed border-rule bg-paper px-3 py-3";
+const uploadButtonClass =
+  "inline-flex cursor-pointer items-center rounded-md border border-rule bg-white px-3 py-1.5 text-sm font-medium text-ink transition-colors hover:border-ink-soft";
+
+function UploadIcon() {
+  return (
+    <svg
+      aria-hidden="true"
+      viewBox="0 0 24 24"
+      className="h-5 w-5 shrink-0 text-ink-soft"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={1.5}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M12 15V4m0 0l-4 4m4-4l4 4" />
+      <path d="M4 15v3a2 2 0 002 2h12a2 2 0 002-2v-3" />
+    </svg>
+  );
+}
 const field = (
   label: string,
   key: StringFieldKey<EditFormData>,
@@ -15,16 +37,20 @@ const field = (
   area = false,
 ) => (
   <div>
-    <label className={labelClass}>{label}</label>
+    <label htmlFor={`ed-${key}`} className={labelClass}>
+      {label}
+    </label>
     {area ? (
       <textarea
+        id={`ed-${key}`}
         value={value[key] || ""}
         onChange={(event) => onChange({ ...value, [key]: event.target.value })}
-        className={`${inputClass} h-24 resize-none`}
+        className={`${inputClass} h-28 resize-y`}
         placeholder={placeholder}
       />
     ) : (
       <input
+        id={`ed-${key}`}
         value={value[key] || ""}
         onChange={(event) => onChange({ ...value, [key]: event.target.value })}
         className={inputClass}
@@ -48,11 +74,11 @@ export function AboutEditor({
   setMessage: (message: string) => void;
 }) {
   return (
-    <div className="space-y-4">
+    <div className="space-y-5">
       <div>
-        <label className={labelClass}>Profile Photo</label>
-        <div className="flex items-center gap-3">
-          <div className="h-16 w-16 overflow-hidden rounded-2xl border border-white/10 bg-slate-950">
+        <p className={labelClass}>Profile photo</p>
+        <div className={dropClass}>
+          <div className="h-14 w-14 shrink-0 overflow-hidden rounded-md border border-rule bg-white">
             {photoPreview || value.photo_url ? (
               <img
                 src={photoPreview || value.photo_url || undefined}
@@ -60,17 +86,30 @@ export function AboutEditor({
                 className="h-full w-full object-cover"
               />
             ) : (
-              <div className="flex h-full items-center justify-center text-slate-600">
-                ?
+              <div className="flex h-full items-center justify-center text-ink-soft">
+                <svg
+                  aria-hidden="true"
+                  viewBox="0 0 24 24"
+                  className="h-6 w-6"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth={1.5}
+                  strokeLinecap="round"
+                >
+                  <circle cx="12" cy="9" r="3.5" />
+                  <path d="M5 19c1.5-3 4-4.5 7-4.5s5.5 1.5 7 4.5" />
+                </svg>
               </div>
             )}
           </div>
-          <label
-            htmlFor="about-photo"
-            className="cursor-pointer rounded-xl bg-purple-500 px-4 py-2 text-sm text-white hover:bg-purple-400"
-          >
-            Upload photo
-          </label>
+          <div className="min-w-0">
+            <label htmlFor="about-photo" className={uploadButtonClass}>
+              Upload photo
+            </label>
+            <p className="mt-1 text-xs text-ink-soft">
+              Square image works best.
+            </p>
+          </div>
           <input
             id="about-photo"
             type="file"
@@ -79,20 +118,24 @@ export function AboutEditor({
             onChange={onPhotoChange}
           />
         </div>
+        <label htmlFor="ed-photo_url" className="sr-only">
+          Photo URL
+        </label>
         <input
+          id="ed-photo_url"
           value={value.photo_url || ""}
           onChange={(event) =>
             onChange({ ...value, photo_url: event.target.value })
           }
-          className={`${inputClass} mt-3`}
-          placeholder="https://..."
+          className={`${inputClass} mt-2`}
+          placeholder="Or paste an image URL"
         />
       </div>
       {field("Name", "name", value, onChange, "Your name")}
       {field("Title", "title", value, onChange, "Full Stack Developer")}
       {field("Bio", "bio", value, onChange, "Tell about yourself...", true)}
       <div>
-        <label className={labelClass}>CV / Resume</label>
+        <p className={labelClass}>CV / resume</p>
         <input
           id="about-cv"
           type="file"
@@ -116,31 +159,34 @@ export function AboutEditor({
             }
           }}
         />
-        <div className="flex items-center gap-3">
-          <label
-            htmlFor="about-cv"
-            className="cursor-pointer rounded-xl bg-purple-500 px-4 py-2 text-sm text-white hover:bg-purple-400"
-          >
+        <div className={dropClass}>
+          <UploadIcon />
+          <label htmlFor="about-cv" className={uploadButtonClass}>
             Upload CV
           </label>
+          <span className="text-xs text-ink-soft">PDF, DOC or DOCX</span>
           {value.cv_url && (
             <a
               href={value.cv_url}
               target="_blank"
               rel="noreferrer"
-              className="text-sm text-purple-300 hover:text-white"
+              className="ml-auto text-sm text-accent hover:text-accent-dark hover:underline"
             >
               Open current CV
             </a>
           )}
         </div>
+        <label htmlFor="ed-cv_url" className="sr-only">
+          CV URL
+        </label>
         <input
+          id="ed-cv_url"
           value={value.cv_url || ""}
           onChange={(event) =>
             onChange({ ...value, cv_url: event.target.value })
           }
-          className={`${inputClass} mt-3`}
-          placeholder="Or paste CV URL..."
+          className={`${inputClass} mt-2`}
+          placeholder="Or paste a CV URL"
         />
       </div>
     </div>
@@ -154,13 +200,16 @@ export function ExperienceEditor({
   onChange: (value: EditFormData) => void;
 }) {
   return (
-    <div className="space-y-4">
+    <div className="space-y-5">
       {field("Company", "company", value, onChange, "Company name")}
       {field("Position", "position", value, onChange, "Job title")}
-      <div className="grid gap-3 sm:grid-cols-2">
+      <div className="grid gap-x-3 gap-y-5 sm:grid-cols-2">
         <div>
-          <label className={labelClass}>Start Date</label>
+          <label htmlFor="ed-start_date" className={labelClass}>
+            Start date
+          </label>
           <input
+            id="ed-start_date"
             type="month"
             value={value.start_date?.slice(0, 7) || ""}
             onChange={(event) =>
@@ -170,10 +219,13 @@ export function ExperienceEditor({
           />
         </div>
         <div>
-          <label className={labelClass}>End Date</label>
-          <label className="mb-2 flex items-center gap-2 text-sm text-slate-300">
+          <label htmlFor="ed-end_date" className={labelClass}>
+            End date
+          </label>
+          <label className="mb-2 flex items-center gap-2 text-sm text-ink-soft">
             <input
               type="checkbox"
+              className="h-4 w-4 rounded border-rule accent-[#1f45c9]"
               checked={value.still_working || false}
               onChange={(event) =>
                 onChange({
@@ -187,6 +239,7 @@ export function ExperienceEditor({
           </label>
           {!value.still_working && (
             <input
+              id="ed-end_date"
               type="month"
               value={value.end_date?.slice(0, 7) || ""}
               onChange={(event) =>
@@ -216,7 +269,7 @@ export function ProjectEditor({
   onChange: (value: EditFormData) => void;
 }) {
   return (
-    <div className="space-y-4">
+    <div className="space-y-5">
       {field("Title", "title", value, onChange, "Project name")}
       {field(
         "Description",
@@ -242,7 +295,7 @@ export function ProjectEditor({
         "https://github.com/...",
       )}
       <div>
-        <label className={labelClass}>Project Image</label>
+        <p className={labelClass}>Project image</p>
         <input
           id="project-img"
           type="file"
@@ -261,19 +314,32 @@ export function ProjectEditor({
             reader.readAsDataURL(file);
           }}
         />
-        <label
-          htmlFor="project-img"
-          className="cursor-pointer rounded-xl border border-white/10 px-4 py-2 text-sm text-slate-300 hover:bg-white/10"
-        >
-          Upload image
+        <div className={dropClass}>
+          {value.image_url ? (
+            <img
+              src={value.image_url}
+              alt="Project image preview"
+              className="h-10 w-14 shrink-0 rounded border border-rule object-cover"
+            />
+          ) : (
+            <UploadIcon />
+          )}
+          <label htmlFor="project-img" className={uploadButtonClass}>
+            Upload image
+          </label>
+          <span className="text-xs text-ink-soft">JPG or PNG</span>
+        </div>
+        <label htmlFor="ed-image_url" className="sr-only">
+          Image URL
         </label>
         <input
+          id="ed-image_url"
           value={value.image_url || ""}
           onChange={(event) =>
             onChange({ ...value, image_url: event.target.value })
           }
-          className={`${inputClass} mt-3`}
-          placeholder="Or paste image URL..."
+          className={`${inputClass} mt-2`}
+          placeholder="Or paste an image URL"
         />
       </div>
     </div>

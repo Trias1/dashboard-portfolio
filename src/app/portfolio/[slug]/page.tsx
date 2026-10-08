@@ -80,51 +80,22 @@ export default function PublicPortfolioPage() {
   );
   if (loading)
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#0a0a1a]">
-        <div className="text-center space-y-4">
-          <motion.div
-            animate={{ rotate: 360 }}
-            transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-            className="w-12 h-12 border-4 border-t-transparent rounded-full border-purple-500 mx-auto"
-          />
-          <motion.p
-            className="text-sm text-gray-500"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-          >
-            Loading portfolio...
-          </motion.p>
-        </div>
+      <div className="flex min-h-screen items-center justify-center bg-paper font-sans" aria-busy="true">
+        <p className="text-sm text-ink-soft">Memuat portfolio…</p>
       </div>
     );
   if (notFound || !data)
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#0a0a1a]">
-        <div className="text-center max-w-md px-4">
-          <motion.div
-            className="text-7xl mb-6"
-            initial={{ scale: 0 }}
-            animate={{ scale: 1 }}
-            transition={{ type: "spring" }}
-          >
-            *
-          </motion.div>
-          <h1 className="text-3xl font-bold text-white mb-3">
-            Portfolio Not Found
-          </h1>
-          <p className="text-gray-400 mb-8">
-            The portfolio &quot;{slug}&quot; does not exist or is not published yet.
-          </p>
-          <Link
-            href="/"
-            className="inline-block px-6 py-3 rounded-full font-medium text-white transition hover:opacity-90"
-            style={{ backgroundColor: "#a855f7" }}
-          >
-            {" "}
-            Back to Home
+      <main className="flex min-h-screen items-center bg-paper px-5 font-sans text-ink sm:px-10">
+        <div className="mx-auto w-full max-w-xl">
+          <p className="font-mono text-sm text-ink-soft">/portfolio/{slug}</p>
+          <h1 className="mt-2 font-display text-4xl font-semibold tracking-tight">Portfolio ini belum ada.</h1>
+          <p className="mt-3 text-ink-soft">Alamatnya mungkin salah, atau pemiliknya belum menerbitkan halaman ini.</p>
+          <Link href="/" className="mt-8 inline-block rounded-md bg-ink px-4 py-2.5 text-sm font-medium text-paper transition-colors hover:bg-black">
+            Ke beranda PortfolioKit
           </Link>
         </div>
-      </div>
+      </main>
     );
   const urlTemplate =
     typeof window !== "undefined"

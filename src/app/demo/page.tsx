@@ -1,98 +1,75 @@
 'use client';
 import { useState } from 'react';
-import { motion } from 'framer-motion';
 import Link from 'next/link';
 
 const demoTemplates = [
-  { id: 'modern', label: 'Modern', desc: 'Dark & dynamic' },
-  { id: 'creative', label: 'Creative', desc: 'Sidebar layout' },
-  { id: 'minimal', label: 'Minimal', desc: 'Clean typography' },
-  { id: 'bold', label: 'Bold', desc: 'Gradient & glow' },
-  { id: 'classic', label: 'Classic', desc: 'Professional cards' },
-  { id: 'neon', label: 'Neon', desc: 'Cyberpunk vibe' },
-  { id: 'glass', label: 'Glass', desc: 'Glassmorphism' },
-  { id: 'nature', label: 'Nature', desc: 'Earth tones' },
-  { id: 'vibrant', label: 'Vibrant', desc: 'Playful colors' },
-  { id: 'retro', label: 'Retro', desc: 'Vintage feel' },
-  { id: 'immersive', label: 'Immersive', desc: 'Fullscreen parallax' },
-  { id: 'playful', label: 'Playful', desc: 'Micro-interactions' },
-  { id: 'developer', label: 'Developer', desc: 'Terminal styled' },
-  { id: 'swiss', label: 'Swiss', desc: 'Swiss design' },
-  { id: 'white', label: 'White Template', desc: 'Clean light' },
-  { id: 'agency', label: 'Agency', desc: 'Agency vibe' },
-  { id: 'boldpersona', label: 'BoldPersona', desc: 'Bold branding' },
+  { id: 'modern', label: 'Modern', desc: 'Big name, two-column work list' },
+  { id: 'creative', label: 'Creative', desc: 'Printed-portfolio sidebar' },
+  { id: 'minimal', label: 'Minimal', desc: 'One narrow column of text' },
+  { id: 'bold', label: 'Bold', desc: 'Poster type, solid blocks' },
+  { id: 'classic', label: 'Classic', desc: 'Reads like a CV' },
+  { id: 'neon', label: 'Neon', desc: 'Night flyer, outlined type' },
+  { id: 'glass', label: 'Glass', desc: 'Frosted header over a photo' },
+  { id: 'nature', label: 'Nature', desc: 'Field notebook' },
+  { id: 'vibrant', label: 'Vibrant', desc: 'Three flat colours' },
+  { id: 'retro', label: 'Retro', desc: 'Photocopied zine' },
+  { id: 'immersive', label: 'Immersive', desc: 'Full-bleed bands' },
+  { id: 'playful', label: 'Playful', desc: 'Sticker book' },
+  { id: 'developer', label: 'Developer', desc: 'Terminal / README' },
+  { id: 'swiss', label: 'Swiss', desc: 'Strict grid, big numerals' },
+  { id: 'white', label: 'White', desc: 'Quiet editorial' },
+  { id: 'agency', label: 'Agency', desc: 'Studio case studies' },
+  { id: 'boldpersona', label: 'BoldPersona', desc: 'Huge name, personal' },
 ];
 
 const demoThemes = [
-  { id: 'dark-space', label: 'Default Dark', accent: '#a855f7' },
-  { id: 'white', label: 'White', accent: '#6366f1' },
+  { id: 'dark-space', label: 'Dark' },
+  { id: 'white', label: 'Light' },
 ];
 
 export default function DemoPage() {
   const [template, setTemplate] = useState('modern');
   const [theme, setTheme] = useState(demoThemes[0]);
+  const current = demoTemplates.find(t => t.id === template);
 
   return (
-    <div className="min-h-screen flex flex-col" style={{ backgroundColor: '#0a0a1a' }}>
+    <div className="flex min-h-screen flex-col bg-paper font-sans text-ink">
+      <header className="shrink-0 border-b border-rule">
+        <div className="flex flex-wrap items-center gap-x-6 gap-y-3 px-4 py-3 sm:px-6">
+          <Link href="/" className="font-display text-lg font-semibold tracking-tight">PortfolioKit</Link>
 
-      {/* Navbar */}
-      <nav className="flex-shrink-0 border-b px-4 py-3 flex flex-col gap-2"
-        style={{ backgroundColor: '#0a0a1acc', borderColor: '#a855f720' }}>
-
-        {/* Row 1: Logo + CTA */}
-        <div className="flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-2">
-            <div className="w-7 h-7 rounded-lg flex items-center justify-center font-bold text-white text-sm"
-              style={{ background: 'linear-gradient(135deg, #a855f7, #06b6d4)' }}>P</div>
-            <span className="font-bold text-white text-sm">PortfolioKit</span>
-          </Link>
-          <Link href="/register"
-            className="text-xs px-4 py-2 rounded-full font-medium text-white transition hover:opacity-90"
-            style={{ backgroundColor: '#a855f7' }}>
-            Build Portfolio
-          </Link>
-        </div>
-
-        {/* Row 2: Template + Theme picker */}
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-          {/* Template picker */}
-          <label className="flex min-w-0 flex-1 items-center gap-2 rounded-xl border border-purple-400/20 bg-white/5 px-3 py-2 sm:max-w-xs">
-            <span className="flex-shrink-0 text-[11px] font-medium uppercase tracking-[0.14em] text-gray-500">Template</span>
-            <select value={template} onChange={(event) => setTemplate(event.target.value)} aria-label="Choose portfolio template"
-              className="min-w-0 flex-1 cursor-pointer bg-transparent text-sm font-medium text-white outline-none">
-              {demoTemplates.map((item) => <option key={item.id} value={item.id} className="bg-[#111124]">{item.label} — {item.desc}</option>)}
+          <div className="flex min-w-0 flex-1 flex-wrap items-center gap-3">
+            <label htmlFor="demo-template" className="text-sm text-ink-soft">Template</label>
+            <select id="demo-template" value={template} onChange={(event) => setTemplate(event.target.value)}
+              className="min-w-0 rounded-md border border-rule bg-white px-2.5 py-1.5 text-sm text-ink outline-none focus:border-ink focus:ring-2 focus:ring-ink/10">
+              {demoTemplates.map((item) => <option key={item.id} value={item.id}>{item.label}</option>)}
             </select>
-          </label>
+            {current && <span className="hidden text-sm text-ink-soft md:inline">{current.desc}</span>}
 
-          {/* Theme picker */}
-          <div className="flex items-center justify-end gap-2 sm:flex-shrink-0">
-            {demoThemes.map(th => (
-              <button type="button" key={th.id} aria-pressed={theme.id === th.id} onClick={() => setTheme(th)}
-                title={th.label}
-                className="h-8 rounded-full border-2 px-3 text-[11px] font-semibold transition-all"
-                style={{
-                  backgroundColor: theme.id === th.id ? th.accent : 'transparent',
-                  color: theme.id === th.id ? '#fff' : '#aaa',
-                  borderColor: theme.id === th.id ? '#fff' : '#ffffff30',
-                  transform: theme.id === th.id ? 'scale(1.2)' : 'scale(1)'
-                }} >{th.label}</button>
-            ))}
+            <div role="radiogroup" aria-label="Theme" className="inline-flex overflow-hidden rounded-md border border-rule bg-white text-sm">
+              {demoThemes.map(th => (
+                <button type="button" role="radio" key={th.id} aria-checked={theme.id === th.id} onClick={() => setTheme(th)}
+                  className={`px-3 py-1.5 transition-colors ${theme.id === th.id ? 'bg-ink text-paper' : 'text-ink-soft hover:text-ink'}`}>
+                  {th.label}
+                </button>
+              ))}
+            </div>
           </div>
-        </div>
-      </nav>
 
-      {/* iframe full height */}
-      <motion.div key={`${template}-${theme.id}`}
-        initial={{ opacity: 0 }} animate={{ opacity: 1 }}
-        className="flex-1">
+          <Link href="/register" className="rounded-md bg-accent px-3.5 py-2 text-sm font-medium text-white transition-colors hover:bg-accent-dark">
+            Bikin punyamu
+          </Link>
+        </div>
+      </header>
+
+      <div className="flex-1 bg-paper-deep p-0 sm:p-4">
         <iframe
-          title="Portfolio template demo"
+          key={`${template}-${theme.id}`}
+          title={`Contoh portfolio dengan template ${current?.label ?? template}`}
           src={`/portfolio/demo?preview=true&template=${template}&theme=${theme.id}&demo=alex`}
-          className="h-full min-h-[calc(100dvh-8rem)] w-full border-0 sm:min-h-[calc(100dvh-5.5rem)]"
+          className="h-full min-h-[calc(100dvh-7.5rem)] w-full border-0 bg-white sm:min-h-[calc(100dvh-6.5rem)] sm:rounded-md sm:border sm:border-rule"
         />
-      </motion.div>
+      </div>
     </div>
   );
 }
-
-

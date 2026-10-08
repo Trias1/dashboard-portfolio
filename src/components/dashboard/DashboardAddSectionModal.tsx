@@ -1,7 +1,8 @@
-﻿"use client";
+"use client";
 
 import { motion } from "framer-motion";
 import { availableSections, Section, SectionType } from "@/lib/sections";
+import { SectionIcon } from "@/components/builder/SortableSection";
 
 interface DashboardAddSectionModalProps {
   open: boolean;
@@ -21,62 +22,66 @@ export default function DashboardAddSectionModal({
   if (!open) return null;
   return (
     <div
-      className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/80 px-4 backdrop-blur-sm"
+      className="fixed inset-0 z-[100] flex items-center justify-center bg-ink/30 px-4"
       onClick={onClose}
     >
       <motion.div
-        initial={{ opacity: 0, y: 12, scale: 0.98 }}
-        animate={{ opacity: 1, y: 0, scale: 1 }}
-        className="w-full max-w-md rounded-3xl border border-white/10 bg-slate-900 p-5 shadow-2xl shadow-purple-950/40"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="add-section-title"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.15 }}
+        className="w-full max-w-md rounded-lg border border-rule bg-white text-ink shadow-[0_12px_32px_rgba(20,20,20,0.12)]"
         onClick={(event) => event.stopPropagation()}
       >
-        <div className="mb-5 flex items-center justify-between">
+        <div className="flex items-start justify-between gap-4 border-b border-rule px-5 py-4">
           <div>
-            <p className="text-[10px] uppercase tracking-[0.2em] text-purple-300">
-              Builder
-            </p>
-            <h2 className="text-lg font-semibold text-white">
-              {lang === "id" ? "Tambah Section" : "Add Section"}
+            <h2 id="add-section-title" className="font-display text-lg font-semibold tracking-tight">
+              {lang === "id" ? "Tambah bagian" : "Add a section"}
             </h2>
-            <p className="text-xs text-slate-500">
+            <p className="mt-0.5 text-xs text-ink-soft">
               {lang === "id"
-                ? "Pilih bagian yang ingin ditambahkan."
-                : "Choose a section to add."}
+                ? "Bagian baru muncul di urutan paling bawah."
+                : "New sections are added at the bottom."}
             </p>
           </div>
           <button
             type="button"
-            aria-label="Close add section modal"
+            aria-label="Close"
             onClick={onClose}
-            className="h-9 w-9 rounded-xl border border-white/10 text-slate-400 hover:bg-white/10 hover:text-white"
+            className="-mr-1.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-ink-soft hover:bg-paper hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink/15"
           >
-            ×
+            <svg aria-hidden="true" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" className="h-3.5 w-3.5">
+              <path d="M4 4l8 8 M12 4l-8 8" />
+            </svg>
           </button>
         </div>
-        <div className="grid gap-2">
+        <ul className="max-h-[60vh] overflow-y-auto py-1">
           {availableSections.map((section) => {
             const exists =
               section.type !== "custom" &&
               sections.some((item) => item.type === section.type);
             return (
-              <button
-                key={section.type}
-                type="button"
-                disabled={exists}
-                onClick={() => onAdd(section.type, section.label, section.icon)}
-                className={`flex items-center justify-between rounded-2xl border px-4 py-3 text-left transition ${exists ? "cursor-not-allowed border-white/5 bg-white/[0.02] text-slate-600" : "border-white/10 bg-white/5 text-white hover:border-purple-400/60 hover:bg-purple-500/10"}`}
-              >
-                <span className="flex items-center gap-3">
-                  <span aria-hidden="true">{section.icon || "✦"}</span>
-                  <span className="text-sm font-medium">{section.label}</span>
-                </span>
-                <span className="text-xs text-slate-500">
-                  {exists ? (lang === "id" ? "Sudah ada" : "Added") : "+"}
-                </span>
-              </button>
+              <li key={section.type}>
+                <button
+                  type="button"
+                  disabled={exists}
+                  onClick={() => onAdd(section.type, section.label, section.icon)}
+                  className={`flex w-full items-center gap-3 px-5 py-2.5 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ink/15 ${exists ? "cursor-not-allowed text-[#9a9aa0]" : "text-ink hover:bg-paper"}`}
+                >
+                  <span className={exists ? "" : "text-ink-soft"}>
+                    <SectionIcon type={section.type} label={section.label} />
+                  </span>
+                  <span className="flex-1 text-sm">{section.label}</span>
+                  <span className="text-xs text-ink-soft">
+                    {exists ? (lang === "id" ? "Sudah ada" : "Added") : (lang === "id" ? "Tambah" : "Add")}
+                  </span>
+                </button>
+              </li>
             );
           })}
-        </div>
+        </ul>
       </motion.div>
     </div>
   );

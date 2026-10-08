@@ -31,7 +31,7 @@ function MenuIcon({ name }: { name: string }) {
       viewBox="0 0 24 24"
       fill="none"
       stroke="currentColor"
-      strokeWidth="1.8"
+      strokeWidth="1.6"
       strokeLinecap="round"
       strokeLinejoin="round"
       className="h-4 w-4 shrink-0"
@@ -59,14 +59,14 @@ export default function DashboardSidebar({
         ]
       : [
           { key: "builder", label: "Builder", icon: "builder" },
-          { key: "advisor", label: "AI Advisor", icon: "advisor" },
+          { key: "advisor", label: lang === "id" ? "Saran" : "Advisor", icon: "advisor" },
           {
             key: "analytics",
             label: lang === "id" ? "Statistik" : "Analytics",
             icon: "analytics",
           },
-          { key: "github", label: "GitHub Import", icon: "github" },
-          { key: "cv", label: "CV Generator", icon: "cv" },
+          { key: "github", label: lang === "id" ? "Impor GitHub" : "GitHub import", icon: "github" },
+          { key: "cv", label: "CV", icon: "cv" },
         ];
 
   const isAuto = sidebarOpen === null;
@@ -81,45 +81,44 @@ export default function DashboardSidebar({
 
   return (
     <aside
-      className={`${widthClass} transition-[width] duration-300 bg-slate-950/90 border-r border-white/10 flex flex-col shrink-0`}
+      className={`${widthClass} flex shrink-0 flex-col border-r border-rule bg-paper-deep text-ink transition-[width] duration-200`}
     >
-      <div className="h-16 px-4 border-b border-white/10 flex items-center justify-between">
+      <div className="flex h-14 items-center justify-between gap-2 border-b border-rule px-3">
         {sidebarOpen !== false && (
-          <div className={expandedOnlyClass}>
-            <p className="text-[10px] uppercase tracking-[0.22em] text-purple-300">
-              PortfolioKit
-            </p>
-            <h1 className="text-sm font-semibold text-white">
-              {lang === "id" ? "Dashboard" : "Workspace"}
-            </h1>
-          </div>
+          <span className={`${expandedOnlyClass} truncate pl-1.5 font-display text-[17px] font-semibold tracking-tight`}>
+            PortfolioKit
+          </span>
         )}
         <button
           type="button"
           aria-label={isAuto ? "Toggle sidebar" : sidebarOpen ? "Collapse sidebar" : "Expand sidebar"}
           onClick={toggleSidebar}
-          className="h-9 w-9 rounded-xl border border-white/10 text-gray-400 hover:text-white hover:bg-white/10 transition"
+          className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-ink-soft transition-colors hover:bg-white hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink/15"
         >
-          {isAuto ? (
-            <>
-              <span className="md:hidden">›</span>
-              <span className="hidden md:inline">‹</span>
-            </>
-          ) : sidebarOpen ? "‹" : "›"}
+          <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4">
+            <path d="M4 5h16v14H4z M9 5v14" />
+          </svg>
         </button>
       </div>
-      <nav className="flex-1 p-3 space-y-1">
-        {items.map((item) => (
-          <button
-            key={item.key}
-            type="button"
-            onClick={() => setActiveMenu(item.key)}
-            className={`w-full rounded-xl px-3 py-3 text-left text-sm font-medium flex items-center gap-3 transition ${activeMenu === item.key ? "bg-purple-500 text-white shadow-lg shadow-purple-950/40" : "text-slate-400 hover:bg-white/10 hover:text-white"}`}
-          >
-            <MenuIcon name={item.icon} />
-            {sidebarOpen !== false && <span className={isAuto ? "hidden md:inline" : ""}>{item.label}</span>}
-          </button>
-        ))}
+      <nav className="flex-1 space-y-0.5 p-2" aria-label="Dashboard">
+        {items.map((item) => {
+          const active = activeMenu === item.key;
+          return (
+            <button
+              key={item.key}
+              type="button"
+              onClick={() => setActiveMenu(item.key)}
+              title={item.label}
+              aria-current={active ? "page" : undefined}
+              className={`flex w-full items-center gap-2.5 rounded-md border px-2.5 py-1.5 text-left text-sm transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink/15 ${active ? "border-rule bg-white font-medium text-ink" : "border-transparent text-ink-soft hover:bg-white/60 hover:text-ink"}`}
+            >
+              <span className={active ? "text-accent" : ""}>
+                <MenuIcon name={item.icon} />
+              </span>
+              {sidebarOpen !== false && <span className={`truncate ${isAuto ? "hidden md:inline" : ""}`}>{item.label}</span>}
+            </button>
+          );
+        })}
       </nav>
     </aside>
   );

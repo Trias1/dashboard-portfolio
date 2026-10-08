@@ -1,56 +1,171 @@
-﻿'use client';
+'use client';
 import type { TemplateData, TemplateItem, TemplateSectionOrder, ThemeConfig } from '@/types';
-import type { SyntheticEvent } from 'react';
-import { useRef, useEffect, useState } from 'react';
-import { motion, useInView } from 'framer-motion';
+import type { CSSProperties, ReactNode, SyntheticEvent } from 'react';
 import TechBadge from '@/components/TechIcon';
 import ContactForm from '@/components/ContactForm';
 import CertificationSection from '@/components/CertificationSection';
 
-function GridBg() {
-  return (
-    <div className="fixed inset-0 pointer-events-none z-0 opacity-[0.04]"
-      style={{ backgroundImage: 'linear-gradient(#fff 1px, transparent 1px), linear-gradient(90deg, #fff 1px, transparent 1px)', backgroundSize: '60px 60px' }} />
-  );
+/* ------------------------------------------------------------------ */
+/* Colour helpers: derive readable text / rule colours from theme.bg   */
+/* ------------------------------------------------------------------ */
+type RGB = [number, number, number];
+function parseHex(input: string | undefined, fallback: RGB): RGB {
+  let h = (input || '').trim().replace(/^#/, '');
+  if (h.length === 3) h = h.split('').map((c) => c + c).join('');
+  if (h.length === 8) h = h.slice(0, 6);
+  if (!/^[0-9a-fA-F]{6}$/.test(h)) return fallback;
+  return [parseInt(h.slice(0, 2), 16), parseInt(h.slice(2, 4), 16), parseInt(h.slice(4, 6), 16)];
 }
-
-function NeonBorder({ children, ac, className }: { children: React.ReactNode; ac: string; className?: string }) {
-  const ref = useRef(null);
-  const inView = useInView(ref, { once: true, margin: '-80px' });
-  return (
-    <motion.div ref={ref} initial={{ opacity: 0, y: 30 }} animate={inView ? { opacity: 1, y: 0 } : {}}
-      transition={{ duration: 0.4 }}
-      className={`relative rounded-xl border ${className}`}
-      style={{ borderColor: `${ac}40`, boxShadow: `0 0 15px ${ac}20, inset 0 0 15px ${ac}05` }}>
-      {children}
-    </motion.div>
-  );
+const toHex = (c: RGB) => `#${c.map((v) => Math.round(Math.min(255, Math.max(0, v))).toString(16).padStart(2, '0')).join('')}`;
+const mix = (a: RGB, b: RGB, t: number): RGB => [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t, a[2] + (b[2] - a[2]) * t];
+function luminance([r, g, b]: RGB) {
+  const f = (v: number) => { const s = v / 255; return s <= 0.03928 ? s / 12.92 : ((s + 0.055) / 1.055) ** 2.4; };
+  return 0.2126 * f(r) + 0.7152 * f(g) + 0.0722 * f(b);
 }
+function contrast(a: RGB, b: RGB) {
+  const [x, y] = [luminance(a), luminance(b)].sort((m, n) => n - m);
+  return (x + 0.05) / (y + 0.05);
+}
+function readable(c: RGB, bg: RGB, toward: RGB, min = 4.5): RGB {
+  for (let t = 0; t <= 1.0001; t += 0.05) { const m = mix(c, toward, t); if (contrast(m, bg) >= min) return m; }
+  return toward;
+}
+function makePalette(theme: ThemeConfig) {
+  const bg = parseHex(theme?.bg, [10, 10, 26]);
+  const ac = parseHex(theme?.accent, [99, 102, 241]);
+  const dark = luminance(bg) < 0.18;
+  const ink: RGB = dark ? [236, 236, 240] : [16, 16, 22];
+  return {
+    dark,
+    bg: toHex(bg),
+    text: toHex(ink),
+    muted: toHex(readable(mix(ink, bg, 0.42), bg, ink)),
+    rule: toHex(mix(ink, bg, 0.8)),
+    /** The one neon colour — used for outlines, underlines and small metadata. */
+    neon: toHex(readable(ac, bg, ink)),
+  };
+}
+type Palette = ReturnType<typeof makePalette>;
 
-function SectionTitle({ title, subtitle, ac }: { title: string; subtitle?: string; ac: string }) {
+/* ------------------------------------------------------------------ */
+const FOCUS = 'focus-visible:outline-2 focus-visible:outline-offset-2';
+const PAD = 'mx-auto max-w-6xl px-5 sm:px-8';
+
+function bullets(text?: string): string[] {
+  if (!text) return [];
+  const parts = text.split(/\r?\n|\s[-*•]\s/).map((s) => s.replace(/^\s*[-*•]\s*/, '').trim()).filter(Boolean);
+  if (parts.length > 1) return parts;
+  return text.split(/\.\s+(?=[A-Z])/).map((s) => s.trim()).filter(Boolean);
+}
+const ym = (d?: string) => (d ? d.slice(0, 7).replace('-', '.') : '');
+function fmtDate(d?: string) {
+  if (!d) return '';
+  const date = new Date(d);
+  return Number.isNaN(date.getTime()) ? d : date.toLocaleDateString('id-ID', { year: 'numeric', month: 'short', day: '2-digit' });
+}
+const waLink = (phone: string, name?: string) =>
+  `https://wa.me/${phone.replace(/[^0-9]/g, '').replace(/^0/, '62')}?text=Halo%20${encodeURIComponent(name || 'there')}%2C%20saya%20tertarik%20untuk%20bekerja%20sama!`;
+
+/** Outlined sign lettering (stroke only, no glow). */
+// A static (non-variable) heavy face: variable fonts show overlapping contours when stroked.
+const outline = (p: Palette, w = 1.5): CSSProperties => ({
+  color: 'transparent', WebkitTextStroke: `${w}px ${p.neon}`, fontFamily: '"Arial Black", "Helvetica Neue", Arial, sans-serif', fontWeight: 900,
+});
+
+function SignTitle({ children, p, kicker }: { children: ReactNode; p: Palette; kicker?: string }) {
   return (
-    <div className="text-center mb-14">
-      <motion.span className="text-xs uppercase tracking-[0.3em] font-mono" style={{ color: `${ac}90`, textShadow: `0 0 10px ${ac}50` }}>{subtitle}</motion.span>
-      <motion.h2 className="text-3xl sm:text-4xl md:text-5xl font-black mt-2 uppercase tracking-wide"
-        style={{ color: textColor, textShadow: `0 0 20px ${ac}40` }}>{title}</motion.h2>
-      <motion.div className="mx-auto mt-4 w-20 h-px" style={{ backgroundColor: ac, boxShadow: `0 0 10px ${ac}` }} />
+    <div className="mb-10 md:mb-14">
+      {kicker && <p className="mb-2 font-mono text-xs uppercase tracking-[0.2em]" style={{ color: p.muted }}>{kicker}</p>}
+      <h2 className="text-[clamp(2.1rem,7vw,4.75rem)] leading-[0.95] uppercase tracking-[-0.01em] break-words" style={outline(p)}>
+        {children}
+      </h2>
     </div>
   );
 }
 
-const textColor = '#e2e8f0';
-const subColor = '#8892b0';
+function N({ href, children, p, external }: { href?: string; children: ReactNode; p: Palette; external?: boolean }) {
+  return (
+    <a href={href} target={external ? '_blank' : undefined} rel={external ? 'noopener noreferrer' : undefined}
+      className={`font-medium underline decoration-2 underline-offset-[5px] transition-colors duration-150 motion-reduce:transition-none ${FOCUS}`}
+      style={{ color: p.text, textDecorationColor: p.neon, outlineColor: p.neon }}>
+      {children}
+    </a>
+  );
+}
+
+function NeonSection({ id, children, className = '' }: { id: string; children: ReactNode; className?: string }) {
+  return <section id={id} className={`py-20 md:py-28 ${className}`}><div className={PAD}>{children}</div></section>;
+}
+
+function CustomItem({ item, type, p }: { item: TemplateItem; type?: string; p: Palette }) {
+  const c = item.content || {};
+  if (type === 'text') return <p className="max-w-[62ch] text-lg leading-relaxed whitespace-pre-line">{c.body}</p>;
+  if (type === 'list') return (
+    <ul className="max-w-3xl">
+      {(c.items || []).map((li, i) => (
+        <li key={i} className="flex gap-4 border-b border-dashed py-3" style={{ borderColor: p.rule }}>
+          <span className="font-mono text-xs leading-7" style={{ color: p.neon }}>{String(i + 1).padStart(2, '0')}</span>
+          <span className="leading-7">{li}</span>
+        </li>
+      ))}
+    </ul>
+  );
+  if (type === 'cards') return (
+    <div className="grid gap-x-8 sm:grid-cols-2">
+      {(c.cards || []).map((card, i) => (
+        <div key={i} className="border-t py-5" style={{ borderColor: p.neon }}>
+          <h3 className="font-bold uppercase tracking-wide">{card.title}</h3>
+          {card.desc && <p className="mt-1 text-sm leading-relaxed" style={{ color: p.muted }}>{card.desc}</p>}
+        </div>
+      ))}
+    </div>
+  );
+  if (c.institution || c.degree || c.field) {
+    return (
+      <div className="border-t py-5" style={{ borderColor: p.neon }}>
+        {(c.start_date || c.end_date) && <p className="font-mono text-xs" style={{ color: p.neon }}>{[ym(c.start_date), ym(c.end_date)].filter(Boolean).join(' → ')}</p>}
+        {c.institution && <p className="mt-1 text-lg font-bold uppercase tracking-wide">{c.institution}</p>}
+        {(c.degree || c.field) && <p style={{ color: p.muted }}>{[c.degree, c.field].filter(Boolean).join(', ')}</p>}
+        {c.gpa && <p className="mt-1 font-mono text-xs" style={{ color: p.muted }}>GPA {c.gpa}</p>}
+      </div>
+    );
+  }
+  if (c.name || c.issuer) {
+    return (
+      <div className="border-t py-5" style={{ borderColor: p.neon }}>
+        {c.date && <p className="font-mono text-xs" style={{ color: p.neon }}>{c.date}</p>}
+        {c.name && <p className="mt-1 text-lg font-bold uppercase tracking-wide">{c.name}</p>}
+        {c.issuer && <p style={{ color: p.muted }}>{c.issuer}</p>}
+        {c.credential_url && <p className="mt-2 text-sm"><N href={c.credential_url} p={p} external>View credential</N></p>}
+      </div>
+    );
+  }
+  if (c.language) {
+    return (
+      <div className="flex items-baseline justify-between gap-4 border-t py-5" style={{ borderColor: p.neon }}>
+        <p className="text-lg font-bold uppercase tracking-wide">{c.language}</p>
+        {c.proficiency && <p className="font-mono text-xs uppercase" style={{ color: p.neon }}>{c.proficiency}</p>}
+      </div>
+    );
+  }
+  return c.body ? <p className="max-w-[62ch] text-lg leading-relaxed">{c.body}</p> : null;
+}
 
 export default function NeonTemplate({ data, theme, isPreview }: { data: TemplateData; theme: ThemeConfig; isPreview?: boolean }) {
   const { portfolio, hero, about, experience = [], projects = [], services = [], skills = [], testimonials = [], contact, gallery = [], custom = [] } = data;
-  const ac = theme.accent;
+  const p = makePalette(theme);
+  const name = about?.name || portfolio.title || 'Portfolio';
+  const email = contact?.email || about?.email;
+  const contactEnabled = data.portfolio?.sections_order?.find((section: TemplateSectionOrder) => section.type === 'contact')?.enabled !== false;
+
+  // Custom sections with the same title + type are grouped into one block (unchanged behaviour).
   const groupedCustom = (custom || []).reduce<TemplateItem[]>((groups, section: TemplateItem) => {
     const content = typeof section.content === 'string'
       ? (() => { try { return JSON.parse(section.content); } catch { return { body: section.content }; } })()
       : (section.content || {});
     const title = section.title || 'Custom Section';
     const type = section.type || 'text';
-    const existing = groups.find(group => group.title === title && group.type === type);
+    const existing = groups.find((group) => group.title === title && group.type === type);
     const item = { ...section, content };
     if (existing) {
       existing.items = [...(existing.items || []), item];
@@ -61,399 +176,274 @@ export default function NeonTemplate({ data, theme, isPreview }: { data: Templat
   }, []);
 
   return (
-    <div className="relative min-h-screen overflow-x-hidden font-mono" style={{ backgroundColor: '#0a0e17' }}>
-      <GridBg />
-      <div className="fixed inset-0 pointer-events-none z-0" style={{ background: `radial-gradient(ellipse at 50% 0%, ${ac}08 0%, transparent 60%)` }} />
-
-      {/* Navbar */}
-      <motion.nav initial={{ y: -60 }} animate={{ y: 0 }}
-        className="fixed top-0 w-full z-50 backdrop-blur-md border-b" style={{ borderColor: `${ac}30`, backgroundColor: '#0a0e17dd' }}>
-        <div className="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
-          <span className="font-bold text-sm uppercase tracking-widest" style={{ color: ac, textShadow: `0 0 10px ${ac}` }}>{about?.name || portfolio.title}</span>
-          <div className="flex gap-2">
-            {['about', 'projects', 'skills', 'contact'].map(s => (
-              <motion.a key={s} href={`#${s}`} whileHover={{ color: ac, textShadow: `0 0 10px ${ac}` }}
-                className="px-3 py-1.5 text-xs uppercase tracking-wider font-medium" style={{ color: subColor }}>
-                [ {s} ]
-              </motion.a>
+    <div className="min-h-screen overflow-x-clip font-sans antialiased" style={{ backgroundColor: p.bg, color: p.text }} data-preview={isPreview ? 'true' : undefined}>
+      {/* Top strip */}
+      <header className="border-b" style={{ borderColor: p.neon }}>
+        <div className={`${PAD} flex flex-wrap items-center justify-between gap-x-6 gap-y-2 py-3 font-mono text-xs uppercase tracking-[0.16em]`}>
+          <span className="font-semibold">{name}</span>
+          <nav aria-label="Sections" className="flex flex-wrap gap-x-5 gap-y-1" style={{ color: p.muted }}>
+            {['about', 'projects', 'skills', 'contact'].map((s) => (
+              <a key={s} href={`#${s}`} className={`decoration-2 underline-offset-4 hover:underline ${FOCUS}`} style={{ textDecorationColor: p.neon, outlineColor: p.neon }}>{s}</a>
             ))}
-          </div>
+          </nav>
         </div>
-      </motion.nav>
+      </header>
 
-      <div className="relative z-10" style={{ paddingTop: '4rem' }}>
-        {/* Hero */}
-        <section id="hero" className="min-h-screen flex items-center justify-center px-4 relative overflow-hidden"
-          style={hero?.background_url ? { backgroundImage: `url(${hero.background_url})`, backgroundSize: 'cover', backgroundPosition: 'center' } : {}}>
-          {hero?.background_url && <div className="absolute inset-0 bg-black/60" />}
-          <motion.div className="absolute inset-0"
-            animate={{ background: [`radial-gradient(ellipse at 50% 50%, ${ac}15 0%, transparent 60%)`, `radial-gradient(ellipse at 50% 50%, ${ac}08 0%, transparent 60%)`, `radial-gradient(ellipse at 50% 50%, ${ac}15 0%, transparent 60%)`] }}
-            transition={{ duration: 4, repeat: Infinity }} />
-          {[...Array(3)].map((_, i) => (
-            <motion.div key={i} className="absolute w-64 h-64 rounded-full border opacity-10"
-              style={{ borderColor: ac }} animate={{ rotate: 360, scale: [1, 1.2, 1] }}
-              transition={{ duration: 20 + i * 5, repeat: Infinity, ease: 'linear', delay: i * 2 }} />
-          ))}
-          <div className="relative z-10 text-center max-w-4xl mx-auto">
-            <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-xs uppercase tracking-[0.4em] mb-4"
-              style={{ color: ac, textShadow: `0 0 10px ${ac}` }}>
-              {hero?.greeting || 'Hello World'}
-            </motion.p>
-            <motion.h1 initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }}
-              className="text-5xl sm:text-7xl md:text-8xl font-black leading-none mb-6 uppercase tracking-tight"
-              style={{ color: textColor, textShadow: `0 0 40px ${ac}60` }}>
+      <main>
+        {/* Hero — flyer */}
+        <section id="hero" className="relative">
+          {hero?.background_url && (
+            <>
+              <img src={hero.background_url} alt="" className="absolute inset-0 h-full w-full object-cover" />
+              <div className="absolute inset-0" style={{ backgroundColor: p.bg, opacity: 0.82 }} />
+            </>
+          )}
+          <div className={`${PAD} relative pt-16 pb-12 md:pt-24`}>
+            <p className="font-mono text-xs uppercase tracking-[0.24em]" style={{ color: p.neon }}>{hero?.greeting || about?.title || 'Now showing'}</p>
+            <h1 className="mt-6 text-[clamp(2.5rem,9.5vw,8.5rem)] leading-[0.92] uppercase tracking-[-0.02em] break-words" style={outline(p, 2)}>
               {hero?.headline || about?.name || portfolio.title}
-            </motion.h1>
-            <motion.p initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}
-              className="text-lg md:text-2xl font-light mb-10" style={{ color: subColor }}>
-              {hero?.subheadline || ''}
-            </motion.p>
-            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}
-              className="flex gap-4 justify-center flex-wrap">
-              <motion.a href={hero?.cta_url || '#projects'} whileHover={{ scale: 1.04, boxShadow: `0 0 30px ${ac}` }}
-                className="px-10 py-4 rounded font-bold uppercase tracking-wider text-sm text-white" style={{ backgroundColor: ac, boxShadow: `0 0 20px ${ac}60` }}>
-                [ {hero?.cta_text || 'Explore'} ]
-              </motion.a>
+            </h1>
+            {hero?.subheadline && <p className="mt-8 max-w-[40ch] text-xl leading-snug font-semibold md:text-2xl">{hero.subheadline}</p>}
+
+            <dl className="mt-12 grid border-y font-mono text-xs uppercase tracking-[0.14em] sm:grid-cols-3" style={{ borderColor: p.neon }}>
+              <div className="border-b py-4 sm:border-r sm:border-b-0 sm:pr-4" style={{ borderColor: p.rule }}>
+                <dt style={{ color: p.muted }}>Who</dt><dd className="mt-1 normal-case tracking-normal text-sm">{about?.title || name}</dd>
+              </div>
+              <div className="border-b py-4 sm:border-r sm:border-b-0 sm:px-4" style={{ borderColor: p.rule }}>
+                <dt style={{ color: p.muted }}>Where</dt><dd className="mt-1 normal-case tracking-normal text-sm">{contact?.location || 'Online'}</dd>
+              </div>
+              <div className="py-4 sm:pl-4">
+                <dt style={{ color: p.muted }}>Contact</dt>
+                <dd className="mt-1 normal-case tracking-normal text-sm break-all">{email ? <N href={`mailto:${email}`} p={p}>{email}</N> : <N href="#contact" p={p}>Send a message</N>}</dd>
+              </div>
+            </dl>
+
+            <div className="mt-10 flex flex-wrap gap-3">
+              <a href={hero?.cta_url || '#projects'} className={`border-2 px-5 py-3 font-mono text-xs font-semibold uppercase tracking-[0.16em] transition-colors duration-150 motion-reduce:transition-none ${FOCUS}`}
+                style={{ borderColor: p.neon, backgroundColor: p.neon, color: p.bg, outlineColor: p.neon }}>
+                {hero?.cta_text || 'Explore'}
+              </a>
               {about?.cv_url && (
-                <motion.a href={about.cv_url} target="_blank" whileHover={{ scale: 1.04 }}
-                  className="px-10 py-4 rounded font-bold uppercase tracking-wider text-sm border" style={{ borderColor: `${ac}60`, color: ac }}>
-                  [ CV ]
-                </motion.a>
+                <a href={about.cv_url} target="_blank" rel="noopener noreferrer" className={`border-2 px-5 py-3 font-mono text-xs font-semibold uppercase tracking-[0.16em] ${FOCUS}`}
+                  style={{ borderColor: p.neon, outlineColor: p.neon }}>
+                  CV
+                </a>
               )}
               {hero?.cta_secondary_text && hero?.cta_secondary_url && (
-                <motion.a href={hero.cta_secondary_url} target="_blank" whileHover={{ scale: 1.04 }}
-                  className="px-10 py-4 rounded font-bold uppercase tracking-wider text-sm border" style={{ borderColor: `${ac}60`, color: ac }}>
-                  [ {hero.cta_secondary_text} ]
-                </motion.a>
+                <a href={hero.cta_secondary_url} target="_blank" rel="noopener noreferrer" className={`border-2 px-5 py-3 font-mono text-xs font-semibold uppercase tracking-[0.16em] ${FOCUS}`}
+                  style={{ borderColor: p.neon, outlineColor: p.neon }}>
+                  {hero.cta_secondary_text}
+                </a>
               )}
-            </motion.div>
+            </div>
           </div>
         </section>
 
         {/* About */}
         {about?.name && (
-          <section id="about" className="py-20 md:py-28 px-4">
-            <div className="max-w-5xl mx-auto">
-              <SectionTitle title="About" subtitle="Who Am I" ac={ac} />
-              <NeonBorder ac={ac} className="p-8">
-                <div className="flex flex-col md:flex-row gap-8 items-center">
-                  {about.photo_url && (
-                    <motion.div initial={{ opacity: 0 }} whileInView={{ opacity: 1 }} viewport={{ once: true }} className="shrink-0">
-                      <img src={about.photo_url} alt={about.name} className="w-48 h-48 rounded-full object-cover border-2" style={{ border: `2px solid ${ac}60`, boxShadow: `0 0 20px ${ac}40` }} />
-                    </motion.div>
-                  )}
-                  <div className="space-y-4">
-                    <p className="text-xs uppercase tracking-widest" style={{ color: ac }}>{'//'} profile</p>
-                    <h3 className="text-2xl font-bold" style={{ color: textColor }}>{about.name}</h3>
-                    <p className="text-sm" style={{ color: ac }}>{about.title}</p>
-                    <p className="text-sm leading-relaxed text-justify whitespace-pre-line" style={{ color: subColor }}>{about.bio}</p>
-                  </div>
-                </div>
-              </NeonBorder>
+          <NeonSection id="about">
+            <SignTitle p={p} kicker="Profile">About</SignTitle>
+            <div className="grid gap-10 md:grid-cols-[16rem_1fr]">
+              {about.photo_url && (
+                <img src={about.photo_url} alt={about.name} className="aspect-[4/5] w-full max-w-[16rem] border object-cover" style={{ borderColor: p.neon }} />
+              )}
+              <div className="min-w-0">
+                <h3 className="text-2xl font-bold uppercase tracking-wide">{about.name}</h3>
+                {about.title && <p className="mt-1 font-mono text-sm" style={{ color: p.neon }}>{about.title}</p>}
+                {about.bio && <p className="mt-6 max-w-[62ch] text-lg leading-relaxed whitespace-pre-line">{about.bio}</p>}
+              </div>
             </div>
-          </section>
+          </NeonSection>
         )}
 
         {/* Skills */}
-        {((skills?.length ?? 0) > 0) && (
-          <section id="skills" className="py-20 md:py-28 px-4" style={{ background: `${ac}04` }}>
-            <div className="max-w-5xl mx-auto">
-              <SectionTitle title="Skills" subtitle="System Stack" ac={ac} />
-              <div className="space-y-8">
-                {skills.map((skill: TemplateItem, si: number) => (
-                  <motion.div key={skill.id} initial={{ opacity: 0, x: -20 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }} transition={{ delay: si * 0.1 }}>
-                    <p className="text-xs uppercase tracking-wider mb-4 font-mono" style={{ color: ac }}>&gt; {skill.title || 'skills'} </p>
-                    <div className="flex flex-wrap gap-2">
-                      {skill.skills?.split(',').map((s: string, i: number) => (
-                        <motion.div key={s} initial={{ opacity: 0, scale: 0 }} whileInView={{ opacity: 1, scale: 1 }} viewport={{ once: true }} transition={{ delay: i * 0.03 }}>
-                          <TechBadge name={s.trim()} accentColor={ac} size="md" variant="outline" />
-                        </motion.div>
-                      ))}
-                    </div>
-                  </motion.div>
-                ))}
-              </div>
+        {skills.length > 0 && (
+          <NeonSection id="skills">
+            <SignTitle p={p} kicker="Stack">Skills</SignTitle>
+            <div className="grid gap-10 md:grid-cols-2">
+              {skills.map((skill, i) => (
+                <div key={skill.id ?? i}>
+                  <p className="mb-4 border-b pb-2 font-mono text-xs uppercase tracking-[0.18em]" style={{ borderColor: p.neon, color: p.neon }}>{skill.title || 'Skills'}</p>
+                  <div className="flex flex-wrap gap-2">
+                    {skill.skills?.split(',').filter((s) => s.trim()).map((s) => (
+                      <TechBadge key={s} name={s.trim()} accentColor={p.neon} size="md" variant="outline" />
+                    ))}
+                  </div>
+                </div>
+              ))}
             </div>
-          </section>
+          </NeonSection>
         )}
 
-        {/* Experience */}
-        {((experience?.length ?? 0) > 0) && (
-          <section id="experience" className="py-20 md:py-28 px-4">
-            <div className="max-w-4xl mx-auto">
-              <SectionTitle title="Experience" subtitle="Work Log" ac={ac} />
-              <div className="space-y-6">
-                {experience.map((exp: TemplateItem, ei: number) => (
-                  <motion.div key={exp.id} initial={{ opacity: 0, x: -30 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }} transition={{ delay: ei * 0.1 }}>
-                    <NeonBorder ac={ac} className="p-6">
-                      <div className="flex items-center gap-3 mb-3">
-                        <span className="text-xs font-mono px-2 py-1" style={{ backgroundColor: `${ac}20`, color: ac, border: `1px solid ${ac}40` }}>
-                          {exp.start_date?.slice(0, 7)}  -  {exp.end_date?.slice(0, 7) || 'CURRENT'}
-                        </span>
-                        <span className="text-xs" style={{ color: ac }}>[{exp.company}]</span>
-                      </div>
-                      <h3 className="text-lg font-bold mb-2" style={{ color: textColor }}>{exp.position}</h3>
-                      {exp.description && (
-                        <div className="text-sm space-y-1 font-mono" style={{ color: subColor }}>
-                          {exp.description.split(/[*-.\n]/).filter((s: string) => s.trim()).map((s: string, i: number) => (
-                            <div key={i} className="flex gap-2">
-                              <span style={{ color: ac }}>&gt;</span>
-                              <span>{s.trim()}</span>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </NeonBorder>
-                  </motion.div>
-                ))}
-              </div>
-            </div>
-          </section>
+        {/* Experience — the line-up */}
+        {experience.length > 0 && (
+          <NeonSection id="experience">
+            <SignTitle p={p} kicker="Line-up">Experience</SignTitle>
+            <ol className="border-t" style={{ borderColor: p.neon }}>
+              {experience.map((exp, i) => (
+                <li key={exp.id ?? i} className="grid gap-3 border-b border-dashed py-7 md:grid-cols-[11rem_1fr] md:gap-8" style={{ borderColor: p.rule }}>
+                  <p className="font-mono text-sm tabular-nums" style={{ color: p.neon }}>{ym(exp.start_date)} → {exp.end_date ? ym(exp.end_date) : 'now'}</p>
+                  <div className="min-w-0">
+                    <h3 className="text-xl font-extrabold uppercase tracking-wide md:text-2xl">{exp.position}</h3>
+                    <p className="font-mono text-sm" style={{ color: p.muted }}>@ {exp.company}</p>
+                    {bullets(exp.description).length > 0 && (
+                      <ul className="mt-3 max-w-[62ch] space-y-1 leading-relaxed">
+                        {bullets(exp.description).map((b, j) => (
+                          <li key={j} className="flex gap-3"><span aria-hidden="true" style={{ color: p.neon }}>—</span><span>{b}</span></li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+                </li>
+              ))}
+            </ol>
+          </NeonSection>
         )}
 
         {/* Projects */}
-        {((projects?.length ?? 0) > 0) && (
-          <section id="projects" className="py-20 md:py-28 px-4" style={{ background: `${ac}04` }}>
-            <div className="max-w-6xl mx-auto">
-              <SectionTitle title="Projects" subtitle="Portfolio" ac={ac} />
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {projects.map((proj: TemplateItem) => (
-                  <NeonBorder key={proj.id} ac={ac} className="overflow-hidden">
-                    {proj.image_url && (
-                      <div className="relative overflow-hidden">
-                        <img src={proj.image_url} alt={proj.title} className="w-full h-44 object-cover opacity-80 hover:opacity-100 transition-opacity" />
-                        <div className="absolute bottom-0 left-0 right-0 h-16" style={{ background: 'linear-gradient(to top, #0a0e17, transparent)' }} />
+        {projects.length > 0 && (
+          <NeonSection id="projects">
+            <SignTitle p={p} kicker="Featuring">Projects</SignTitle>
+            <ol className="space-y-16">
+              {projects.map((proj, i) => (
+                <li key={proj.id ?? i} className="grid gap-6 md:grid-cols-[7rem_1fr_18rem] md:gap-8">
+                  <span aria-hidden="true" className="text-6xl leading-none md:text-7xl" style={outline(p)}>{String(i + 1).padStart(2, '0')}</span>
+                  <div className="min-w-0">
+                    <h3 className="text-2xl font-extrabold uppercase tracking-wide md:text-3xl">{proj.title}</h3>
+                    {proj.description && <p className="mt-3 max-w-[56ch] leading-relaxed" style={{ color: p.muted }}>{proj.description}</p>}
+                    {proj.tech_stack && (
+                      <div className="mt-4 flex flex-wrap gap-1.5">
+                        {proj.tech_stack.split(',').filter((t) => t.trim()).map((t) => (
+                          <TechBadge key={t} name={t.trim()} accentColor={p.neon} variant="outline" />
+                        ))}
                       </div>
                     )}
-                    <div className="p-5">
-                      <h3 className="text-base font-bold mb-2 uppercase tracking-wide" style={{ color: textColor }}>{proj.title}</h3>
-                      <p className="text-xs mb-4 leading-relaxed text-justify font-mono" style={{ color: subColor }}>{proj.description}</p>
-                      {proj.tech_stack && (
-                        <div className="flex flex-wrap gap-1.5 mb-4">
-                          {proj.tech_stack.split(',').map((t: string) => (
-                            <TechBadge key={t} name={t.trim()} accentColor={ac} />
-                          ))}
-                        </div>
-                      )}
-                      <div className="flex gap-2">
-                        {proj.demo_url && (
-                          <motion.a href={proj.demo_url} target="_blank" whileHover={{ boxShadow: `0 0 15px ${ac}` }}
-                            className="text-xs font-semibold px-4 py-2 rounded font-mono uppercase tracking-wider" style={{ backgroundColor: `${ac}20`, color: ac }}>
-                            Demo
-                          </motion.a>
-                        )}
-                        {proj.github_url && (
-                          <motion.a href={proj.github_url} target="_blank" whileHover={{ scale: 1.04 }}
-                            className="text-xs font-semibold px-4 py-2 rounded font-mono uppercase tracking-wider border" style={{ borderColor: `${ac}40`, color: ac }}>
-                            Code
-                          </motion.a>
-                        )}
-                      </div>
-                    </div>
-                  </NeonBorder>
-                ))}
-              </div>
-            </div>
-          </section>
+                    {(proj.demo_url || proj.github_url) && (
+                      <p className="mt-4 flex gap-6 font-mono text-sm uppercase tracking-[0.1em]">
+                        {proj.demo_url && <N href={proj.demo_url} p={p} external>Demo</N>}
+                        {proj.github_url && <N href={proj.github_url} p={p} external>Code</N>}
+                      </p>
+                    )}
+                  </div>
+                  {proj.image_url && <img src={proj.image_url} alt={proj.title || ''} className="aspect-[4/3] w-full border object-cover" style={{ borderColor: p.neon }} />}
+                </li>
+              ))}
+            </ol>
+          </NeonSection>
         )}
 
         {/* Services */}
-        {((services?.length ?? 0) > 0) && (
-          <section id="services" className="py-20 md:py-28 px-4">
-            <div className="max-w-5xl mx-auto">
-              <SectionTitle title="Services" subtitle="Capabilities" ac={ac} />
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {services.map((svc: TemplateItem) => (
-                  <NeonBorder key={svc.id} ac={ac} className="p-6 text-center">
-                    <div className="text-3xl mb-4">{svc.icon || 'âœ¦'}</div>
-                    <h3 className="text-base font-bold mb-2 uppercase tracking-wide" style={{ color: textColor }}>{svc.title}</h3>
-                    <p className="text-xs font-mono text-justify" style={{ color: subColor }}>{svc.description}</p>
-                  </NeonBorder>
-                ))}
-              </div>
-            </div>
-          </section>
+        {services.length > 0 && (
+          <NeonSection id="services">
+            <SignTitle p={p} kicker="On the bill">Services</SignTitle>
+            <ol className="grid gap-x-10 md:grid-cols-2">
+              {services.map((svc, i) => (
+                <li key={svc.id ?? i} className="border-t py-6" style={{ borderColor: p.neon }}>
+                  <p className="font-mono text-xs" style={{ color: p.neon }}>{String(i + 1).padStart(2, '0')}</p>
+                  <h3 className="mt-1 text-xl font-extrabold uppercase tracking-wide">{svc.title}</h3>
+                  {svc.description && <p className="mt-2 leading-relaxed" style={{ color: p.muted }}>{svc.description}</p>}
+                </li>
+              ))}
+            </ol>
+          </NeonSection>
         )}
 
         {/* Testimonials */}
-        {((testimonials?.length ?? 0) > 0) && (
-          <section id="testimonials" className="py-20 md:py-28 px-4" style={{ background: `${ac}04` }}>
-            <div className="max-w-4xl mx-auto">
-              <SectionTitle title="Testimonials" subtitle="Feedback" ac={ac} />
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {testimonials.map((t: TemplateItem) => (
-                  <NeonBorder key={t.id} ac={ac} className="p-6">
-                    <p className="text-3xl leading-none mb-2 font-mono" style={{ color: `${ac}40` }}>&gt;_</p>
-                    <p className="text-sm italic mb-4 leading-relaxed text-justify" style={{ color: subColor }}>{t.message}</p>
-                    <div className="flex items-center gap-3">
-                      {t.photo_url && <img src={t.photo_url} alt={t.name} className="w-10 h-10 rounded object-cover" />}
-                      <div>
-                        <p className="font-semibold text-sm" style={{ color: textColor }}>{t.name}</p>
-                        <p className="text-xs font-mono" style={{ color: ac }}>{t.position}</p>
-                      </div>
-                    </div>
-                  </NeonBorder>
-                ))}
-              </div>
+        {testimonials.length > 0 && (
+          <NeonSection id="testimonials">
+            <SignTitle p={p} kicker="Reviews">Word of mouth</SignTitle>
+            <div className="grid gap-12 md:grid-cols-2">
+              {testimonials.map((t, i) => (
+                <figure key={t.id ?? i}>
+                  <blockquote className="text-2xl leading-snug font-semibold">“{t.message}”</blockquote>
+                  <figcaption className="mt-5 flex items-center gap-3">
+                    {t.photo_url && <img src={t.photo_url} alt={t.name || ''} className="h-10 w-10 border object-cover" style={{ borderColor: p.neon }} />}
+                    <span className="font-mono text-xs uppercase tracking-[0.14em]">{t.name}{t.position && <span style={{ color: p.muted }}> / {t.position}</span>}</span>
+                  </figcaption>
+                </figure>
+              ))}
             </div>
-          </section>
+          </NeonSection>
         )}
 
         {/* Certificates */}
-        {((gallery?.length ?? 0) > 0) && (
-          <section id="gallery" className="py-20 md:py-28 px-4">
-            <div className="max-w-6xl mx-auto">
-              <SectionTitle title="Certificates" subtitle="Credentials" ac={ac} />
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {gallery.map((cert: TemplateItem) => (
-                  <NeonBorder key={cert.id} ac={ac} className="p-5">
-                    {(cert.image_url || cert.file_url) && (
-                      <div className="w-full h-32 rounded mb-4 overflow-hidden bg-cover bg-center"
-                        style={{ backgroundImage: `url(${cert.image_url || cert.file_url})` }}>
-                        <img src={cert.image_url || cert.file_url} alt={cert.title}
-                          className="w-full h-full object-cover"
-                          onError={(e: SyntheticEvent<HTMLImageElement>) => { e.currentTarget.style.display = 'none' }} />
-                      </div>
-                    )}
-                    <h3 className="font-bold text-sm mb-1" style={{ color: textColor }}>{cert.title}</h3>
-                    {cert.description && <p className="text-xs mb-2 font-mono" style={{ color: subColor }}>{cert.description}</p>}
-                    {cert.issued_date && <p className="text-xs mb-3" style={{ color: ac }}>&gt; {new Date(cert.issued_date).toLocaleDateString()}</p>}
-                    {cert.file_url && (
-                      <motion.a href={cert.file_url} target="_blank" whileHover={{ boxShadow: `0 0 15px ${ac}` }}
-                        className="inline-block text-xs font-semibold px-4 py-2 rounded font-mono" style={{ backgroundColor: `${ac}20`, color: ac }}>
-                        View
-                      </motion.a>
-                    )}
-                  </NeonBorder>
-                ))}
-              </div>
+        {gallery.length > 0 && (
+          <NeonSection id="gallery">
+            <SignTitle p={p} kicker="Credentials">Certificates</SignTitle>
+            <div className="grid gap-x-8 gap-y-12 sm:grid-cols-2 lg:grid-cols-3">
+              {gallery.map((cert, i) => (
+                <figure key={cert.id ?? i} className="min-w-0">
+                  {(cert.image_url || cert.file_url) && (
+                    <div className="mb-4 aspect-[4/3] overflow-hidden border" style={{ borderColor: p.neon }}>
+                      <img src={cert.image_url || cert.file_url} alt={cert.title || ''} className="h-full w-full object-cover"
+                        onError={(e: SyntheticEvent<HTMLImageElement>) => { e.currentTarget.style.display = 'none'; }} />
+                    </div>
+                  )}
+                  <figcaption>
+                    {cert.issued_date && <p className="font-mono text-xs" style={{ color: p.neon }}>{fmtDate(cert.issued_date)}</p>}
+                    <h3 className="mt-1 font-bold uppercase tracking-wide">{cert.title}</h3>
+                    {cert.description && <p className="mt-1 text-sm leading-relaxed" style={{ color: p.muted }}>{cert.description}</p>}
+                    {cert.file_url && <p className="mt-2 font-mono text-xs uppercase"><N href={cert.file_url} p={p} external>View</N></p>}
+                  </figcaption>
+                </figure>
+              ))}
             </div>
-          </section>
+          </NeonSection>
         )}
 
-        {/* Custom Sections */}
-        {groupedCustom.length > 0 && groupedCustom.map((sec: TemplateItem) => (
-          <section key={`${sec.title}-${sec.type}`} id={`custom-${(sec.title || sec.original_type || '').toLowerCase().replace(/\s+/g, '-')}`} className="py-20 md:py-28 px-4">
-            <div className="max-w-5xl mx-auto">
-              <SectionTitle title={sec.title || sec.original_type || "Section"} ac={ac} />
-              {sec.type === 'text' && (sec.items || []).map((item: TemplateItem) => (
-                <NeonBorder key={item.id} ac={ac} className="p-6 mb-4"><p className="text-sm leading-relaxed text-center text-justify font-mono" style={{ color: subColor }}>{item.content?.body}</p></NeonBorder>
-              ))}
-              {sec.type === 'list' && (sec.items || []).map((item: TemplateItem, idx: number) => (
-                <ul key={item.id ?? idx} className="space-y-3 max-w-2xl mx-auto">
-                  {(item.content?.items || []).map((listItem: string, i: number) => (
-                    <motion.li key={i} initial={{ opacity: 0, x: -20 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }}
-                      className="text-sm font-mono flex gap-2" style={{ color: subColor }}>
-                      <span style={{ color: ac }}>&gt;</span>{listItem}
-                    </motion.li>
-                  ))}
-                </ul>
-              ))}
-              {sec.type === 'links' && (
-                <div className="flex flex-wrap gap-4 justify-center">
-                  {(sec.items || []).flatMap((item: TemplateItem) => item.content?.links || []).map((link: TemplateItem, i: number) => (
-                    <motion.a key={i} href={link.url} target="_blank" whileHover={{ boxShadow: `0 0 25px ${ac}` }}
-                      className="px-8 py-3.5 rounded font-bold uppercase tracking-wider text-sm text-white" style={{ backgroundColor: ac, boxShadow: `0 0 15px ${ac}60` }}>
-                      {link.label}
-                    </motion.a>
-                  ))}
-                </div>
-              )}
-              {!['text','list','cards','links'].includes(sec.type ?? '') && (sec.items?.length ?? 0) > 0 && (
-                (sec.original_type === 'certification' || sec.type === 'certification') && (sec.items || []).some((item: TemplateItem) => Array.isArray(item.content?.items)) ? (
-                  <CertificationSection items={(sec.items || []).flatMap((item: TemplateItem) => item.content?.items || [])} textColor={textColor} subTextColor={subColor} accentColor={ac} cardBg="" />
-                ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {(sec.items || []).map((item: TemplateItem) => {
-                    const c = item.content || {};
-                    if (c.institution || c.degree || c.field) {
-                      return (
-                        <div key={item.id} className="p-6 rounded-2xl border" style={{background: '#ffffff08', borderColor: 'rgba(255,255,255,0.08)'}}>
-                          {c.institution && <p className="text-lg font-semibold" style={{color: textColor}}>{c.institution}</p>}
-                          {(c.degree || c.field) && <p className="text-sm mt-1" style={{color: subColor}}>{[c.degree, c.field].filter(Boolean).join('  -  ')}</p>}
-                          {(c.start_date || c.end_date) && <p className="text-xs mt-1" style={{color: subColor}}>{[c.start_date?.slice(0,7), c.end_date?.slice(0,7)].filter(Boolean).join(' - ')}</p>}
-                          {c.gpa && <p className="text-xs mt-1" style={{color: subColor}}>GPA: {c.gpa}</p>}
-                        </div>
-                      );
-                    }
-                    if (c.name || c.issuer) {
-                      return (
-                        <div key={item.id} className="p-6 rounded-2xl border" style={{background: '#ffffff08', borderColor: 'rgba(255,255,255,0.08)'}}>
-                          {c.name && <p className="text-lg font-semibold" style={{color: textColor}}>{c.name}</p>}
-                          {c.issuer && <p className="text-sm mt-1" style={{color: subColor}}>{c.issuer}</p>}
-                          {c.date && <p className="text-xs mt-1" style={{color: subColor}}>{c.date}</p>}
-                          {c.credential_url && <a href={c.credential_url} target="_blank" className="text-sm underline mt-2 inline-block" style={{color: ac}}>View credential</a>}
-                        </div>
-                      );
-                    }
-                    if (c.language) {
-                      return (
-                        <div key={item.id} className="flex items-center gap-3 p-6 rounded-2xl border" style={{background: '#ffffff08', borderColor: 'rgba(255,255,255,0.08)'}}>
-                          <p className="text-lg font-semibold" style={{color: textColor}}>{c.language}</p>
-                          {c.proficiency && <span className="text-xs px-3 py-1 rounded-full" style={{backgroundColor: ac+'30', color: ac}}>{c.proficiency}</span>}
-                        </div>
-                      );
-                    }
-                    if (c.body) {
-                      return <p key={item.id} className="text-base leading-relaxed" style={{color: subColor}}>{c.body}</p>;
-                    }
-                    return null;
-                  })}
-                </div>
+        {/* Custom sections (grouped) */}
+        {groupedCustom.map((sec: TemplateItem) => (
+          <NeonSection key={`${sec.title}-${sec.type}`} id={`custom-${(sec.title || sec.original_type || '').toLowerCase().replace(/\s+/g, '-')}`}>
+            <SignTitle p={p}>{sec.title || sec.original_type || 'Section'}</SignTitle>
+            {sec.type === 'links' ? (
+              <p className="flex flex-wrap gap-x-8 gap-y-3 text-lg">
+                {(sec.items || []).flatMap((item: TemplateItem) => item.content?.links || []).map((link: TemplateItem, i: number) => (
+                  <N key={i} href={link.url} p={p} external>{link.label}</N>
                 ))}
-            </div>
-          </section>
+              </p>
+            ) : (sec.original_type === 'certification' || sec.type === 'certification') && (sec.items || []).some((item: TemplateItem) => Array.isArray(item.content?.items)) ? (
+              <CertificationSection items={(sec.items || []).flatMap((item: TemplateItem) => item.content?.items || [])} accentColor={p.neon}
+                textColor={p.dark ? 'text-neutral-100' : 'text-neutral-900'}
+                subTextColor={p.dark ? 'text-neutral-400' : 'text-neutral-600'}
+                cardBg={p.dark ? 'border-white/15 bg-transparent' : 'border-neutral-300 bg-transparent'} />
+            ) : (
+              <div className={['text', 'list', 'cards'].includes(sec.type ?? '') ? 'space-y-8' : 'grid gap-x-10 md:grid-cols-2'}>
+                {(sec.items || []).map((item: TemplateItem, idx: number) => (
+                  <CustomItem key={item.id ?? idx} item={item} type={sec.type} p={p} />
+                ))}
+              </div>
+            )}
+          </NeonSection>
         ))}
 
         {/* Contact */}
-        {data.portfolio?.sections_order?.find((section: TemplateSectionOrder) => section.type === 'contact')?.enabled !== false && (
-          <section id="contact" className="py-20 md:py-28 px-4" style={{ background: `${ac}04` }}>
-          <div className="max-w-3xl mx-auto text-center">
-            <SectionTitle title="Contact" subtitle="Get In Touch" ac={ac} />
-            <p className="text-sm font-mono mb-8" style={{ color: subColor }}>Have a project? Let&apos;s build something together.</p>
-            <div className="flex gap-4 justify-center flex-wrap mb-10">
-              {(contact?.email || about?.email) && (
-                <motion.a href={`mailto:${contact?.email || about?.email}`} whileHover={{ boxShadow: `0 0 25px ${ac}` }}
-                  className="px-8 py-3.5 rounded font-bold uppercase tracking-wider text-sm text-white" style={{ backgroundColor: ac, boxShadow: `0 0 15px ${ac}60` }}>
-                  Email
-                </motion.a>
-              )}
-              {contact?.phone && (
-                <motion.a href={`https://wa.me/${contact.phone.replace(/[^0-9]/g, '')}`} target="_blank" whileHover={{ boxShadow: '0 0 25px #25D366' }}
-                  className="px-8 py-3.5 rounded font-bold uppercase tracking-wider text-sm text-white" style={{ backgroundColor: '#25D366' }}>
-                  WhatsApp
-                </motion.a>
-              )}
-              {contact?.linkedin_url && (
-                <motion.a href={contact.linkedin_url} target="_blank" whileHover={{ boxShadow: '0 0 25px #0077B5' }}
-                  className="px-8 py-3.5 rounded font-bold uppercase tracking-wider text-sm text-white" style={{ backgroundColor: '#0077B5' }}>
-                  LinkedIn
-                </motion.a>
-              )}
-              {contact?.github_url && (
-                <motion.a href={contact.github_url} target="_blank" whileHover={{ boxShadow: '0 0 25px #333' }}
-                  className="px-8 py-3.5 rounded font-bold uppercase tracking-wider text-sm text-white" style={{ backgroundColor: '#333' }}>
-                  GitHub
-                </motion.a>
-              )}
+        {contactEnabled && (
+          <NeonSection id="contact">
+            <SignTitle p={p} kicker="Doors open">Get in touch</SignTitle>
+            <div className="grid gap-12 md:grid-cols-[1fr_1.2fr]">
+              <div className="space-y-4">
+                <p className="max-w-[36ch] text-lg leading-relaxed" style={{ color: p.muted }}>Have a project? Let&apos;s build something together.</p>
+                {email && <p className="text-xl break-all md:text-2xl"><N href={`mailto:${email}`} p={p}>{email}</N></p>}
+                <p className="flex flex-wrap gap-x-6 gap-y-2 font-mono text-sm uppercase tracking-[0.1em]">
+                  {contact?.phone && <N href={waLink(contact.phone, about?.name)} p={p} external>WhatsApp</N>}
+                  {contact?.linkedin_url && <N href={contact.linkedin_url} p={p} external>LinkedIn</N>}
+                  {contact?.github_url && <N href={contact.github_url} p={p} external>GitHub</N>}
+                </p>
+              </div>
+              <div className="min-w-0 border p-5 sm:p-7" style={{ borderColor: p.neon }}>
+                <ContactForm slug={portfolio.slug} accentColor={p.neon} textColor={p.text} subColor={p.muted} />
+              </div>
             </div>
-            <NeonBorder ac={ac} className="p-6">
-              <ContactForm slug={portfolio.slug} accentColor={ac} textColor={textColor} subColor={subColor} />
-            </NeonBorder>
-          </div>
-          </section>
+          </NeonSection>
         )}
-      </div>
+      </main>
 
-      <footer className="relative z-10 py-8 text-center border-t" style={{ borderColor: `${ac}30` }}>
-        <p className="text-xs font-mono" style={{ color: subColor }}>
-          &copy; 2026 {about?.name || portfolio.title} {'//'} built with PortfolioKit
-        </p>
-        <p className="text-xs font-mono mt-1" style={{ color: `${ac}60`, textShadow: `0 0 10px ${ac}` }}>Powered by PortfolioKit</p>
+      <footer className="border-t" style={{ borderColor: p.neon }}>
+        <div className={`${PAD} flex flex-wrap justify-between gap-2 py-5 font-mono text-xs uppercase tracking-[0.14em]`} style={{ color: p.muted }}>
+          <span>© {new Date().getFullYear()} {name}</span>
+          <span>Made with PortfolioKit</span>
+        </div>
       </footer>
     </div>
   );
 }
-
-
-

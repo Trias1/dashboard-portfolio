@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 import api from '@/lib/api';
 import type { ManagedUser } from '@/types';
 
@@ -9,48 +9,52 @@ interface Props {
 
 export default function UsersPanel({ users, fetchUsers }: Props) {
   return (
-    <div className="flex-1 p-8 overflow-auto">
-      <div className="max-w-5xl mx-auto">
-        <h2 className="text-2xl font-bold text-white mb-6"> User Management</h2>
-        <div className="bg-[#0f0f2a] border border-purple-900/30 rounded-2xl overflow-hidden">
-          <table className="w-full">
+    <div className="flex-1 overflow-auto bg-paper px-4 py-6 text-ink md:px-8 md:py-8">
+      <div className="mx-auto max-w-5xl">
+        <div className="mb-6 flex items-end justify-between gap-3">
+          <div>
+            <h2 className="font-display text-2xl font-semibold tracking-tight">Users</h2>
+            <p className="mt-1 text-sm text-ink-soft">Roles, access, and accounts. <span className="font-mono tabular-nums">{users.length}</span> total.</p>
+          </div>
+        </div>
+        <div className="overflow-x-auto rounded-lg border border-rule bg-white">
+          <table className="w-full min-w-[640px] text-sm">
             <thead>
-              <tr className="border-b border-purple-900/30">
-                {['Name', 'Email', 'Role', 'Status', 'Verified', 'Actions'].map(h => (
-                  <th key={h} className="text-left p-4 text-gray-400 text-sm font-medium">{h}</th>
+              <tr className="border-b border-rule bg-paper">
+                {['Name', 'Email', 'Role', 'Status', 'Verified', ''].map((h, index) => (
+                  <th key={h || `col-${index}`} scope="col" className="px-4 py-2.5 text-left text-xs font-medium text-ink-soft">{h || <span className="sr-only">Actions</span>}</th>
                 ))}
               </tr>
             </thead>
-            <tbody>
+            <tbody className="divide-y divide-rule">
               {users.map((u) => (
-                <tr key={u.id} className="border-b border-purple-900/20 hover:bg-purple-900/10 transition">
-                  <td className="p-4 text-white text-sm">{u.name}</td>
-                  <td className="p-4 text-gray-400 text-sm">{u.email}</td>
-                  <td className="p-4">
+                <tr key={u.id} className="transition-colors hover:bg-paper">
+                  <td className="px-4 py-2.5 text-ink">{u.name}</td>
+                  <td className="px-4 py-2.5 text-ink-soft">{u.email}</td>
+                  <td className="px-4 py-2.5">
                     <select aria-label={`Role for ${u.name || u.email}`} value={u.role} onChange={async e => { await api.patch(`/api/users/${u.id}/role`, { role: e.target.value }); fetchUsers(); }}
-                      className="bg-[#1a1a3a] border border-purple-900/30 rounded-lg px-2 py-1 text-white text-xs">
+                      className="rounded-md border border-rule bg-white px-2 py-1 font-mono text-xs text-ink outline-none focus:border-ink focus:ring-2 focus:ring-ink/10">
                       <option value="user">user</option>
                       <option value="admin">admin</option>
                       <option value="superadmin">superadmin</option>
                     </select>
                   </td>
-                  <td className="p-4">
-                    <button type="button" aria-label={`Toggle status for ${u.name || u.email}`} onClick={async () => { await api.patch(`/api/users/${u.id}/status`); fetchUsers(); }}
-                      className={`text-xs px-3 py-1 rounded-full ${u.is_active ? 'bg-green-600/30 text-green-300' : 'bg-red-600/30 text-red-300'}`}>
+                  <td className="px-4 py-2.5">
+                    <button type="button" title="Click to switch" aria-label={`Toggle status for ${u.name || u.email}`} onClick={async () => { await api.patch(`/api/users/${u.id}/status`); fetchUsers(); }}
+                      className="inline-flex items-center gap-1.5 rounded px-1.5 py-0.5 text-xs text-ink hover:bg-paper-deep">
+                      <span aria-hidden="true" className={`h-1.5 w-1.5 rounded-full ${u.is_active ? 'bg-emerald-600' : 'bg-red-600'}`} />
                       {u.is_active ? 'Active' : 'Inactive'}
                     </button>
                   </td>
-                  <td className="p-4">
-                    <span className={`text-xs px-3 py-1 rounded-full ${u.is_verified ? 'bg-blue-600/30 text-blue-300' : 'bg-gray-600/30 text-gray-400'}`}>
-                      {u.is_verified ? 'Verified' : 'Unverified'}
-                    </span>
+                  <td className="px-4 py-2.5 text-xs text-ink-soft">
+                    {u.is_verified ? 'Verified' : 'Unverified'}
                   </td>
-                  <td className="p-4">
+                  <td className="px-4 py-2.5 text-right">
                     <button type="button" aria-label={`Delete ${u.name || u.email}`} onClick={async () => {
                       if (!confirm(`Delete user ${u.name || u.email}?`)) return;
                       await api.delete(`/api/users/${u.id}`);
                       fetchUsers();
-                    }} className="rounded-lg border border-red-500/30 px-3 py-1 text-xs text-red-300 hover:bg-red-500/15 hover:text-red-200 transition">
+                    }} className="rounded-md border border-red-200 bg-white px-2.5 py-1 text-xs font-medium text-red-700 transition-colors hover:bg-red-50">
                       Delete
                     </button>
                   </td>

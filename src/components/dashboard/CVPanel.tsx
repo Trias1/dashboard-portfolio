@@ -1,13 +1,24 @@
-﻿'use client';
+'use client';
 import { useState } from 'react';
+import axios from 'axios';
 import CVUpload from '@/components/builder/CVUpload';
 import type { CvAppliedSection } from '@/components/builder/CVUpload';
-import api, { getApiErrorMessage } from '@/lib/api';
+import api from '@/lib/api';
 import { Section, SECTION_ORDER } from '@/lib/sections';
 import { getErrorMessage } from '@/lib/utils';
 import type { DashboardPortfolio } from '@/types';
 
+type Html2PdfOptions = Parameters<InstanceType<(typeof import('html2pdf.js'))['default']['Worker']>['set']>[0];
+
 const isCustomSectionKey = (key: CvAppliedSection): key is `custom:${string}` => key.startsWith('custom:');
+
+const TEMPLATES = [
+  { id: 'professional', label: 'Professional', desc: 'Satu kolom, sans-serif. Paling aman untuk ATS.' },
+  { id: 'modern', label: 'Dua kolom', desc: 'Tanggal di kolom kiri, isi di kanan.' },
+  { id: 'executive', label: 'Executive', desc: 'Serif, header di tengah. Kesan formal.' },
+];
+
+const INCLUDED = ['Nama, jabatan, dan bio (About)', 'Kontak, LinkedIn, GitHub', 'Pengalaman kerja', 'Pendidikan', 'Skills', 'Project (8 terbaru)', 'Sertifikat dan sertifikasi', 'Organisasi, penghargaan, bahasa', 'Bagian custom lainnya'];
 
 interface Props {
   portfolio: DashboardPortfolio | null;
@@ -15,9 +26,25 @@ interface Props {
   loadPreview: () => void;
 }
 
+/** Error bodies come back as text (responseType "text"), so parse the JSON message ourselves. */
+function cvErrorMessage(err: unknown) {
+  if (axios.isAxiosError(err)) {
+    if (err.code === 'ECONNABORTED') return 'Server terlalu lama merespons. Coba lagi.';
+    const data: unknown = err.response?.data;
+    if (typeof data === 'string') {
+      try { const j = JSON.parse(data); if (j?.message) return String(j.message); } catch { /* not JSON */ }
+    } else if (data && typeof data === 'object' && 'message' in data && typeof data.message === 'string') {
+      return data.message;
+    }
+    if (err.response?.status === 401) return 'Sesi kamu sudah habis. Masuk lagi lalu coba ulang.';
+  }
+  return getErrorMessage(err, 'Gagal membuat CV.');
+}
+
 export default function CVPanel({ portfolio, setSections, loadPreview }: Props) {
   const [cvTemplate, setCvTemplate] = useState('professional');
-  const [cvLoading, setCvLoading] = useState(false);
+  const [busy, setBusy] = useState<null | 'pdf' | 'print'>(null);
+  const [cvError, setCvError] = useState('');
 
   const handleApplied = async (newSections?: CvAppliedSection[]) => {
     setSections(prev => prev.map(s => s.type === 'hero' ? { ...s, enabled: true } : s));
@@ -30,9 +57,11 @@ export default function CVPanel({ portfolio, setSections, loadPreview }: Props) 
             ? updated.find(sec => sec.label === s.replace('custom:', ''))
             : updated.find(sec => sec.type === s);
           if (exists) return;
+          const label = isCustomSectionKey(s) ? s.replace('custom:', '') : s.charAt(0).toUpperCase() + s.slice(1);
+          const icon = label.slice(0, 2).toUpperCase();
           const section: Section = isCustomSectionKey(s)
-            ? { id: `custom-${Date.now()}-${Math.random().toString(36).slice(2,6)}`, type: 'custom', label: s.replace('custom:', ''), icon: '✦', enabled: true, deletable: true }
-            : { id: `${s}-${Date.now()}`, type: s, label: s.charAt(0).toUpperCase() + s.slice(1), icon: '✦', enabled: true, deletable: true };
+            ? { id: `custom-${Date.now()}-${Math.random().toString(36).slice(2,6)}`, type: 'custom', label, icon, enabled: true, deletable: true }
+            : { id: `${s}-${Date.now()}`, type: s, label, icon, enabled: true, deletable: true };
           const orderKey = s.startsWith('custom:')
             ? 'custom-' + s.replace('custom:', '').toLowerCase().replace(/\s+/g, '-')
             : s;
@@ -60,106 +89,116 @@ export default function CVPanel({ portfolio, setSections, loadPreview }: Props) 
     }
   };
 
+  const fetchCvHtml = async () => {
+    const res = await api.get<string>(`/api/cv/generate?template=${encodeURIComponent(cvTemplate)}`, {
+      responseType: 'text', timeout: 30000, transformResponse: (d) => d,
+    });
+    if (typeof res.data !== 'string' || !res.data.includes('cv-doc')) throw new Error('Respons server bukan dokumen CV.');
+    return res.data;
+  };
+
+  const downloadPdf = async () => {
+    setCvError('');
+    setBusy('pdf');
+    try {
+      const html = await fetchCvHtml();
+      const parsed = new DOMParser().parseFromString(html, 'text/html');
+      const docEl = parsed.querySelector('.cv-doc');
+      if (!docEl) throw new Error('Format CV tidak dikenali.');
+      const baseName = (parsed.title || 'CV').replace(/[\\/:*?"<>|]+/g, '').trim() || 'CV';
+      const { default: html2pdf } = await import('html2pdf.js');
+      // Margins live in the PDF, not in the HTML. `pagebreak` keeps entries and section titles from being cut across pages.
+      const options = {
+        margin: [16, 14, 16, 14] as [number, number, number, number],
+        filename: `${baseName}.pdf`,
+        image: { type: 'jpeg' as const, quality: 0.98 },
+        html2canvas: { scale: 2, useCORS: true, backgroundColor: '#ffffff', logging: false },
+        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' as const },
+        pagebreak: { mode: ['css', 'legacy'], avoid: ['.cv-entry', '.cv-keep'] },
+      };
+      await html2pdf().set(options as Html2PdfOptions).from(docEl.outerHTML).save();
+    } catch (err) {
+      setCvError(cvErrorMessage(err));
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  // Browser print gives selectable text and exact margins (@page); open the tab synchronously so it isn't blocked.
+  const openPrintable = async () => {
+    setCvError('');
+    const win = window.open('', '_blank');
+    if (!win) { setCvError('Pop-up diblokir browser. Izinkan pop-up untuk situs ini lalu coba lagi.'); return; }
+    setBusy('print');
+    try {
+      const html = await fetchCvHtml();
+      const url = URL.createObjectURL(new Blob([html], { type: 'text/html;charset=utf-8' }));
+      win.location.href = url;
+      setTimeout(() => URL.revokeObjectURL(url), 60_000);
+    } catch (err) {
+      win.close();
+      setCvError(cvErrorMessage(err));
+    } finally {
+      setBusy(null);
+    }
+  };
+
   return (
-    <div className="flex-1 p-8 overflow-auto">
-      <div className="max-w-2xl mx-auto">
-        <div className="mb-6"><CVUpload onApplied={handleApplied} /></div>
-        <h2 className="text-2xl font-bold text-white mb-2"> CV Generator</h2>
-        <p className="text-gray-400 text-sm mb-8">Generate CV profesional dari data portfolio kamu. Hasil download berupa PDF siap pakai.</p>
-        <div className="bg-[#0f0f2a] border border-purple-900/30 rounded-2xl p-6 mb-6">
-          <h3 className="text-sm font-semibold text-gray-300 mb-4">Pilih Template CV</h3>
-          <div className="grid grid-cols-3 gap-4">
-            {[
-              { id: 'professional', label: ' Professional', desc: 'ATS-friendly, single column' },
-              { id: 'modern', label: ' Modern', desc: 'Dark header, accent blue' },
-              { id: 'executive', label: ' Executive', desc: 'Serif font, formal & elegant' },
-            ].map(t => (
-              <button key={t.id} onClick={() => setCvTemplate(t.id)}
-                className="p-4 rounded-xl border text-left transition-all"
-                style={{ borderColor: cvTemplate === t.id ? '#a855f7' : '#1a1a3a', backgroundColor: cvTemplate === t.id ? '#a855f720' : 'transparent' }}>
-                <p className="font-bold text-white text-sm mb-1">{t.label}</p>
-                <p className="text-xs text-gray-500">{t.desc}</p>
-              </button>
-            ))}
+    <div className="flex-1 overflow-auto bg-paper">
+      <div className="mx-auto max-w-3xl px-5 py-8 sm:px-8">
+        <h2 className="font-display text-2xl font-semibold tracking-tight text-ink">CV</h2>
+        <p className="mt-1 text-sm text-ink-soft">Isi portfolio dari CV yang sudah ada, atau buat CV PDF dari data portfolio.</p>
+
+        <div className="mt-6"><CVUpload onApplied={handleApplied} /></div>
+
+        <section className="mt-6 rounded-lg border border-rule bg-white" aria-labelledby="cv-generate-title">
+          <div className="border-b border-rule px-5 py-4">
+            <h3 id="cv-generate-title" className="text-sm font-semibold text-ink">Buat CV dari portfolio</h3>
+            <p className="mt-0.5 text-[13px] text-ink-soft">CV dibuat dari data yang sudah tersimpan. Lengkapi dulu bagian yang masih kosong.</p>
           </div>
-        </div>
-        <div className="bg-[#0f0f2a] border border-purple-900/30 rounded-2xl p-6 mb-6">
-          <h3 className="text-sm font-semibold text-gray-300 mb-3">Data yang akan masuk ke CV</h3>
-          <div className="space-y-2 text-xs text-gray-400">
-            {[
-              { label: 'Nama & Title', icon: '✦' },
-              { label: 'Bio/Summary', icon: '◈' },
-              { label: 'Pengalaman Kerja', icon: '▣' },
-              { label: 'Skills', icon: '◆' },
-              { label: 'Projects', icon: '▤' },
-              { label: 'Sertifikat', icon: '◇' },
-              { label: 'Info Kontak', icon: '✉' },
-              { label: 'Custom Sections', icon: '＋' },
-            ].map(item => (
-              <div key={item.label} className="flex items-center gap-2">
-                <span>{item.icon}</span>
-                <span>{item.label}</span>
-                <span className="ml-auto text-green-400">OK</span>
+
+          <div className="grid gap-6 px-5 py-4 md:grid-cols-[minmax(0,1fr)_minmax(0,14rem)]">
+            <fieldset>
+              <legend className="mb-2 text-[13px] font-medium text-ink">Tata letak</legend>
+              <div className="divide-y divide-rule rounded-md border border-rule">
+                {TEMPLATES.map((t) => (
+                  <label key={t.id} htmlFor={`cv-tpl-${t.id}`}
+                    className={`flex cursor-pointer items-start gap-3 px-3 py-2.5 transition-colors ${cvTemplate === t.id ? 'bg-paper' : 'hover:bg-paper'}`}>
+                    <input id={`cv-tpl-${t.id}`} type="radio" name="cv-template" value={t.id} checked={cvTemplate === t.id}
+                      onChange={() => setCvTemplate(t.id)} className="mt-0.5 h-4 w-4 accent-[#1f45c9]" />
+                    <span>
+                      <span className="block text-sm font-medium text-ink">{t.label}</span>
+                      <span className="block text-[13px] text-ink-soft">{t.desc}</span>
+                    </span>
+                  </label>
+                ))}
               </div>
-            ))}
+            </fieldset>
+
+            <div>
+              <p className="mb-2 text-[13px] font-medium text-ink">Yang dimasukkan</p>
+              <ul className="space-y-1 text-[13px] text-ink-soft">
+                {INCLUDED.map((item) => <li key={item} className="border-l border-rule pl-2.5">{item}</li>)}
+              </ul>
+            </div>
           </div>
-          <p className="text-xs text-gray-600 mt-3">* Pastikan data portfolio sudah lengkap untuk hasil CV terbaik</p>
-        </div>
-        <div className="bg-[#0f0f2a] border border-cyan-900/30 rounded-2xl p-4 mb-6 text-xs text-gray-400 space-y-1">
-          <p className="text-cyan-300 font-medium">Cara pakai paling aman</p>
-          <p>1. Upload CV PDF di panel atas kalau mau auto-parse isi CV ke portfolio.</p>
-          <p>2. Upload file resume di menu About kalau mau tampil tombol download resume di halaman portfolio.</p>
-          <p>3. Download CV di sini untuk menghasilkan versi CV dari data portfolio yang sudah tersimpan.</p>
-        </div>
-        <button onClick={async () => {
-          let pdfIframe: HTMLIFrameElement | null = null;
-          setCvLoading(true);
-          try {
-            const res = await api.get<Blob>(`/api/cv/generate?template=${cvTemplate}`, {
-              responseType: 'blob', timeout: 30000
-            });
-            const html = await res.data.text();
-            const { default: html2pdf } = await import('html2pdf.js');
 
-            pdfIframe = document.createElement('iframe');
-            pdfIframe.style.position = 'fixed';
-            pdfIframe.style.top = '-9999px';
-            pdfIframe.style.left = '-9999px';
-            pdfIframe.style.width = '800px';
-            pdfIframe.style.height = '1123px';
-            document.body.appendChild(pdfIframe);
-
-            const doc = pdfIframe.contentDocument || pdfIframe.contentWindow!.document;
-            doc.open();
-            doc.write(html);
-            doc.close();
-
-            await new Promise(r => requestAnimationFrame(r));
-
-            await html2pdf()
-              .set({
-                margin: [15, 15, 15, 15],
-                filename: `CV_${cvTemplate}.pdf`,
-                image: { type: 'jpeg', quality: 0.98 },
-                html2canvas: { scale: 2, useCORS: true, allowTaint: false, logging: false },
-                jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
-              })
-              .from(pdfIframe.contentDocument!.body)
-              .save();
-          } catch (err) {
-            alert(' Gagal generate CV: ' + getApiErrorMessage(err, getErrorMessage(err)));
-          } finally {
-            if (pdfIframe?.parentNode) pdfIframe.parentNode.removeChild(pdfIframe);
-            setCvLoading(false);
-          }
-        }} disabled={cvLoading}
-          className="w-full py-4 rounded-xl font-semibold text-white transition disabled:opacity-50 text-sm"
-          style={{ background: cvLoading ? '#555' : 'linear-gradient(135deg, #a855f7, #06b6d4)' }}>
-          {cvLoading ? ' Generating PDF...' : ' Download CV (PDF)'}
-        </button>
+          <div className="space-y-3 border-t border-rule px-5 py-4">
+            {cvError && <div role="alert" className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-[13px] text-red-800">{cvError}</div>}
+            <div className="flex flex-wrap items-center gap-2">
+              <button type="button" onClick={downloadPdf} disabled={busy !== null}
+                className="rounded-md bg-ink px-3.5 py-2 text-sm font-medium text-paper transition-colors hover:bg-black disabled:cursor-not-allowed disabled:opacity-60">
+                {busy === 'pdf' ? 'Membuat PDF…' : 'Unduh PDF'}
+              </button>
+              <button type="button" onClick={openPrintable} disabled={busy !== null}
+                className="rounded-md border border-rule bg-white px-3.5 py-2 text-sm text-ink transition-colors hover:border-ink-soft disabled:cursor-not-allowed disabled:opacity-60">
+                {busy === 'print' ? 'Membuka…' : 'Buka versi cetak'}
+              </button>
+            </div>
+            <p className="text-[12px] text-ink-soft">Versi cetak dibuka di tab baru: tekan Ctrl+P lalu pilih &ldquo;Simpan sebagai PDF&rdquo; untuk teks yang bisa diseleksi. Untuk file resume yang ditampilkan di portfolio, unggah lewat bagian About.</p>
+          </div>
+        </section>
       </div>
     </div>
   );
 }
-
-

@@ -1,11 +1,17 @@
-﻿import { useCallback, useState } from 'react';
+import { useCallback, useState } from 'react';
 import api from '@/lib/api';
 import type { VisitStats } from '@/types';
+
+/** YYYY-MM-DD in the user's local time zone (toISOString() is UTC and gave "yesterday" before 07:00 WIB). */
+export function localISODate(date: Date) {
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+}
 
 function initialDate(daysAgo = 0) {
   const date = new Date();
   date.setDate(date.getDate() - daysAgo);
-  return date.toISOString().slice(0, 10);
+  return localISODate(date);
 }
 
 export function useDashboardAnalytics() {

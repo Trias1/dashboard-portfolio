@@ -1,482 +1,421 @@
 'use client';
-import type { TemplateData, TemplateItem, TemplateSectionOrder, ThemeConfig } from '@/types';
-import type { SyntheticEvent } from 'react';
-import { useState, useRef } from 'react';
+import type { TemplateData, TemplateItem, ThemeConfig } from '@/types';
+import type { ReactNode, SyntheticEvent } from 'react';
+import { useState } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { motion, useInView, useScroll, useTransform } from 'framer-motion';
-import { themes } from '@/lib/sections';
 import TechBadge from '@/components/TechIcon';
 import ContactForm from '@/components/ContactForm';
 import CertificationSection from '@/components/CertificationSection';
 
-const fadeUp = {
-  hidden: { opacity: 0, y: 60 },
-  visible: { opacity: 1, y: 0, transition: { duration: 0.6, ease: [0.25, 0.1, 0.25, 1] as const } }
-};
-const stagger = { visible: { transition: { staggerChildren: 0.15 } } };
+/* ------------------------------------------------------------------ */
+/* Colour helpers: derive readable text / rule colours from theme.bg   */
+/* ------------------------------------------------------------------ */
+type RGB = [number, number, number];
+function parseHex(input: string | undefined, fallback: RGB): RGB {
+  let h = (input || '').trim().replace(/^#/, '');
+  if (h.length === 3) h = h.split('').map((c) => c + c).join('');
+  if (h.length === 8) h = h.slice(0, 6);
+  if (!/^[0-9a-fA-F]{6}$/.test(h)) return fallback;
+  return [parseInt(h.slice(0, 2), 16), parseInt(h.slice(2, 4), 16), parseInt(h.slice(4, 6), 16)];
+}
+const toHex = (c: RGB) => `#${c.map((v) => Math.round(Math.min(255, Math.max(0, v))).toString(16).padStart(2, '0')).join('')}`;
+const mix = (a: RGB, b: RGB, t: number): RGB => [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t, a[2] + (b[2] - a[2]) * t];
+function luminance([r, g, b]: RGB) {
+  const f = (v: number) => { const s = v / 255; return s <= 0.03928 ? s / 12.92 : ((s + 0.055) / 1.055) ** 2.4; };
+  return 0.2126 * f(r) + 0.7152 * f(g) + 0.0722 * f(b);
+}
+function contrast(a: RGB, b: RGB) {
+  const [x, y] = [luminance(a), luminance(b)].sort((m, n) => n - m);
+  return (x + 0.05) / (y + 0.05);
+}
+function readable(c: RGB, bg: RGB, toward: RGB, min = 4.5): RGB {
+  for (let t = 0; t <= 1.0001; t += 0.05) { const m = mix(c, toward, t); if (contrast(m, bg) >= min) return m; }
+  return toward;
+}
+function makePalette(theme: ThemeConfig) {
+  const bg = parseHex(theme?.bg, [10, 10, 26]);
+  const ac = parseHex(theme?.accent, [99, 102, 241]);
+  const dark = luminance(bg) < 0.18;
+  const ink: RGB = dark ? [242, 242, 238] : [17, 17, 19];
+  return {
+    dark,
+    bg: toHex(bg),
+    text: toHex(ink),
+    muted: toHex(readable(mix(ink, bg, 0.42), bg, ink)),
+    rule: toHex(mix(ink, bg, 0.84)),
+    surface: toHex(mix(ink, bg, 0.95)),
+    accent: toHex(readable(ac, bg, ink)),
+  };
+}
 
-function AnimatedSection({ children, className }: { children: React.ReactNode, className?: string }) {
-  const ref = useRef(null);
-  const isInView = useInView(ref, { once: true, margin: '-100px' });
+/* ------------------------------------------------------------------ */
+const FOCUS = 'focus-visible:outline-2 focus-visible:outline-offset-2';
+const NAV = ['about', 'experience', 'projects', 'services', 'contact'];
+
+function bullets(text?: string): string[] {
+  if (!text) return [];
+  const parts = text.split(/\r?\n|\s[-*•]\s/).map((s) => s.replace(/^\s*[-*•]\s*/, '').trim()).filter(Boolean);
+  if (parts.length > 1) return parts;
+  return text.split(/\.\s+(?=[A-Z])/).map((s) => s.trim()).filter(Boolean);
+}
+const year = (d?: string) => (d ? d.slice(0, 4) : '');
+function fmtDate(d?: string) {
+  if (!d) return '';
+  const date = new Date(d);
+  return Number.isNaN(date.getTime()) ? d : date.toLocaleDateString('id-ID', { year: 'numeric', month: 'long' });
+}
+const waLink = (phone: string, name?: string) =>
+  `https://wa.me/${phone.replace(/[^0-9]/g, '').replace(/^0/, '62')}?text=Halo%20${encodeURIComponent(name || 'there')}%2C%20saya%20tertarik%20untuk%20bekerja%20sama!`;
+const slugId = (sec: TemplateItem) => `custom-${(sec.title || sec.original_type || '').toLowerCase().replace(/\s+/g, '-')}`;
+
+type Palette = ReturnType<typeof makePalette>;
+
+function Block({ id, label, p, children }: { id: string; label: string; p: Palette; children: ReactNode }) {
   return (
-    <motion.div ref={ref} variants={stagger} initial="hidden" animate={isInView ? 'visible' : 'hidden'} className={className}>
-      {children}
-    </motion.div>
+    <section id={id} className="border-b scroll-mt-16" style={{ borderColor: p.rule }}>
+      <div className="mx-auto grid max-w-6xl gap-6 px-5 py-16 sm:px-8 md:grid-cols-12 md:gap-8 md:py-24">
+        <h2 className="text-sm font-medium md:col-span-3" style={{ color: p.muted }}>{label}</h2>
+        <div className="min-w-0 md:col-span-9">{children}</div>
+      </div>
+    </section>
   );
 }
 
-export default function ModernTemplate({ data, theme: initialTheme, isPreview }: { data: TemplateData, theme: ThemeConfig, isPreview?: boolean }) {
-  const [theme, setTheme] = useState(initialTheme || themes[0]);
-  const [mobileMenu, setMobileMenu] = useState(false);
+function TextLink({ href, children, p, external }: { href?: string; children: ReactNode; p: Palette; external?: boolean }) {
+  return (
+    <a href={href} target={external ? '_blank' : undefined} rel={external ? 'noopener noreferrer' : undefined}
+      className={`underline decoration-1 underline-offset-4 transition-[text-decoration-thickness] duration-150 hover:decoration-2 motion-reduce:transition-none ${FOCUS}`}
+      style={{ color: p.accent, outlineColor: p.accent }}>
+      {children}
+    </a>
+  );
+}
+
+function CustomBody({ sec, p }: { sec: TemplateItem; p: Palette }) {
+  const c = sec.content;
+  if (sec.type === 'text') return <p className="max-w-[65ch] text-lg leading-relaxed whitespace-pre-line" style={{ color: p.text }}>{c?.body}</p>;
+  if (sec.type === 'list') return (
+    <ul className="max-w-[65ch]">
+      {(c?.items || []).map((item, i) => (
+        <li key={i} className="border-t py-3 first:border-t-0 first:pt-0" style={{ borderColor: p.rule }}>{item}</li>
+      ))}
+    </ul>
+  );
+  if (sec.type === 'cards') return (
+    <div className="grid gap-x-8 sm:grid-cols-2">
+      {(c?.cards || []).map((card, i) => (
+        <div key={i} className="border-t py-5" style={{ borderColor: p.rule }}>
+          <h3 className="font-medium">{card.title}</h3>
+          {card.desc && <p className="mt-1 text-sm leading-relaxed" style={{ color: p.muted }}>{card.desc}</p>}
+        </div>
+      ))}
+    </div>
+  );
+  if (sec.type === 'links') return (
+    <ul className="flex flex-wrap gap-x-6 gap-y-2">
+      {(c?.links || []).map((link, i) => <li key={i}><TextLink href={link.url} p={p} external>{link.label}</TextLink></li>)}
+    </ul>
+  );
+  if (!c) return null;
+  if ((sec.original_type === 'certification' || sec.type === 'certification') && Array.isArray(c.items)) {
+    return (
+      <CertificationSection items={c.items} accentColor={p.accent}
+        textColor={p.dark ? 'text-neutral-100' : 'text-neutral-900'}
+        subTextColor={p.dark ? 'text-neutral-400' : 'text-neutral-600'}
+        cardBg={p.dark ? 'border-white/10 bg-white/[0.03]' : 'border-neutral-200 bg-white'} />
+    );
+  }
+  const heading = c.institution || c.name || c.language || c.area || c.title;
+  if (heading || c.degree || c.field || c.issuer || c.proficiency) {
+    return (
+      <div className="grid gap-2 sm:grid-cols-[9rem_1fr] sm:gap-6">
+        <p className="font-mono text-sm tabular-nums" style={{ color: p.muted }}>
+          {[c.start_date?.slice(0, 7), c.end_date?.slice(0, 7)].filter(Boolean).join(' — ') || c.date}
+        </p>
+        <div>
+          {c.institution && <p className="text-lg font-medium">{c.institution}</p>}
+          {(c.degree || c.field) && <p className="mt-0.5" style={{ color: p.muted }}>{[c.degree, c.field].filter(Boolean).join(', ')}</p>}
+          {c.gpa && <p className="mt-1 font-mono text-sm" style={{ color: p.muted }}>GPA {c.gpa}</p>}
+          {c.name && <p className="text-lg font-medium">{c.name}</p>}
+          {c.issuer && <p className="mt-0.5" style={{ color: p.muted }}>{c.issuer}</p>}
+          {c.language && <p className="text-lg font-medium">{c.language}{c.proficiency && <span className="font-normal" style={{ color: p.muted }}> — {c.proficiency}</span>}</p>}
+          {!c.language && c.proficiency && <p style={{ color: p.muted }}>{c.proficiency}</p>}
+          {c.area && <p className="text-lg font-medium">{c.area}</p>}
+          {c.description && <p className="mt-2 max-w-[65ch] leading-relaxed" style={{ color: p.muted }}>{c.description}</p>}
+          {c.credential_url && <p className="mt-2 text-sm"><TextLink href={c.credential_url} p={p} external>View credential</TextLink></p>}
+        </div>
+      </div>
+    );
+  }
+  return c.body ? <p className="max-w-[65ch] text-lg leading-relaxed" style={{ color: p.text }}>{c.body}</p> : null;
+}
+
+export default function ModernTemplate({ data, theme, isPreview }: { data: TemplateData; theme: ThemeConfig; isPreview?: boolean }) {
+  const [menuOpen, setMenuOpen] = useState(false);
   const searchParams = useSearchParams();
   const hiddenSections = (searchParams.get('hidden') || '').split(',').filter(Boolean);
   const isVisible = (type: string) => !hiddenSections.includes(type);
 
-  const { scrollYProgress } = useScroll();
-  const progressWidth = useTransform(scrollYProgress, [0, 1], ['0%', '100%']);
-
   const { portfolio, hero, about, experience = [], projects = [], services = [], skills = [], testimonials = [], contact, gallery = [], custom = [] } = data;
-  const accentColor = theme.accent;
-  const isLight = theme.bg === '#ffffff';
-  const textColor = isLight ? 'text-gray-900' : 'text-white';
-  const subTextColor = isLight ? 'text-gray-600' : 'text-gray-400';
-  const cardBg = isLight ? 'bg-gray-50 border-gray-200' : 'bg-white/5 border-white/10';
+  const p = makePalette(theme);
+  const displayName = about?.name || portfolio.title || 'Portfolio';
+  const email = contact?.email || about?.email;
+  const hasBgImage = !!hero?.background_url;
+  const heroText = hasBgImage ? '#ffffff' : p.text;
+  const heroMuted = hasBgImage ? '#e5e5e5' : p.muted;
+  const heroRule = hasBgImage ? 'rgba(255,255,255,0.3)' : p.rule;
 
   return (
-    <div style={{ backgroundColor: theme.bg, minHeight: '100vh', scrollPaddingTop: '5rem' }}>
-      <motion.div className="fixed top-0 left-0 h-1 z-[100]" style={{ width: progressWidth, backgroundColor: accentColor }} />
-
-      {/* Navbar */}
-      <motion.nav initial={{ y: -100 }} animate={{ y: 0 }} transition={{ duration: 0.5 }}
-        className="fixed top-0 w-full z-50 backdrop-blur-md border-b" style={{ borderColor: `${accentColor}20`, backgroundColor: `${theme.bg}cc` }}>
-        <div className="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between">
-          <span className="font-bold text-lg" style={{ color: accentColor }}>{about?.name || portfolio.title}</span>
-          {/* Desktop nav */}
-          <div className="hidden md:flex gap-6">
-            {['about','experience','projects','services','contact'].map(s => (
-              <motion.a key={s} href={`#${s}`} whileHover={{ scale: 1.1, color: accentColor }}
-                className={`text-sm capitalize transition ${subTextColor}`}>{s}</motion.a>
+    <div className="min-h-screen overflow-x-clip font-sans antialiased" style={{ backgroundColor: p.bg, color: p.text }} data-preview={isPreview ? 'true' : undefined}>
+      {/* Header */}
+      <header className="sticky top-0 z-40 border-b" style={{ backgroundColor: p.bg, borderColor: p.rule }}>
+        <div className="mx-auto flex max-w-6xl items-center justify-between px-5 py-3.5 sm:px-8">
+          <a href="#hero" className={`font-display text-base font-semibold tracking-tight ${FOCUS}`} style={{ outlineColor: p.accent }}>{displayName}</a>
+          <nav aria-label="Sections" className="hidden gap-7 md:flex">
+            {NAV.map((s) => (
+              <a key={s} href={`#${s}`} className={`text-sm capitalize underline-offset-4 hover:underline ${FOCUS}`}
+                style={{ color: p.muted, outlineColor: p.accent }}>{s}</a>
             ))}
-          </div>
-          {/* Hamburger mobile */}
-          <button onClick={() => setMobileMenu(!mobileMenu)} className="md:hidden flex flex-col gap-1.5 p-2">
-            <span className="w-6 h-0.5 block transition-all" style={{ backgroundColor: accentColor }} />
-            <span className="w-6 h-0.5 block transition-all" style={{ backgroundColor: accentColor }} />
-            <span className="w-6 h-0.5 block transition-all" style={{ backgroundColor: accentColor }} />
+          </nav>
+          <button type="button" onClick={() => setMenuOpen(!menuOpen)} aria-expanded={menuOpen} aria-controls="modern-menu"
+            className={`rounded-[4px] border px-3 py-1.5 text-sm md:hidden ${FOCUS}`} style={{ borderColor: p.rule, outlineColor: p.accent }}>
+            {menuOpen ? 'Close' : 'Menu'}
           </button>
         </div>
-        {/* Mobile menu dropdown */}
-        {mobileMenu && (
-          <div className="md:hidden border-t px-4 py-3 flex flex-col gap-3" style={{ borderColor: `${accentColor}20`, backgroundColor: `${theme.bg}ee` }}>
-            {['about','experience','projects','services','contact'].map(s => (
-              <a key={s} href={`#${s}`} onClick={() => setMobileMenu(false)}
-                className={`text-sm capitalize py-1 ${subTextColor}`}
-                style={{ borderBottom: `1px solid ${accentColor}15` }}>{s}</a>
+        {menuOpen && (
+          <nav aria-label="Sections" className="border-t px-5 pb-3 md:hidden" style={{ borderColor: p.rule }}>
+            {NAV.map((s) => (
+              <a key={s} href={`#${s}`} onClick={() => setMenuOpen(false)}
+                className={`block border-b py-3 text-sm capitalize last:border-b-0 ${FOCUS}`} style={{ borderColor: p.rule, outlineColor: p.accent }}>{s}</a>
             ))}
-          </div>
+          </nav>
         )}
-      </motion.nav>
+      </header>
 
-      <div style={{ paddingTop: "4rem" }}>
+      <main>
         {/* Hero */}
-        <section id="hero" className="min-h-screen flex items-center justify-center text-center px-4 relative overflow-hidden"
-          style={hero?.background_url ? { backgroundImage: `url(${hero.background_url})`, backgroundSize: 'cover', backgroundPosition: 'center' } : {}}>
-          {hero?.background_url && <div className="absolute inset-0 bg-black/60" />}
-          <motion.div className="absolute inset-0 opacity-30"
-            animate={{ scale: [1, 1.1, 1], opacity: [0.2, 0.35, 0.2] }}
-            transition={{ duration: 5, repeat: Infinity }}
-            style={{ background: `radial-gradient(ellipse at center, ${accentColor} 0%, transparent 65%)` }} />
-          {[...Array(6)].map((_, i) => (
-            <motion.div key={i} className="absolute w-2 h-2 rounded-full opacity-40"
-              style={{ backgroundColor: accentColor, left: `${15 + i * 14}%`, top: `${20 + (i % 3) * 20}%` }}
-              animate={{ y: [-20, 20, -20], opacity: [0.2, 0.6, 0.2] }}
-              transition={{ duration: 3 + i, repeat: Infinity, delay: i * 0.5 }} />
-          ))}
-          <div className="relative z-10 max-w-4xl mx-auto">
-            {hero?.greeting && (
-              <motion.p initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}
-                className="text-lg mb-4" style={{ color: accentColor }}>{hero.greeting}</motion.p>
-            )}
-            <motion.h1 initial={{ opacity: 0, y: 40 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4, duration: 0.8 }}
-              className={`text-4xl sm:text-6xl md:text-8xl font-bold mb-4 ${textColor}`}
-              style={{ textShadow: `0 0 60px ${accentColor}40` }}>
+        <section id="hero" className="relative border-b" style={{ borderColor: p.rule }}>
+          {hasBgImage && (
+            <>
+              <img src={hero?.background_url} alt="" className="absolute inset-0 h-full w-full object-cover" />
+              <div className="absolute inset-0 bg-black/65" />
+            </>
+          )}
+          <div className="relative mx-auto max-w-6xl px-5 pt-16 pb-14 sm:px-8 md:pt-28 md:pb-20">
+            {hero?.greeting && <p className="mb-6 font-mono text-xs uppercase tracking-[0.14em]" style={{ color: heroMuted }}>{hero.greeting}</p>}
+            <h1 className="max-w-[16ch] font-display text-[clamp(2.6rem,9vw,7rem)] leading-[0.95] font-semibold tracking-[-0.035em] break-words"
+              style={{ color: heroText }}>
               {hero?.headline || about?.name || portfolio.title}
-            </motion.h1>
-            <motion.p initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.6 }}
-              className="text-xl md:text-3xl mb-6" style={{ color: accentColor }}>
-              {hero?.subheadline || ''}
-            </motion.p>
-            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 1 }}
-              className="flex gap-4 justify-center flex-wrap">
-              <motion.a href={hero?.cta_url || '#projects'} whileHover={{ scale: 1.05, boxShadow: `0 0 20px ${accentColor}60` }}
-                className="px-8 py-3 rounded-full font-semibold text-white" style={{ backgroundColor: accentColor }}>
-                {hero?.cta_text || 'View My Work'}
-              </motion.a>
-              {about?.cv_url && (
-                <motion.a href={about.cv_url} target="_blank" whileHover={{ scale: 1.05 }}
-                  className={`px-8 py-3 rounded-full font-semibold border ${textColor}`} style={{ borderColor: accentColor }}>
-                  Download CV
-                </motion.a>
-              )}
-              {hero?.cta_secondary_text && hero?.cta_secondary_url && (
-                <motion.a href={hero.cta_secondary_url} target="_blank" whileHover={{ scale: 1.05 }}
-                  className={`px-8 py-3 rounded-full font-semibold border ${textColor}`} style={{ borderColor: accentColor }}>
-                  {hero.cta_secondary_text}
-                </motion.a>
-              )}
-            </motion.div>
-          </div>
-          <motion.div className="absolute bottom-8 left-1/2 -translate-x-1/2"
-            animate={{ y: [0, 10, 0] }} transition={{ duration: 1.5, repeat: Infinity }}>
-            <div className="w-6 h-10 border-2 rounded-full flex justify-center pt-2" style={{ borderColor: `${accentColor}60` }}>
-              <motion.div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: accentColor }}
-                animate={{ y: [0, 12, 0] }} transition={{ duration: 1.5, repeat: Infinity }} />
+            </h1>
+            <div className="mt-12 grid gap-8 border-t pt-6 md:mt-16 md:grid-cols-12" style={{ borderColor: heroRule }}>
+              <div className="md:col-span-7">
+                {hero?.subheadline && <p className="text-xl leading-snug md:text-2xl" style={{ color: heroText }}>{hero.subheadline}</p>}
+                {hero?.description && <p className="mt-3 max-w-[60ch] leading-relaxed" style={{ color: heroMuted }}>{hero.description}</p>}
+              </div>
+              <div className="flex flex-wrap items-start gap-3 md:col-span-5 md:justify-end">
+                <a href={hero?.cta_url || '#projects'}
+                  className={`rounded-[4px] px-4 py-2.5 text-sm font-medium transition-opacity duration-150 hover:opacity-85 motion-reduce:transition-none ${FOCUS}`}
+                  style={{ backgroundColor: heroText, color: hasBgImage ? '#111111' : p.bg, outlineColor: p.accent }}>
+                  {hero?.cta_text || 'View my work'}
+                </a>
+                {about?.cv_url && (
+                  <a href={about.cv_url} target="_blank" rel="noopener noreferrer"
+                    className={`rounded-[4px] border px-4 py-2.5 text-sm font-medium ${FOCUS}`} style={{ borderColor: heroRule, color: heroText, outlineColor: p.accent }}>
+                    Download CV
+                  </a>
+                )}
+                {hero?.cta_secondary_text && hero?.cta_secondary_url && (
+                  <a href={hero.cta_secondary_url} target="_blank" rel="noopener noreferrer"
+                    className={`rounded-[4px] border px-4 py-2.5 text-sm font-medium ${FOCUS}`} style={{ borderColor: heroRule, color: heroText, outlineColor: p.accent }}>
+                    {hero.cta_secondary_text}
+                  </a>
+                )}
+              </div>
             </div>
-          </motion.div>
+          </div>
         </section>
 
         {/* About */}
         {isVisible('about') && about?.name && (
-          <section id="about" className="py-16 md:py-24 px-4">
-            <div className="max-w-4xl mx-auto">
-              <AnimatedSection>
-                <motion.h2 variants={fadeUp} className={`text-4xl font-bold mb-16 text-center ${textColor}`}>
-                  About <span style={{ color: accentColor }}>Me</span>
-                </motion.h2>
-                <div className="flex flex-col md:flex-row gap-8 md:gap-12 items-center">
-                  {about.photo_url && (
-                    <motion.img src={about.photo_url} alt={about.name} variants={fadeUp}
-                      className="w-48 h-48 rounded-full object-cover border-4 flex-shrink-0" style={{ borderColor: accentColor }} />
-                  )}
-                  <div>
-                    <motion.h3 variants={fadeUp} className={`text-2xl font-bold mb-2 ${textColor}`}>{about.name}</motion.h3>
-                    <motion.p variants={fadeUp} className="text-lg mb-4" style={{ color: accentColor }}>{about.title}</motion.p>
-                    <motion.p variants={fadeUp} className={`${subTextColor} text-justify whitespace-pre-line`}>{about.bio}</motion.p>
-                  </div>
-                </div>
-              </AnimatedSection>
+          <Block id="about" label="About" p={p}>
+            <div className="flex flex-col gap-8 sm:flex-row">
+              {about.photo_url && (
+                <img src={about.photo_url} alt={about.name} className="h-40 w-32 flex-shrink-0 rounded-[4px] object-cover" />
+              )}
+              <div>
+                <p className="font-display text-2xl font-semibold tracking-tight">{about.name}</p>
+                {about.title && <p className="mt-1" style={{ color: p.muted }}>{about.title}</p>}
+                {about.bio && <p className="mt-5 max-w-[65ch] text-lg leading-relaxed whitespace-pre-line">{about.bio}</p>}
+              </div>
             </div>
-          </section>
+          </Block>
         )}
 
         {/* Skills */}
-        {isVisible('skills') && ((skills?.length ?? 0) > 0) && (
-          <section id="skills" className="py-16 md:py-24 px-4">
-            <div className="max-w-4xl mx-auto">
-              <AnimatedSection>
-                <motion.h2 variants={fadeUp} className={`text-4xl font-bold mb-16 text-center ${textColor}`}>
-                  My <span style={{ color: accentColor }}>Skills</span>
-                </motion.h2>
-                {skills.map((skill: TemplateItem) => (
-                  <motion.div key={skill.id} variants={fadeUp} className="mb-8">
-                    {skill.title && <h3 className={`text-lg font-semibold mb-4 ${textColor}`}>{skill.title}</h3>}
-                    <div className="flex flex-wrap gap-3">
-                      {skill.skills?.split(',').map((s: string, i: number) => (
-                        <motion.span key={s} whileHover={{ scale: 1.1 }} transition={{ delay: i * 0.05 }}>
-                          <TechBadge name={s.trim()} accentColor={accentColor} size="md" variant="filled" />
-                        </motion.span>
-                      ))}
-                    </div>
-                  </motion.div>
-                ))}
-              </AnimatedSection>
+        {isVisible('skills') && skills.length > 0 && (
+          <Block id="skills" label="Skills" p={p}>
+            <div>
+              {skills.map((skill, i) => (
+                <div key={skill.id ?? i} className="grid gap-3 border-t py-5 first:border-t-0 first:pt-0 sm:grid-cols-[10rem_1fr] sm:gap-6" style={{ borderColor: p.rule }}>
+                  <h3 className="text-sm font-medium">{skill.title || 'Tools'}</h3>
+                  <div className="flex flex-wrap gap-2">
+                    {skill.skills?.split(',').filter((s) => s.trim()).map((s) => (
+                      <TechBadge key={s} name={s.trim()} accentColor={p.text} variant="outline" />
+                    ))}
+                  </div>
+                </div>
+              ))}
             </div>
-          </section>
+          </Block>
         )}
 
         {/* Experience */}
-        {isVisible('experience') && ((experience?.length ?? 0) > 0) && (
-          <section id="experience" className="py-16 md:py-24 px-4">
-            <div className="max-w-4xl mx-auto">
-              <AnimatedSection>
-                <motion.h2 variants={fadeUp} className={`text-4xl font-bold mb-16 text-center ${textColor}`}>
-                  Work <span style={{ color: accentColor }}>Experience</span>
-                </motion.h2>
-                <div className="relative">
-                  <div className="absolute left-4 top-0 bottom-0 w-0.5" style={{ backgroundColor: `${accentColor}30` }} />
-                  <div className="space-y-8 pl-12">
-                    {experience.map((exp: TemplateItem, i: number) => (
-                      <motion.div key={exp.id} variants={fadeUp} whileHover={{ x: 8 }}
-                        className={`relative p-6 rounded-2xl border ${cardBg}`}>
-                        <motion.div className="absolute -left-9 w-4 h-4 rounded-full border-2 border-white"
-                          style={{ backgroundColor: accentColor }}
-                          initial={{ scale: 0 }} whileInView={{ scale: 1 }} transition={{ delay: i * 0.1 }} />
-                        <div className="flex justify-between items-start mb-2 flex-wrap gap-2">
-                          <div>
-                            <h3 className={`text-xl font-bold ${textColor}`}>{exp.position}</h3>
-                            <p style={{ color: accentColor }}>{exp.company}</p>
-                          </div>
-                          <span className={`text-sm ${subTextColor}`}>
-                            {exp.start_date?.slice(0,7)}  -  {exp.end_date?.slice(0,7) || 'Present'}
-                          </span>
-                        </div>
-                        {exp.description && <div className={`text-sm ${subTextColor} space-y-0.5`}>{(exp.description.split(/[*-]/).filter((s: string) => s.trim()).length > 1 ? exp.description.split(/[*-]/).filter((s: string) => s.trim()) : exp.description.split(/\.\s+(?=[A-Z])/).filter((s: string) => s.trim())).map((s: string, i: number) => (<div key={i} className="flex gap-1.5 mb-1"><span className="mt-0.5 shrink-0">*</span><span>{s.trim()}</span></div>))}</div>}
-                      </motion.div>
-                    ))}
+        {isVisible('experience') && experience.length > 0 && (
+          <Block id="experience" label="Experience" p={p}>
+            <ol>
+              {experience.map((exp, i) => (
+                <li key={exp.id ?? i} className="grid grid-cols-[5.5rem_1fr] gap-4 border-t py-6 first:border-t-0 first:pt-0 sm:grid-cols-[8rem_1fr] sm:gap-6" style={{ borderColor: p.rule }}>
+                  <p className="pt-1 font-mono text-sm tabular-nums" style={{ color: p.muted }}>
+                    {year(exp.start_date)}–{exp.end_date ? year(exp.end_date) : 'Now'}
+                  </p>
+                  <div className="min-w-0">
+                    <h3 className="text-lg font-medium leading-snug">{exp.position}</h3>
+                    <p style={{ color: p.muted }}>{exp.company}</p>
+                    {bullets(exp.description).length > 0 && (
+                      <ul className="mt-3 max-w-[65ch] list-disc space-y-1 pl-4 leading-relaxed marker:text-[0.8em]">
+                        {bullets(exp.description).map((b, j) => <li key={j}>{b}</li>)}
+                      </ul>
+                    )}
                   </div>
-                </div>
-              </AnimatedSection>
-            </div>
-          </section>
+                </li>
+              ))}
+            </ol>
+          </Block>
         )}
 
         {/* Projects */}
-        {isVisible('projects') && ((projects?.length ?? 0) > 0) && (
-          <section id="projects" className="py-16 md:py-24 px-4">
-            <div className="max-w-5xl mx-auto">
-              <AnimatedSection>
-                <motion.h2 variants={fadeUp} className={`text-4xl font-bold mb-16 text-center ${textColor}`}>
-                  My <span style={{ color: accentColor }}>Projects</span>
-                </motion.h2>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {projects.map((proj: TemplateItem) => (
-                    <motion.div key={proj.id} variants={fadeUp} whileHover={{ y: -8, boxShadow: `0 20px 40px ${accentColor}20` }}
-                      className={`p-6 rounded-2xl border flex flex-col ${cardBg}`}>
-                      {proj.image_url && <motion.img src={proj.image_url} alt={proj.title} className="w-full h-40 object-cover rounded-lg mb-4" />}
-                      <h3 className={`text-lg font-bold mb-2 ${textColor}`}>{proj.title}</h3>
-                      <p className={`text-sm mb-3 flex-1 text-justify ${subTextColor}`}>{proj.description}</p>
-                      {proj.tech_stack && (
-                        <div className="flex flex-wrap gap-1 mb-3">
-                          {proj.tech_stack.split(',').map((t: string) => (
-                            <TechBadge key={t} name={t.trim()} accentColor={accentColor} size="sm" />
-                          ))}
-                        </div>
-                      )}
-                      <div className="flex gap-3">
-                        {proj.demo_url && <motion.a href={proj.demo_url} target="_blank" whileHover={{ scale: 1.1 }} className="text-sm" style={{ color: accentColor }}> Demo</motion.a>}
-                        {proj.github_url && <motion.a href={proj.github_url} target="_blank" whileHover={{ scale: 1.1 }} className="text-sm" style={{ color: accentColor }}> GitHub</motion.a>}
+        {isVisible('projects') && projects.length > 0 && (
+          <Block id="projects" label="Selected work" p={p}>
+            <ol>
+              {projects.map((proj, i) => (
+                <li key={proj.id ?? i} className="grid gap-6 border-t py-8 first:border-t-0 first:pt-0 md:grid-cols-[1fr_15rem]" style={{ borderColor: p.rule }}>
+                  <div className="min-w-0">
+                    <h3 className="font-display text-2xl font-semibold tracking-tight md:text-3xl">{proj.title}</h3>
+                    {proj.description && <p className="mt-3 max-w-[60ch] leading-relaxed" style={{ color: p.muted }}>{proj.description}</p>}
+                    {proj.tech_stack && (
+                      <div className="mt-4 flex flex-wrap gap-1.5">
+                        {proj.tech_stack.split(',').filter((t) => t.trim()).map((t) => (
+                          <TechBadge key={t} name={t.trim()} accentColor={p.text} variant="outline" />
+                        ))}
                       </div>
-                    </motion.div>
-                  ))}
-                </div>
-              </AnimatedSection>
-            </div>
-          </section>
+                    )}
+                    {(proj.demo_url || proj.github_url) && (
+                      <p className="mt-4 flex gap-5 text-sm">
+                        {proj.demo_url && <TextLink href={proj.demo_url} p={p} external>Live site</TextLink>}
+                        {proj.github_url && <TextLink href={proj.github_url} p={p} external>Source</TextLink>}
+                      </p>
+                    )}
+                  </div>
+                  {proj.image_url && (
+                    <img src={proj.image_url} alt={proj.title || ''} className="aspect-[4/3] w-full rounded-[4px] border object-cover" style={{ borderColor: p.rule }} />
+                  )}
+                </li>
+              ))}
+            </ol>
+          </Block>
         )}
 
         {/* Services */}
-        {isVisible('services') && ((services?.length ?? 0) > 0) && (
-          <section id="services" className="py-16 md:py-24 px-4">
-            <div className="max-w-4xl mx-auto">
-              <AnimatedSection>
-                <motion.h2 variants={fadeUp} className={`text-4xl font-bold mb-16 text-center ${textColor}`}>
-                  My <span style={{ color: accentColor }}>Services</span>
-                </motion.h2>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {services.map((svc: TemplateItem) => (
-                    <motion.div key={svc.id} variants={fadeUp} whileHover={{ y: -8 }}
-                      className={`p-6 rounded-2xl border text-center ${cardBg}`}>
-                      <motion.div className="text-4xl mb-4" whileHover={{ scale: 1.2, rotate: 10 }}>{svc.icon || '✦'}</motion.div>
-                      <h3 className={`text-lg font-bold mb-2 ${textColor}`}>{svc.title}</h3>
-                      <p className={`text-sm text-justify ${subTextColor}`}>{svc.description}</p>
-                    </motion.div>
-                  ))}
-                </div>
-              </AnimatedSection>
-            </div>
-          </section>
+        {isVisible('services') && services.length > 0 && (
+          <Block id="services" label="Services" p={p}>
+            <ol>
+              {services.map((svc, i) => (
+                <li key={svc.id ?? i} className="grid grid-cols-[2.5rem_1fr] gap-4 border-t py-5 first:border-t-0 first:pt-0" style={{ borderColor: p.rule }}>
+                  <span className="pt-0.5 font-mono text-sm tabular-nums" style={{ color: p.muted }}>{String(i + 1).padStart(2, '0')}</span>
+                  <div>
+                    <h3 className="text-lg font-medium">{svc.title}</h3>
+                    {svc.description && <p className="mt-1 max-w-[60ch] leading-relaxed" style={{ color: p.muted }}>{svc.description}</p>}
+                  </div>
+                </li>
+              ))}
+            </ol>
+          </Block>
         )}
 
         {/* Testimonials */}
-        {isVisible('testimonials') && ((testimonials?.length ?? 0) > 0) && (
-          <section id="testimonials" className="py-16 md:py-24 px-4">
-            <div className="max-w-4xl mx-auto">
-              <AnimatedSection>
-                <motion.h2 variants={fadeUp} className={`text-4xl font-bold mb-16 text-center ${textColor}`}>
-                  What People <span style={{ color: accentColor }}>Say</span>
-                </motion.h2>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {testimonials.map((t: TemplateItem) => (
-                    <motion.div key={t.id} variants={fadeUp} whileHover={{ y: -4 }}
-                      className={`p-6 rounded-2xl border ${cardBg}`}>
-                      <p className={`text-sm mb-4 italic ${subTextColor}`}>&quot;{t.message}&quot;</p>
-                      <div className="flex items-center gap-3">
-                        {t.photo_url && <img src={t.photo_url} alt={t.name} className="w-10 h-10 rounded-full object-cover" />}
-                        <div>
-                          <p className={`font-semibold text-sm ${textColor}`}>{t.name}</p>
-                          <p className="text-xs" style={{ color: accentColor }}>{t.position}</p>
-                        </div>
-                      </div>
-                    </motion.div>
-                  ))}
-                </div>
-              </AnimatedSection>
+        {isVisible('testimonials') && testimonials.length > 0 && (
+          <Block id="testimonials" label="What people say" p={p}>
+            <div className="space-y-12">
+              {testimonials.map((t, i) => (
+                <figure key={t.id ?? i}>
+                  <blockquote className="max-w-[40ch] font-display text-2xl leading-snug tracking-tight md:text-3xl">“{t.message}”</blockquote>
+                  <figcaption className="mt-5 flex items-center gap-3 text-sm">
+                    {t.photo_url && <img src={t.photo_url} alt={t.name || ''} className="h-9 w-9 rounded-full object-cover" />}
+                    <span><span className="font-medium">{t.name}</span>{t.position && <span style={{ color: p.muted }}>, {t.position}</span>}</span>
+                  </figcaption>
+                </figure>
+              ))}
             </div>
-          </section>
+          </Block>
         )}
 
-        {/* Custom Sections */}
-        {isVisible('custom') && ((custom?.length ?? 0) > 0) && custom.map((sec: TemplateItem) => (
-          <section key={sec.id} id={`custom-${(sec.title || sec.original_type || '').toLowerCase().replace(/\s+/g, '-')}`} className="py-16 md:py-24 px-4">
-            <div className="max-w-4xl mx-auto">
-              <AnimatedSection key={sec.id}>
-                <motion.h2 variants={fadeUp} className={`text-4xl font-bold mb-16 text-center ${textColor}`}>
-                  <span style={{ color: accentColor }}>{sec.title}</span>
-                </motion.h2>
-                {sec.type === 'text' && (
-                  <motion.p variants={fadeUp} className={`text-lg leading-relaxed ${subTextColor}`}>
-                    {sec.content?.body}
-                  </motion.p>
-                )}
-                {sec.type === 'list' && (
-                  <ul className="space-y-3">
-                    {(sec.content?.items || []).map((item: string, i: number) => (
-                      <motion.li key={i} variants={fadeUp} className={`flex items-start gap-3 ${subTextColor}`}>
-                        <span style={{ color: accentColor }}></span>{item}
-                      </motion.li>
-                    ))}
-                  </ul>
-                )}
-                {sec.type === 'cards' && (
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {(sec.content?.cards || []).map((card: TemplateItem, i: number) => (
-                      <motion.div key={i} variants={fadeUp} whileHover={{ y: -8 }}
-                        className={`p-6 rounded-2xl border ${cardBg}`}>
-                        {card.icon && <div className="text-3xl mb-3">{card.icon}</div>}
-                        <h3 className={`font-bold mb-2 ${textColor}`}>{card.title}</h3>
-                        <p className={`text-sm ${subTextColor}`}>{card.desc}</p>
-                      </motion.div>
-                    ))}
-                  </div>
-                )}
-                {sec.type === 'links' && (
-                  <div className="flex flex-wrap gap-3 justify-center">
-                    {(sec.content?.links || []).map((link: TemplateItem, i: number) => (
-                      <motion.a key={i} href={link.url} target="_blank" variants={fadeUp}
-                        whileHover={{ scale: 1.05 }}
-                        className="px-6 py-3 rounded-full font-medium text-white"
-                        style={{ backgroundColor: accentColor }}>
-                        {link.label}
-                      </motion.a>
-                    ))}
-                  </div>
-                )}
-                {/* Fallback for typed sections (education, certification, language, etc.) */}
-                {!['text','list','cards','links'].includes(sec.type ?? '') && sec.content && (
-                  <div className="space-y-6">
-                    {(() => {
-                      if ((sec.original_type === 'certification' || sec.type === 'certification') && Array.isArray(sec.content?.items)) {
-                        return <CertificationSection items={sec.content?.items} textColor={textColor} subTextColor={subTextColor} accentColor={accentColor} cardBg={cardBg} />;
-                      }
-                      const c = sec.content;
-                      const fields = c.institution || c.degree || c.field || c.name || c.issuer || c.language || c.proficiency || c.area || c.title ? (
-                        <div className={`p-6 rounded-2xl border ${cardBg}`}>
-                          {c.institution && <p className={`text-lg font-semibold ${textColor}`}>{c.institution}</p>}
-                          {(c.degree || c.field) && <p className={`text-sm ${subTextColor} mt-1`}>{[c.degree, c.field].filter(Boolean).join('  -  ')}</p>}
-                          {(c.start_date || c.end_date) && <p className={`text-xs ${subTextColor} mt-1`}>{[c.start_date?.slice(0,7), c.end_date?.slice(0,7)].filter(Boolean).join(' - ')}</p>}
-                          {c.gpa && <p className={`text-xs ${subTextColor} mt-1`}>GPA: {c.gpa}</p>}
-                          {c.name && <p className={`text-lg font-semibold ${textColor}`}>{c.name}</p>}
-                          {c.issuer && <p className={`text-sm ${subTextColor}`}>{c.issuer}</p>}
-                          {c.date && <p className={`text-xs ${subTextColor} mt-1`}>{c.date}</p>}
-                          {c.language && <p className={`text-lg font-semibold ${textColor}`}>{c.language}</p>}
-                          {c.proficiency && <span className={`text-xs px-2 py-1 rounded-full`} style={{backgroundColor: accentColor+'30', color: accentColor}}>{c.proficiency}</span>}
-                          {c.area && <p className={`text-lg font-semibold ${textColor}`}>{c.area}</p>}
-                          {c.description && <p className={`text-sm ${subTextColor} mt-1`}>{c.description}</p>}
-                          {c.credential_url && <a href={c.credential_url} target="_blank" className={`text-sm underline mt-2 inline-block`} style={{color: accentColor}}>View credential</a>}
-                        </div>
-                      ) : null;
-                      return fields || (c.body ? <p className={`text-lg leading-relaxed ${subTextColor}`}>{c.body}</p> : null);
-                    })()}
-                  </div>
-                )}
-              </AnimatedSection>
-            </div>
-          </section>
+        {/* Custom sections */}
+        {isVisible('custom') && custom.map((sec, i) => (
+          <Block key={sec.id ?? i} id={slugId(sec)} label={sec.title || sec.original_type || 'More'} p={p}>
+            <CustomBody sec={sec} p={p} />
+          </Block>
         ))}
 
         {/* Certificates */}
-        {isVisible('gallery') && ((gallery?.length ?? 0) > 0) && (
-          <section id="gallery" className="py-16 md:py-24 px-4">
-            <div className="max-w-5xl mx-auto">
-              <AnimatedSection>
-                <motion.h2 variants={fadeUp} className={`text-4xl font-bold mb-16 text-center ${textColor}`}>
-                  My <span style={{ color: accentColor }}>Certificates</span>
-                </motion.h2>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {gallery.map((cert: TemplateItem) => (
-                    <motion.div key={cert.id} variants={fadeUp} whileHover={{ y: -8, boxShadow: `0 20px 40px ${accentColor}20` }}
-                      className={`p-5 rounded-2xl border flex flex-col ${cardBg}`}>
-                      {(cert.image_url || cert.file_url) && (
-                        <div className="w-full h-36 rounded-lg mb-3 overflow-hidden bg-cover bg-center"
-                          style={{ backgroundImage: `url(${cert.image_url || cert.file_url})` }}>
-                          <img src={cert.image_url || cert.file_url} alt={cert.title}
-                            className="w-full h-full object-cover"
-                            onError={(e: SyntheticEvent<HTMLImageElement>) => { e.currentTarget.style.display = 'none' }} />
-                        </div>
-                      )}
-                      <h3 className={`text-base font-bold mb-1 ${textColor}`}>{cert.title}</h3>
-                      {cert.description && <p className={`text-sm mb-2 flex-1 text-justify ${subTextColor}`}>{cert.description}</p>}
-                      {cert.issued_date && (
-                        <p className="text-xs mt-auto" style={{ color: accentColor }}>
-                           {new Date(cert.issued_date).toLocaleDateString('id-ID', { year: 'numeric', month: 'long', day: 'numeric' })}
-                        </p>
-                      )}
-                      {cert.file_url && (
-                        <motion.a href={cert.file_url} target="_blank" whileHover={{ scale: 1.05 }}
-                          className="mt-3 text-center text-xs px-3 py-1.5 rounded-full font-medium text-white"
-                          style={{ backgroundColor: accentColor }}>
-                           Lihat Certificate
-                        </motion.a>
-                      )}
-                    </motion.div>
-                  ))}
-                </div>
-              </AnimatedSection>
+        {isVisible('gallery') && gallery.length > 0 && (
+          <Block id="gallery" label="Certificates" p={p}>
+            <div className="grid gap-x-6 gap-y-10 sm:grid-cols-2 lg:grid-cols-3">
+              {gallery.map((cert, i) => (
+                <figure key={cert.id ?? i} className="min-w-0">
+                  {(cert.image_url || cert.file_url) && (
+                    <div className="mb-3 aspect-[4/3] overflow-hidden rounded-[4px] border" style={{ borderColor: p.rule, backgroundColor: p.surface }}>
+                      <img src={cert.image_url || cert.file_url} alt={cert.title || ''} className="h-full w-full object-cover"
+                        onError={(e: SyntheticEvent<HTMLImageElement>) => { e.currentTarget.style.display = 'none'; }} />
+                    </div>
+                  )}
+                  <figcaption>
+                    <h3 className="font-medium">{cert.title}</h3>
+                    {cert.issued_date && <p className="mt-0.5 font-mono text-xs" style={{ color: p.muted }}>{fmtDate(cert.issued_date)}</p>}
+                    {cert.description && <p className="mt-2 text-sm leading-relaxed" style={{ color: p.muted }}>{cert.description}</p>}
+                    {cert.file_url && <p className="mt-2 text-sm"><TextLink href={cert.file_url} p={p} external>Lihat sertifikat</TextLink></p>}
+                  </figcaption>
+                </figure>
+              ))}
             </div>
-          </section>
+          </Block>
         )}
 
         {/* Contact */}
         {isVisible('contact') && (
-          <section id="contact" className="py-16 md:py-24 px-4">
-          <AnimatedSection>
-            <div className="max-w-2xl mx-auto text-center">
-              <motion.h2 variants={fadeUp} className={`text-4xl font-bold mb-4 ${textColor}`}>
-                Get In <span style={{ color: accentColor }}>Touch</span>
-              </motion.h2>
-              <motion.p variants={fadeUp} className={`mb-10 ${subTextColor}`}>Have a project in mind? Let&apos;s work together!</motion.p>
-              <div className="flex gap-4 justify-center flex-wrap mb-12">
-                {(contact?.email || about?.email) && (
-                  <motion.a variants={fadeUp} href={`mailto:${contact?.email || about?.email}`}
-                    whileHover={{ scale: 1.05, boxShadow: `0 0 30px ${accentColor}60` }}
-                    className="inline-block px-10 py-4 rounded-full font-semibold text-white text-lg"
-                    style={{ backgroundColor: accentColor }}> Email</motion.a>
-                )}
-                {contact?.phone && (
-                  <motion.a variants={fadeUp}
-                    href={`https://wa.me/${contact.phone.replace(/[^0-9]/g, '').replace(/^0/, '62')}?text=Halo%20${encodeURIComponent(about?.name || 'there')}%2C%20saya%20tertarik%20untuk%20bekerja%20sama!`}
-                    target="_blank"
-                    whileHover={{ scale: 1.05, boxShadow: '0 0 30px #25D36660' }}
-                    className="inline-block px-10 py-4 rounded-full font-semibold text-white text-lg"
-                    style={{ backgroundColor: '#25D366' }}> WhatsApp</motion.a>
-                )}
-                {contact?.linkedin_url && (
-                  <motion.a variants={fadeUp} href={contact.linkedin_url} target="_blank"
-                    whileHover={{ scale: 1.05, boxShadow: `0 0 30px #0077B560` }}
-                    className="inline-block px-10 py-4 rounded-full font-semibold text-white text-lg"
-                    style={{ backgroundColor: '#0077B5' }}> LinkedIn</motion.a>
-                )}
-                {contact?.github_url && (
-                  <motion.a variants={fadeUp} href={contact.github_url} target="_blank"
-                    whileHover={{ scale: 1.05, boxShadow: `0 0 30px #33333360` }}
-                    className="inline-block px-10 py-4 rounded-full font-semibold text-white text-lg"
-                    style={{ backgroundColor: '#333' }}> GitHub</motion.a>
-                )}
-              </div>
-              <motion.div variants={fadeUp}>
-                <ContactForm slug={portfolio.slug} accentColor={accentColor} textColor={isLight ? '#111' : '#f1f5f9'} subColor={subTextColor} />
-              </motion.div>
+          <Block id="contact" label="Contact" p={p}>
+            <p className="max-w-[30ch] font-display text-3xl font-semibold leading-tight tracking-tight md:text-5xl">
+              Have a project in mind? Let&apos;s talk.
+            </p>
+            {email && (
+              <p className="mt-6 text-lg break-all md:text-xl"><TextLink href={`mailto:${email}`} p={p}>{email}</TextLink></p>
+            )}
+            <dl className="mt-8 grid max-w-xl gap-x-6 text-sm sm:grid-cols-[8rem_1fr]">
+              {contact?.phone && (<><dt className="pt-3" style={{ color: p.muted }}>WhatsApp</dt><dd className="border-b pb-3 sm:pt-3" style={{ borderColor: p.rule }}><TextLink href={waLink(contact.phone, about?.name)} p={p} external>{contact.phone}</TextLink></dd></>)}
+              {contact?.linkedin_url && (<><dt className="pt-3" style={{ color: p.muted }}>LinkedIn</dt><dd className="border-b pb-3 sm:pt-3 break-all" style={{ borderColor: p.rule }}><TextLink href={contact.linkedin_url} p={p} external>Profile</TextLink></dd></>)}
+              {contact?.github_url && (<><dt className="pt-3" style={{ color: p.muted }}>GitHub</dt><dd className="border-b pb-3 sm:pt-3 break-all" style={{ borderColor: p.rule }}><TextLink href={contact.github_url} p={p} external>Profile</TextLink></dd></>)}
+              {contact?.location && (<><dt className="pt-3" style={{ color: p.muted }}>Based in</dt><dd className="border-b pb-3 sm:pt-3" style={{ borderColor: p.rule }}>{contact.location}</dd></>)}
+            </dl>
+            <div className="mt-12 max-w-lg">
+              <ContactForm slug={portfolio.slug} accentColor={p.accent} textColor={p.text} subColor={p.muted} />
             </div>
-          </AnimatedSection>
-          </section>
+          </Block>
         )}
-      </div>
+      </main>
 
-      <footer className="py-8 text-center border-t" style={{ borderColor: `${accentColor}20` }}>
-        <p className={`text-sm ${subTextColor}`}>(c) 2026 {about?.name || portfolio.title}. Built with </p>
-        <p className="text-xs mt-1" style={{ color: `${accentColor}60` }}>Made with PortfolioKit</p>
+      <footer className="mx-auto flex max-w-6xl flex-wrap justify-between gap-2 px-5 py-8 text-sm sm:px-8" style={{ color: p.muted }}>
+        <span>© {new Date().getFullYear()} {displayName}</span>
+        <span>Made with PortfolioKit</span>
       </footer>
-      </div>
+    </div>
   );
 }
-

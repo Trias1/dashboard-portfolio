@@ -1,5 +1,6 @@
 'use client';
 import type { Section } from '@/lib/sections';
+import { SectionIcon } from '@/components/builder/SortableSection';
 
 interface Props {
   isOpen: boolean;
@@ -15,60 +16,59 @@ export default function DeleteSectionModal({ isOpen, section, onClose, onHide, o
   const isFixed = ['hero', 'about'].includes(section.type);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm"
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink/30 px-4"
       onClick={onClose}>
-      <div className="bg-[#1a1a3e] border border-purple-800/40 rounded-2xl p-6 w-full max-w-md mx-4 shadow-2xl"
+      <div role="dialog" aria-modal="true" aria-labelledby="delete-section-title"
+        className="w-full max-w-md rounded-lg border border-rule bg-white p-5 text-ink shadow-[0_12px_32px_rgba(20,20,20,0.12)]"
         onClick={e => e.stopPropagation()}>
-        <div className="flex items-center gap-3 mb-4">
-          <span className="text-2xl">{section.icon}</span>
-          <h3 className="text-lg font-semibold text-white">
+        <div className="mb-3 flex items-start gap-3">
+          <span className="mt-1 text-ink-soft"><SectionIcon type={section.type} label={section.label} /></span>
+          <h3 id="delete-section-title" className="font-display text-lg font-semibold leading-snug tracking-tight">
             {isFixed ? `Kosongkan data "${section.label}"?` : `Hapus "${section.label}"?`}
           </h3>
         </div>
 
         {isFixed ? (
-          <p className="text-sm text-gray-400 mb-6">
-            Section <span className="text-white font-medium">{section.label}</span> tidak bisa dihapus.
-            Data di dalamnya akan dikosongkan tapi section tetap tampil.
+          <p className="mb-5 text-sm leading-relaxed text-ink-soft">
+            Bagian <span className="font-medium text-ink">{section.label}</span> tidak bisa dihapus.
+            Isinya akan dikosongkan, tapi bagiannya tetap tampil.
           </p>
         ) : (
-          <p className="text-sm text-gray-400 mb-6">
-            Pilih tindakan untuk section <span className="text-white font-medium">{section.label}</span>:
+          <p className="mb-5 text-sm leading-relaxed text-ink-soft">
+            Apa yang mau dilakukan dengan bagian <span className="font-medium text-ink">{section.label}</span>?
           </p>
         )}
 
-        <div className="flex flex-col gap-3">
+        <div className="flex flex-col gap-2">
           {!isFixed && (
-            <button onClick={() => { onHide(section.id); onClose(); }}
-              className="w-full px-4 py-3 rounded-xl border border-gray-600 text-gray-300 hover:bg-gray-700/50 text-sm font-medium transition-colors text-left">
-              <span className="block font-medium text-gray-200"> Sembunyikan section</span>
-              <span className="block text-xs text-gray-500 mt-0.5">Data tetap tersimpan. Section bisa ditampilkan kembali kapan saja.</span>
+            <button type="button" onClick={() => { onHide(section.id); onClose(); }}
+              className="w-full rounded-md border border-rule bg-white px-3.5 py-2.5 text-left transition-colors hover:border-ink-soft">
+              <span className="block text-sm font-medium text-ink">Sembunyikan saja</span>
+              <span className="mt-0.5 block text-xs text-ink-soft">Datanya tetap tersimpan. Bisa ditampilkan lagi kapan saja.</span>
             </button>
           )}
 
-          <button onClick={() => { onDelete(section); onClose(); }}
-            className={`w-full px-4 py-3 rounded-xl text-sm font-medium transition-colors text-left ${
-              isFixed
-                ? 'border border-yellow-600/50 text-yellow-400 hover:bg-yellow-900/20'
-                : 'border border-red-600/50 text-red-400 hover:bg-red-900/20'
-            }`}>
+          <button type="button" onClick={() => { onDelete(section); onClose(); }}
+            className="w-full rounded-md border border-red-200 bg-white px-3.5 py-2.5 text-left transition-colors hover:bg-red-50">
             {isFixed ? (
               <>
-                <span className="block font-medium text-yellow-400"> Kosongkan semua data</span>
-                <span className="block text-xs text-yellow-600/80 mt-0.5">Data di section ini akan dihapus permanen. Section tetap tampil.</span>
+                <span className="block text-sm font-medium text-red-700">Kosongkan semua data</span>
+                <span className="mt-0.5 block text-xs text-red-700/80">Data di bagian ini dihapus permanen. Bagiannya tetap tampil.</span>
               </>
             ) : (
               <>
-                <span className="block font-medium text-red-400"> Hapus section + semua data</span>
-                <span className="block text-xs text-red-500/80 mt-0.5">Section dan seluruh data di dalamnya akan dihapus permanen.</span>
+                <span className="block text-sm font-medium text-red-700">Hapus bagian dan datanya</span>
+                <span className="mt-0.5 block text-xs text-red-700/80">Bagian ini dan semua isinya dihapus permanen.</span>
               </>
             )}
           </button>
 
-          <button onClick={onClose}
-            className="w-full px-4 py-3 rounded-xl bg-gray-800 text-gray-400 hover:bg-gray-700 text-sm font-medium transition-colors">
-            Batal
-          </button>
+          <div className="mt-2 flex justify-end">
+            <button type="button" onClick={onClose}
+              className="rounded-md px-3.5 py-2 text-sm font-medium text-ink-soft transition-colors hover:bg-paper hover:text-ink">
+              Batal
+            </button>
+          </div>
         </div>
       </div>
     </div>

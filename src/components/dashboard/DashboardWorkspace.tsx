@@ -761,8 +761,8 @@ export default function DashboardPage() {
   };
 
   const inputClass =
-    "w-full bg-[#1a1a3a] border border-purple-900/30 rounded-lg px-4 py-2.5 text-white placeholder-gray-500 focus:outline-none focus:border-purple-500 transition text-sm";
-  const labelClass = "block text-sm font-medium text-gray-300 mb-1";
+    "w-full rounded-md border border-rule bg-white px-3 py-2 text-sm text-ink placeholder:text-[#9a9aa0] outline-none transition-colors focus:border-ink focus:ring-2 focus:ring-ink/10";
+  const labelClass = "mb-1.5 block text-sm font-medium text-ink";
   const t2 = (key: keyof typeof dashboardText) => dashboardText[key][lang];
 
   const renderPreview = () => (
@@ -797,7 +797,7 @@ export default function DashboardPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#0a0a1a] flex">
+    <div className="flex min-h-screen bg-paper font-sans text-ink">
       <DashboardAddSectionModal
         open={showAddSection}
         lang={lang}
@@ -830,7 +830,7 @@ export default function DashboardPage() {
         usersLabel={t2("users")}
       />
       {/* Main area */}
-      <div className="flex-1 flex flex-col overflow-hidden">
+      <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
         {/* Dashboard header */}
         <DashboardHeader>
           <DashboardPortfolioControls

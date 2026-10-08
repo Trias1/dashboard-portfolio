@@ -1,349 +1,395 @@
 'use client';
-import type { TemplateData, TemplateItem, TemplateSectionOrder, ThemeConfig } from '@/types';
+import type { TemplateData, TemplateItem, ThemeConfig } from '@/types';
 import type { SyntheticEvent } from 'react';
-import { useRef } from 'react';
-import { motion, useInView } from 'framer-motion';
 import TechBadge from '@/components/TechIcon';
 import ContactForm from '@/components/ContactForm';
 import CertificationSection from '@/components/CertificationSection';
 
-function PopIn({ children, delay = 0 }: { children: React.ReactNode; delay?: number }) {
+/* ------------------------------------------------------------------ */
+/* Colour helpers — text/rules derived from the user's theme.bg        */
+/* ------------------------------------------------------------------ */
+type RGB = [number, number, number];
+
+function parseHex(hex: string | undefined, fallback: RGB): RGB {
+  const h = (hex || '').trim().replace('#', '');
+  const full = h.length === 3 ? h.split('').map(c => c + c).join('') : h.slice(0, 6);
+  if (!/^[0-9a-fA-F]{6}$/.test(full)) return fallback;
+  return [0, 2, 4].map(i => parseInt(full.slice(i, i + 2), 16)) as RGB;
+}
+const toHex = (c: RGB) => '#' + c.map(v => Math.round(Math.max(0, Math.min(255, v))).toString(16).padStart(2, '0')).join('');
+function lum([r, g, b]: RGB) {
+  const f = (v: number) => { const s = v / 255; return s <= 0.03928 ? s / 12.92 : Math.pow((s + 0.055) / 1.055, 2.4); };
+  return 0.2126 * f(r) + 0.7152 * f(g) + 0.0722 * f(b);
+}
+function contrast(a: RGB, b: RGB) {
+  const [x, y] = [lum(a), lum(b)].sort((p, q) => q - p);
+  return (x + 0.05) / (y + 0.05);
+}
+const mix = (a: RGB, b: RGB, t: number): RGB => [0, 1, 2].map(i => a[i] + (b[i] - a[i]) * t) as RGB;
+function readable(fg: RGB, bg: RGB, toward: RGB, min = 4.5): RGB {
+  let c = fg;
+  for (let i = 0; i < 12 && contrast(c, bg) < min; i++) c = mix(c, toward, 0.15);
+  return c;
+}
+
+function makePalette(theme: ThemeConfig) {
+  const bg = parseHex(theme.bg, [10, 10, 26]);
+  const isDark = lum(bg) < 0.2;
+  const ink: RGB = isDark ? [246, 245, 242] : [12, 12, 14];
+  const acc = parseHex(theme.accent, [99, 102, 241]);
+  return {
+    isDark,
+    bg: toHex(bg),
+    text: toHex(ink),
+    sub: toHex(readable(mix(ink, bg, 0.4), bg, ink)),
+    rule: toHex(mix(bg, ink, isDark ? 0.2 : 0.15)),
+    surface: toHex(mix(bg, ink, isDark ? 0.06 : 0.04)),
+    accent: toHex(acc),
+    accentText: toHex(readable(acc, bg, ink)),
+    onAccent: contrast(acc, [255, 255, 255]) >= contrast(acc, [12, 12, 12]) ? '#ffffff' : '#0c0c0c',
+  };
+}
+type Palette = ReturnType<typeof makePalette>;
+
+/* ------------------------------------------------------------------ */
+const yr = (d?: string | null) => (d ? d.slice(0, 4) : '');
+function descLines(text?: string) {
+  return (text || '').split(/\n+/).map(s => s.replace(/^\s*[-*•]\s*/, '').trim()).filter(Boolean);
+}
+const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+function monthYear(d?: string | null) {
+  if (!d) return '';
+  const m = /^(\d{4})-(\d{2})/.exec(d);
+  return m ? `${MONTHS[Number(m[2]) - 1] ?? ''} ${m[1]}`.trim() : d;
+}
+
+const focusRing = 'focus-visible:outline-2 focus-visible:outline-offset-4';
+const wrap = 'max-w-6xl mx-auto px-5 sm:px-8';
+const sectionPad = 'py-20 sm:py-28';
+
+/** Big one-word title with a hard accent full stop. */
+function Title({ children, p }: { children: React.ReactNode; p: Palette }) {
   return (
-    <motion.div initial={{ opacity: 0, scale: 0.9 }} whileInView={{ opacity: 1, scale: 1 }} viewport={{ once: true }}
-      transition={{ delay, type: 'spring', stiffness: 150 }}>
-      {children}
-    </motion.div>
+    <h2 className="font-display text-5xl sm:text-7xl font-extrabold tracking-[-0.045em] leading-[0.9] mb-12 sm:mb-14" style={{ color: p.text }}>
+      {children}<span style={{ color: p.accentText }}>.</span>
+    </h2>
   );
 }
 
-const textColor = '#f0eef5';
-const subColor = '#a098b0';
-
 export default function BoldPersonaTemplate({ data, theme, isPreview }: { data: TemplateData; theme: ThemeConfig; isPreview?: boolean }) {
   const { portfolio, hero, about, experience = [], projects = [], services = [], skills = [], testimonials = [], contact, gallery = [], custom = [] } = data;
-  const ac = theme.accent;
+  const p = makePalette(theme);
+  const ac = p.accent;
+  const name = about?.name || portfolio.title || portfolio.slug;
+  const email = contact?.email || about?.email;
+  void isPreview;
+
+  // The name is the brand; the headline becomes the one-line statement under it
+  // (skipped when it just repeats the name, e.g. "Hi, I'm Alex Rivera").
+  const bigName = name;
+  const headlineRepeatsName = !!(about?.name && hero?.headline && hero.headline.toLowerCase().includes(about.name.toLowerCase()));
+  const statement = hero?.headline && !headlineRepeatsName ? hero.headline : hero?.subheadline;
+  const statementSub = statement === hero?.subheadline ? hero?.description : hero?.subheadline;
+
+  const loud = `inline-flex items-center gap-3 px-6 py-4 text-sm font-bold uppercase tracking-[0.12em] ${focusRing}`;
+  const underline = `font-bold underline underline-offset-[6px] decoration-2 hover:decoration-4 ${focusRing}`;
+
+  const socials = [
+    contact?.phone ? { label: 'WhatsApp', href: `https://wa.me/${contact.phone.replace(/[^0-9]/g, '')}` } : null,
+    contact?.linkedin_url ? { label: 'LinkedIn', href: contact.linkedin_url } : null,
+    contact?.github_url ? { label: 'GitHub', href: contact.github_url } : null,
+  ].filter((s): s is { label: string; href: string } => !!s);
 
   return (
-    <div className="min-h-screen" style={{ backgroundColor: '#0a0a0f', color: textColor }}>
-      {/* Diagonal split bg */}
-      <div className="fixed inset-0 z-0 pointer-events-none overflow-hidden">
-        <motion.div className="absolute -top-1/2 -right-1/4 w-[80%] h-[150%] skew-x-12 origin-top-right opacity-[0.04]"
-          style={{ background: `linear-gradient(180deg, ${ac} 0%, transparent 100%)` }}
-          animate={{ skewX: [10, 14, 10] }} transition={{ duration: 8, repeat: Infinity, ease: 'easeInOut' }} />
-      </div>
+    <div className="min-h-screen font-sans antialiased overflow-x-hidden" style={{ backgroundColor: p.bg, color: p.text }}>
+      <header className={`${wrap} h-16 flex items-center justify-between gap-6 text-sm`}>
+        <a href="#hero" className={`font-display font-extrabold text-lg tracking-tight ${focusRing}`}>
+          {name.split(/\s+/).map(w => w[0]).join('').slice(0, 3).toUpperCase()}
+        </a>
+        <nav aria-label="Sections" className="flex gap-6 font-semibold">
+          <a href="#work" className={`hover:underline underline-offset-4 ${focusRing}`}>Work</a>
+          <a href="#about" className={`hidden sm:inline hover:underline underline-offset-4 ${focusRing}`}>About</a>
+          <a href="#connect" className={`hover:underline underline-offset-4 ${focusRing}`} style={{ color: p.accentText }}>Contact</a>
+        </nav>
+      </header>
 
-      {/* Bold header  -  minimal, just name */}
-      <motion.header initial={{ y: -100 }} animate={{ y: 0 }}
-        className="fixed top-0 w-full z-50" style={{ backgroundColor: '#0a0a0fdd' }}>
-        <div className="max-w-7xl mx-auto px-6 py-5 flex items-center justify-between">
-          <motion.span className="text-2xl font-black tracking-tight" style={{ color: textColor }}
-            whileHover={{ color: ac, scale: 1.02 }}>
-            {about?.name?.split(' ')[0]?.[0] || portfolio.title?.[0] || 'P'}
-          </motion.span>
-          <nav className="flex gap-8 text-sm font-bold uppercase tracking-widest">
-            {['Work', 'About', 'Connect'].map(s => (
-              <motion.a key={s} href={`#${s.toLowerCase()}`} whileHover={{ color: ac, letterSpacing: '0.2em' }}
-                className="transition-all" style={{ color: subColor }}>
-                {s}
-              </motion.a>
-            ))}
-          </nav>
-        </div>
-      </motion.header>
-
-      <div className="relative z-10">
-        {/* Hero  -  giant typography */}
-        <section id="hero" className="min-h-screen flex items-center px-6 md:px-20 relative overflow-hidden"
-          style={hero?.background_url ? { backgroundImage: `url(${hero.background_url})`, backgroundSize: 'cover', backgroundPosition: 'center' } : {}}>
-          {hero?.background_url && <div className="absolute inset-0 bg-black/60" />}
-          <div className="max-w-7xl mx-auto w-full relative z-10">
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-              {hero?.greeting && <span className="inline-block text-xs font-bold uppercase tracking-[0.4em] mb-8" style={{ color: ac }}>{hero.greeting}</span>}
-            </motion.div>
-            <motion.h1 initial={{ opacity: 0, y: 60 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1, type: 'spring', stiffness: 100 }}
-              className="text-5xl sm:text-7xl lg:text-8xl font-black leading-[0.85] tracking-[-0.05em] mb-4">
-              {hero?.headline?.split(' ').map((w: string, i: number) => (
-                <motion.span key={i} className="block" whileHover={{ x: i % 2 === 0 ? 10 : -10, color: ac }}
-                  transition={{ type: 'spring' }}>
-                  {w}
-                </motion.span>
-              )) || (
-                <>
-                  <motion.span className="block" whileHover={{ x: 10, color: ac }}>{about?.name?.split(' ')[0] || 'Your'}</motion.span>
-                  <motion.span className="block" style={{ color: ac }} whileHover={{ x: -10 }}>{about?.name?.split(' ')[1] || 'Name'}</motion.span>
-                </>
-              )}
-            </motion.h1>
-            <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.25 }}
-              className="text-xl sm:text-2xl max-w-xl font-light mt-4 mb-10" style={{ color: subColor }}>
-              {hero?.subheadline || ''}
-            </motion.p>
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.3 }}
-              className="flex gap-6 flex-wrap">
-              <motion.a href={hero?.cta_url || '#work'} whileHover={{ scale: 1.05, letterSpacing: '0.1em' }}
-                className="px-12 py-5 text-sm font-black uppercase tracking-widest" style={{ backgroundColor: ac, color: '#0a0a0f' }}>
-                View Work
-              </motion.a>
-              {about?.cv_url && <motion.a href={about.cv_url} target="_blank" whileHover={{ scale: 1.05, letterSpacing: '0.1em' }}
-                className="px-12 py-5 text-sm font-black uppercase tracking-widest border-2" style={{ borderColor: textColor, color: textColor }}>
-                Resume
-              </motion.a>}
-              {hero?.cta_secondary_text && hero?.cta_secondary_url && (
-                <motion.a href={hero.cta_secondary_url} target="_blank" whileHover={{ scale: 1.05, letterSpacing: '0.1em' }}
-                  className="px-12 py-5 text-sm font-black uppercase tracking-widest border-2" style={{ borderColor: textColor, color: textColor }}>
-                  {hero.cta_secondary_text}
-                </motion.a>
-              )}
-            </motion.div>
+      <div>
+        {/* Hero — the name is the poster */}
+        <section id="hero" className={`${wrap} pt-10 sm:pt-16 pb-20 sm:pb-28`}>
+          <div className="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-1 text-sm font-semibold border-b pb-4 mb-8 sm:mb-10" style={{ borderColor: p.rule }}>
+            <span>{hero?.greeting || about?.title}</span>
+            {(contact?.location || (hero?.greeting && about?.title)) && (
+              <span style={{ color: p.sub }}>{[hero?.greeting ? about?.title : null, contact?.location].filter(Boolean).join(' — ')}</span>
+            )}
           </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-12 gap-10 md:gap-8 items-end">
+            <h1 className={`${about?.photo_url ? 'md:col-span-8' : 'md:col-span-12'} font-display font-extrabold uppercase tracking-[-0.055em] leading-[0.82] text-[clamp(3.4rem,14.5vw,11rem)] break-words`}>
+              {bigName.split(/\s+/).map((w, i) => <span key={i} className="block">{w}</span>)}
+            </h1>
+            {about?.photo_url && (
+              <div className="md:col-span-4 relative w-[min(72%,300px)] md:w-full justify-self-start md:justify-self-end">
+                <span aria-hidden="true" className="absolute inset-0 translate-x-3 translate-y-3 sm:translate-x-4 sm:translate-y-4" style={{ backgroundColor: ac }} />
+                <img src={about.photo_url} alt={about.name || name} className="relative w-full aspect-[4/5] object-cover" />
+              </div>
+            )}
+          </div>
+
+          <div className="mt-12 sm:mt-16 grid grid-cols-1 md:grid-cols-12 gap-8">
+            <div className="md:col-span-7">
+              {statement && <p className="font-display text-2xl sm:text-3xl font-bold tracking-[-0.03em] leading-[1.15] max-w-[26ch]">{statement}</p>}
+              {statementSub && <p className="mt-4 text-lg leading-relaxed max-w-[48ch]" style={{ color: p.sub }}>{statementSub}</p>}
+            </div>
+            <div className="md:col-span-5 flex flex-wrap md:justify-end items-start gap-3">
+              <a href={hero?.cta_url || '#work'} className={`${loud} hover:opacity-90`} style={{ backgroundColor: ac, color: p.onAccent }}>
+                {hero?.cta_text || 'See the work'} <span aria-hidden="true">→</span>
+              </a>
+              {about?.cv_url && <a href={about.cv_url} target="_blank" rel="noreferrer" className={`${loud} border-2`} style={{ borderColor: p.text }}>Resume</a>}
+              {hero?.cta_secondary_text && hero?.cta_secondary_url && (
+                <a href={hero.cta_secondary_url} target="_blank" rel="noreferrer" className={`${loud} border-2`} style={{ borderColor: p.text }}>{hero.cta_secondary_text}</a>
+              )}
+            </div>
+          </div>
+
+          {hero?.background_url && (
+            <img src={hero.background_url} alt="" className="mt-16 w-full aspect-[16/7] object-cover" />
+          )}
         </section>
 
-        {/* Work  -  bold, image heavy */}
-        {((projects?.length ?? 0) > 0) && (
-          <section id="work" className="py-32 px-6 md:px-20">
-            <div className="max-w-7xl mx-auto">
-              <PopIn>
-                <div className="mb-16">
-                  <span className="text-xs font-black uppercase tracking-[0.4em]" style={{ color: ac }}>Selected Work</span>
-                  <h2 className="text-5xl sm:text-7xl lg:text-8xl font-black tracking-[-0.04em] mt-2" style={{ color: textColor }}>Projects</h2>
-                </div>
-              </PopIn>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                {projects.map((proj: TemplateItem, i: number) => (
-                  <motion.div key={proj.id} initial={{ opacity: 0, y: 60 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: i * 0.1, type: 'spring' }}
-                    whileHover={{ y: -12 }}
-                    className="group relative overflow-hidden" style={{ backgroundColor: '#12121a' }}>
-                    {proj.image_url && <div className="overflow-hidden"><motion.img whileHover={{ scale: 1.08 }} src={proj.image_url} alt={proj.title} className="w-full h-72 object-cover opacity-80 group-hover:opacity-100 transition-opacity" /></div>}
-                    <div className="p-8">
-                      <h3 className="text-2xl sm:text-3xl font-black mb-2" style={{ color: textColor }}>{proj.title}</h3>
-                      <p className="text-sm mb-4 text-justify" style={{ color: subColor }}>{proj.description}</p>
-                      {proj.tech_stack && <div className="flex flex-wrap gap-2 mb-5">{proj.tech_stack.split(',').map((t: string) => <TechBadge key={t} name={t.trim()} accentColor={ac} size="md" variant="pill" />)}</div>}
-                      <div className="flex gap-4">
-                        {proj.demo_url && <motion.a href={proj.demo_url} target="_blank" whileHover={{ x: 5 }}
-                          className="text-sm font-black uppercase tracking-widest" style={{ color: ac }}>Live to </motion.a>}
-                        {proj.github_url && <motion.a href={proj.github_url} target="_blank" whileHover={{ x: 5 }}
-                          className="text-sm font-black uppercase tracking-widest" style={{ color: subColor }}>Code to </motion.a>}
+        {/* Work */}
+        {projects.length > 0 && (
+          <section id="work" className={`${wrap} ${sectionPad} border-t-4`} style={{ borderColor: p.text }}>
+            <Title p={p}>Work</Title>
+            <ol className="space-y-16 sm:space-y-20">
+              {projects.map((proj: TemplateItem, i: number) => (
+                <li key={proj.id ?? i} className="grid grid-cols-1 md:grid-cols-12 gap-6 md:gap-8">
+                  <div className={proj.image_url ? 'md:col-span-6 md:order-2' : 'hidden'}>
+                    {proj.image_url && <img src={proj.image_url} alt={proj.title} className="w-full aspect-[4/3] object-cover" />}
+                  </div>
+                  <div className={proj.image_url ? 'md:col-span-6' : 'md:col-span-9'}>
+                    <p className="font-display text-sm font-bold tabular-nums" style={{ color: p.accentText }}>{String(i + 1).padStart(2, '0')}</p>
+                    <h3 className="mt-2 font-display text-3xl sm:text-5xl font-extrabold tracking-[-0.04em] leading-[0.95] break-words">{proj.title}</h3>
+                    {proj.description && <p className="mt-5 text-lg leading-relaxed max-w-[44ch]" style={{ color: p.sub }}>{proj.description}</p>}
+                    {proj.tech_stack && (
+                      <div className="flex flex-wrap gap-2 mt-6">
+                        {proj.tech_stack.split(',').filter(t => t.trim()).map((t: string) => <TechBadge key={t} name={t.trim()} accentColor={ac} textColor={p.text} size="md" variant="pill" />)}
                       </div>
-                    </div>
-                  </motion.div>
-                ))}
-              </div>
-            </div>
+                    )}
+                    {(proj.demo_url || proj.github_url) && (
+                      <div className="flex flex-wrap gap-x-8 gap-y-2 mt-6 text-sm uppercase tracking-[0.12em]">
+                        {proj.demo_url && <a href={proj.demo_url} target="_blank" rel="noreferrer" className={underline} style={{ textDecorationColor: ac }}>Live</a>}
+                        {proj.github_url && <a href={proj.github_url} target="_blank" rel="noreferrer" className={underline}>Code</a>}
+                      </div>
+                    )}
+                  </div>
+                </li>
+              ))}
+            </ol>
           </section>
         )}
 
-        {/* About  -  bold split */}
+        {/* About — one loud paragraph */}
         {about?.name && (
-          <section id="about" className="py-32 px-6 md:px-20" style={{ backgroundColor: '#12121a' }}>
-            <div className="max-w-7xl mx-auto">
-              <PopIn>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-16 items-center">
-                  <div>
-                    <span className="text-xs font-black uppercase tracking-[0.4em]" style={{ color: ac }}>About</span>
-                    <h2 className="text-5xl sm:text-7xl font-black tracking-[-0.04em] mt-2 mb-6" style={{ color: textColor }}>{about.name}</h2>
-                    <p className="text-lg font-bold mb-4" style={{ color: ac }}>{about.title}</p>
-                    <p className="text-base leading-relaxed text-justify whitespace-pre-line" style={{ color: subColor }}>{about.bio}</p>
-                  </div>
-                  {about.photo_url && <motion.div whileHover={{ scale: 1.03 }} className="relative shrink-0">
-                    <div className="absolute -top-6 -right-6 w-56 h-56 border-2" style={{ borderColor: ac }} />
-                    <img src={about.photo_url} alt={about.name} className="relative w-56 h-56 rounded-full object-cover" />
-                  </motion.div>}
-                </div>
-              </PopIn>
+          <section id="about" className={`${wrap} ${sectionPad} border-t-4`} style={{ borderColor: p.text }}>
+            <Title p={p}>About</Title>
+            <div className="grid grid-cols-1 md:grid-cols-12 gap-8">
+              <div className="md:col-span-4">
+                <p className="font-display text-2xl font-extrabold tracking-[-0.03em]">{about.name}</p>
+                {about.title && <p className="mt-1 text-base font-semibold" style={{ color: p.accentText }}>{about.title}</p>}
+              </div>
+              {about.bio && <p className="md:col-span-8 text-xl sm:text-2xl leading-[1.45] tracking-[-0.01em] whitespace-pre-line">{about.bio}</p>}
             </div>
           </section>
         )}
 
         {/* Experience */}
-        {((experience?.length ?? 0) > 0) && (
-          <section id="experience" className="py-32 px-6 md:px-20">
-            <div className="max-w-5xl mx-auto">
-              <PopIn>
-                <div className="mb-16">
-                  <span className="text-xs font-black uppercase tracking-[0.4em]" style={{ color: ac }}>Timeline</span>
-                  <h2 className="text-5xl sm:text-7xl lg:text-8xl font-black tracking-[-0.04em] mt-2">Experience</h2>
-                </div>
-              </PopIn>
-              <div className="space-y-8">
-                {experience.map((exp: TemplateItem, i: number) => (
-                  <motion.div key={exp.id} initial={{ opacity: 0, x: -40 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }} transition={{ delay: i * 0.08, type: 'spring' }}
-                    className="border-l-4 pl-8 py-4" style={{ borderColor: ac }}>
-                    <span className="text-xs font-black uppercase tracking-widest" style={{ color: ac }}>{exp.start_date?.slice(0, 7)}  -  {exp.end_date?.slice(0, 7) || 'Present'}</span>
-                    <h3 className="text-2xl sm:text-3xl font-black mt-1" style={{ color: textColor }}>{exp.position}</h3>
-                    <p className="text-base font-bold uppercase tracking-wider mt-1 mb-4" style={{ color: subColor }}>{exp.company}</p>
-                    {exp.description && <div className="text-sm space-y-2" style={{ color: subColor }}>{exp.description.split(/[*-.\n]/).filter((s: string) => s.trim()).map((s: string, si: number) => (<div key={si} className="flex gap-3"><span className="mt-1.5 w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: ac }} /><span>{s.trim()}</span></div>))}</div>}
-                  </motion.div>
-                ))}
-              </div>
-            </div>
+        {experience.length > 0 && (
+          <section id="experience" className={`${wrap} ${sectionPad} border-t-4`} style={{ borderColor: p.text }}>
+            <Title p={p}>Track record</Title>
+            <ol>
+              {experience.map((exp: TemplateItem, i: number) => (
+                <li key={exp.id ?? i} className="grid grid-cols-1 sm:grid-cols-[9rem_minmax(0,1fr)] gap-x-8 gap-y-2 py-7 border-t" style={{ borderColor: p.rule }}>
+                  <p className="font-display text-xl font-extrabold tabular-nums tracking-tight" style={{ color: p.sub }}>{yr(exp.start_date)}–{yr(exp.end_date) || 'now'}</p>
+                  <div>
+                    <h3 className="font-display text-2xl sm:text-3xl font-extrabold tracking-[-0.03em] leading-tight">
+                      {exp.position}{exp.company && <span style={{ color: p.accentText }}> @ {exp.company}</span>}
+                    </h3>
+                    {descLines(exp.description).length > 0 && (
+                      <div className="mt-3 space-y-1.5 text-base leading-relaxed max-w-[60ch]" style={{ color: p.sub }}>
+                        {descLines(exp.description).map((s, si) => <p key={si}>{s}</p>)}
+                      </div>
+                    )}
+                  </div>
+                </li>
+              ))}
+            </ol>
           </section>
         )}
 
         {/* Skills */}
-        {((skills?.length ?? 0) > 0) && (
-          <section id="skills" className="py-32 px-6 md:px-20" style={{ backgroundColor: '#12121a' }}>
-            <div className="max-w-5xl mx-auto">
-              <PopIn>
-                <div className="mb-16">
-                  <span className="text-xs font-black uppercase tracking-[0.4em]" style={{ color: ac }}>Expertise</span>
-                  <h2 className="text-5xl sm:text-7xl lg:text-8xl font-black tracking-[-0.04em] mt-2">Skills</h2>
+        {skills.length > 0 && (
+          <section id="skills" className={`${wrap} ${sectionPad} border-t-4`} style={{ borderColor: p.text }}>
+            <Title p={p}>Toolkit</Title>
+            <dl className="space-y-10">
+              {skills.map((skill: TemplateItem, i: number) => (
+                <div key={skill.id ?? i} className="grid grid-cols-1 md:grid-cols-12 gap-4 md:gap-8">
+                  <dt className="md:col-span-4 font-display text-2xl font-extrabold tracking-[-0.03em]">{skill.title}</dt>
+                  <dd className="md:col-span-8 flex flex-wrap gap-2">
+                    {skill.skills?.split(',').filter(s => s.trim()).map((s: string) => <TechBadge key={s} name={s.trim()} accentColor={ac} textColor={p.text} size="md" />)}
+                  </dd>
                 </div>
-              </PopIn>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {skills.map((skill: TemplateItem) => (
-                  <motion.div key={skill.id} whileHover={{ x: 8 }} className="p-8 border-l-4" style={{ borderColor: ac, backgroundColor: '#0a0a0f' }}>
-                    <h3 className="text-lg font-black uppercase tracking-wider mb-5" style={{ color: textColor }}>{skill.title}</h3>
-                    <div className="flex flex-wrap gap-3">{skill.skills?.split(',').map((s: string) => <TechBadge key={s} name={s.trim()} accentColor={ac} size="md" />)}</div>
-                  </motion.div>
-                ))}
-              </div>
-            </div>
+              ))}
+            </dl>
           </section>
         )}
 
         {/* Services */}
-        {((services?.length ?? 0) > 0) && (
-          <section id="services" className="py-32 px-6 md:px-20">
-            <div className="max-w-6xl mx-auto"><PopIn>
-              <div className="mb-16"><span className="text-xs font-black uppercase tracking-[0.4em]" style={{ color: ac }}>Services</span><h2 className="text-5xl sm:text-7xl lg:text-8xl font-black tracking-[-0.04em] mt-2">Services</h2></div>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">{services.map((svc: TemplateItem) => (
-                <motion.div key={svc.id} whileHover={{ y: -8 }} className="p-8 border-l-4" style={{ borderColor: ac, backgroundColor: '#12121a' }}>
-                  <p className="text-4xl mb-5">{svc.icon || '✦'}</p>
-                  <h3 className="text-xl font-black uppercase tracking-wider mb-3" style={{ color: textColor }}>{svc.title}</h3>
-                  <p className="text-sm text-justify" style={{ color: subColor }}>{svc.description}</p>
-                </motion.div>
-              ))}</div>
-            </PopIn></div>
+        {services.length > 0 && (
+          <section id="services" className={`${wrap} ${sectionPad} border-t-4`} style={{ borderColor: p.text }}>
+            <Title p={p}>Hire me for</Title>
+            <ul className="grid grid-cols-1 md:grid-cols-2 gap-x-10 gap-y-10">
+              {services.map((svc: TemplateItem, i: number) => (
+                <li key={svc.id ?? i} className="border-l-4 pl-5" style={{ borderColor: ac }}>
+                  <h3 className="font-display text-2xl sm:text-3xl font-extrabold tracking-[-0.03em] leading-tight">{svc.title}</h3>
+                  {svc.description && <p className="mt-2 text-base leading-relaxed max-w-[44ch]" style={{ color: p.sub }}>{svc.description}</p>}
+                </li>
+              ))}
+            </ul>
           </section>
         )}
 
         {/* Testimonials */}
-        {((testimonials?.length ?? 0) > 0) && (
-          <section id="testimonials" className="py-32 px-6 md:px-20" style={{ backgroundColor: '#12121a' }}>
-            <div className="max-w-4xl mx-auto"><PopIn>
-              <div className="mb-16"><span className="text-xs font-black uppercase tracking-[0.4em]" style={{ color: ac }}>Testimonials</span><h2 className="text-5xl sm:text-7xl lg:text-8xl font-black tracking-[-0.04em] mt-2">Kind Words</h2></div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">{testimonials.map((t: TemplateItem) => (
-                <div key={t.id} className="p-8" style={{ backgroundColor: '#0a0a0f' }}>
-                  <p className="text-6xl font-black leading-none mb-4" style={{ color: ac }}>&quot;</p>
-                  <p className="text-sm italic leading-relaxed mb-6 text-justify" style={{ color: subColor }}>{t.message}</p>
-                  <div className="flex items-center gap-4">
-                    {t.photo_url && <img src={t.photo_url} alt={t.name} className="w-12 h-12 rounded-full object-cover border-2" style={{ borderColor: ac }} />}
-                    <div><p className="text-base font-black uppercase tracking-wider" style={{ color: textColor }}>{t.name}</p><p className="text-xs font-bold uppercase tracking-wider" style={{ color: ac }}>{t.position}</p></div>
-                  </div>
-                </div>
-              ))}</div>
-            </PopIn></div>
+        {testimonials.length > 0 && (
+          <section id="testimonials" className={`${wrap} ${sectionPad} border-t-4`} style={{ borderColor: p.text }}>
+            <Title p={p}>Word on the street</Title>
+            <div className="space-y-14">
+              {testimonials.map((t: TemplateItem, i: number) => (
+                <figure key={t.id ?? i}>
+                  <blockquote className="font-display text-3xl sm:text-5xl font-extrabold tracking-[-0.04em] leading-[1.02] max-w-[22ch]">
+                    <span aria-hidden="true" style={{ color: p.accentText }}>“</span>{t.message}<span aria-hidden="true" style={{ color: p.accentText }}>”</span>
+                  </blockquote>
+                  <figcaption className="mt-6 flex items-center gap-3 text-sm font-semibold">
+                    {t.photo_url && <img src={t.photo_url} alt={t.name} className="w-11 h-11 object-cover" />}
+                    <span>{t.name}{t.position && <span className="font-normal" style={{ color: p.sub }}> — {t.position}</span>}</span>
+                  </figcaption>
+                </figure>
+              ))}
+            </div>
           </section>
         )}
 
-        {((gallery?.length ?? 0) > 0) && (
-          <section id="gallery" className="py-32 px-6 md:px-20">
-            <div className="max-w-6xl mx-auto"><PopIn>
-              <div className="mb-16"><span className="text-xs font-black uppercase tracking-[0.4em]" style={{ color: ac }}>Credentials</span><h2 className="text-5xl sm:text-7xl lg:text-8xl font-black tracking-[-0.04em] mt-2">Certificates</h2></div>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">{gallery.map((cert: TemplateItem) => (
-                <div key={cert.id} className="p-6" style={{ backgroundColor: '#12121a' }}>
+        {/* Gallery */}
+        {gallery.length > 0 && (
+          <section id="gallery" className={`${wrap} ${sectionPad} border-t-4`} style={{ borderColor: p.text }}>
+            <Title p={p}>Proof</Title>
+            <ul className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-8 gap-y-12">
+              {gallery.map((cert: TemplateItem, i: number) => (
+                <li key={cert.id ?? i} className="min-w-0">
                   {(cert.image_url || cert.file_url) && (
-                    <div className="w-full h-36 mb-5 overflow-hidden bg-cover bg-center"
-                      style={{ backgroundImage: `url(${cert.image_url || cert.file_url})` }}>
-                      <img src={cert.image_url || cert.file_url} alt={cert.title}
-                        className="w-full h-full object-cover"
-                        onError={(e: SyntheticEvent<HTMLImageElement>) => { e.currentTarget.style.display = 'none' }} />
+                    <div className="w-full aspect-[4/3] mb-4 overflow-hidden bg-cover bg-center" style={{ backgroundColor: p.surface, backgroundImage: `url(${cert.image_url || cert.file_url})` }}>
+                      <img src={cert.image_url || cert.file_url} alt={cert.title} className="w-full h-full object-cover"
+                        onError={(e: SyntheticEvent<HTMLImageElement>) => { e.currentTarget.style.display = 'none'; }} />
                     </div>
                   )}
-                  <h3 className="text-base font-black uppercase tracking-wider mb-1" style={{ color: textColor }}>{cert.title}</h3>
-                  {cert.description && <p className="text-xs mb-2" style={{ color: subColor }}>{cert.description}</p>}
-                  {cert.issued_date && <p className="text-xs font-bold mb-4 uppercase tracking-wider" style={{ color: ac }}>{new Date(cert.issued_date).toLocaleDateString()}</p>}
-                  {cert.file_url && <motion.a href={cert.file_url} target="_blank" whileHover={{ x: 5 }} className="text-xs font-black uppercase tracking-widest" style={{ color: ac }}>View to </motion.a>}
-                </div>
-              ))}</div>
-            </PopIn></div>
+                  <h3 className="font-display text-xl font-extrabold tracking-tight leading-snug">{cert.title}</h3>
+                  {cert.issued_date && <p className="mt-1 text-sm font-semibold tabular-nums" style={{ color: p.sub }}>{monthYear(cert.issued_date)}</p>}
+                  {cert.description && <p className="mt-2 text-[15px] leading-relaxed" style={{ color: p.sub }}>{cert.description}</p>}
+                  {cert.file_url && <a href={cert.file_url} target="_blank" rel="noreferrer" className={`inline-block mt-3 text-sm uppercase tracking-[0.12em] ${underline}`}>View</a>}
+                </li>
+              ))}
+            </ul>
           </section>
         )}
 
-        {((custom?.length ?? 0) > 0) && custom.map((sec: TemplateItem) => (
-          <section key={sec.id} id={`custom-${(sec.title || sec.original_type || '').toLowerCase().replace(/\s+/g, '-')}`} className="py-32 px-6 md:px-20" style={{ backgroundColor: '#12121a' }}>
-            <div className="max-w-5xl mx-auto"><PopIn>
-              <h2 className="text-5xl sm:text-7xl lg:text-8xl font-black tracking-[-0.04em] mb-10">{sec.title || sec.original_type || 'Section'}</h2>
-              {sec.type === 'text' && <p className="text-base leading-relaxed" style={{ color: subColor }}>{sec.content?.body}</p>}
-              {sec.type === 'list' && <div className="space-y-4">{(sec.content?.items || []).map((item: string, i: number) => <div key={i} className="flex gap-4 text-base" style={{ color: subColor }}><span className="w-2 h-2 mt-2 rounded-full shrink-0" style={{ backgroundColor: ac }} />{item}</div>)}</div>}
-              {sec.type === 'links' && <div className="flex flex-wrap gap-4">{(sec.content?.links || []).map((link: TemplateItem, i: number) => <motion.a key={i} href={link.url} target="_blank" whileHover={{ x: 5 }} className="text-sm font-black uppercase tracking-widest px-8 py-4" style={{ backgroundColor: ac, color: '#0a0a0f' }}>{link.label}</motion.a>)}</div>}
-              {!['text','list','cards','links'].includes(sec.type ?? '') && sec.content && (
-                <div className="space-y-4">
-                  {(() => {
-                    if ((sec.original_type === 'certification' || sec.type === 'certification') && Array.isArray(sec.content?.items)) {
-                      return <CertificationSection items={sec.content?.items} textColor={textColor} subTextColor={subColor} accentColor={ac} cardBg="" />;
-                    }
-                    const c = sec.content;
-                    if (c.institution || c.degree || c.field) {
-                      return (
-                        <div className="p-6 rounded-2xl border" style={{background: '#ffffff08', borderColor: 'rgba(255,255,255,0.08)'}}>
-                          {c.institution && <p className="text-lg font-semibold" style={{color: textColor}}>{c.institution}</p>}
-                          {(c.degree || c.field) && <p className="text-sm mt-1" style={{color: subColor}}>{[c.degree, c.field].filter(Boolean).join('  -  ')}</p>}
-                          {(c.start_date || c.end_date) && <p className="text-xs mt-1" style={{color: subColor}}>{[c.start_date?.slice(0,7), c.end_date?.slice(0,7)].filter(Boolean).join(' - ')}</p>}
-                          {c.gpa && <p className="text-xs mt-1" style={{color: subColor}}>GPA: {c.gpa}</p>}
-                        </div>
-                      );
-                    }
-                    if (c.name || c.issuer) {
-                      return (
-                        <div className="p-6 rounded-2xl border" style={{background: '#ffffff08', borderColor: 'rgba(255,255,255,0.08)'}}>
-                          {c.name && <p className="text-lg font-semibold" style={{color: textColor}}>{c.name}</p>}
-                          {c.issuer && <p className="text-sm mt-1" style={{color: subColor}}>{c.issuer}</p>}
-                          {c.date && <p className="text-xs mt-1" style={{color: subColor}}>{c.date}</p>}
-                          {c.credential_url && <a href={c.credential_url} target="_blank" className="text-sm underline mt-2 inline-block" style={{color: ac}}>View credential</a>}
-                        </div>
-                      );
-                    }
-                    if (c.language) {
-                      return (
-                        <div className="flex items-center gap-3 p-6 rounded-2xl border" style={{background: '#ffffff08', borderColor: 'rgba(255,255,255,0.08)'}}>
-                          <p className="text-lg font-semibold" style={{color: textColor}}>{c.language}</p>
-                          {c.proficiency && <span className="text-xs px-3 py-1 rounded-full" style={{backgroundColor: ac+'30', color: ac}}>{c.proficiency}</span>}
-                        </div>
-                      );
-                    }
-                    if (c.body) {
-                      return <p className="text-base leading-relaxed" style={{color: subColor}}>{c.body}</p>;
-                    }
-                    return null;
-                  })()}
-                </div>
-              )}
-            </PopIn></div>
+        {/* Custom sections */}
+        {custom.length > 0 && custom.map((sec: TemplateItem) => (
+          <section key={sec.id} id={`custom-${(sec.title || sec.original_type || '').toLowerCase().replace(/\s+/g, '-')}`} className={`${wrap} ${sectionPad} border-t-4`} style={{ borderColor: p.text }}>
+            <Title p={p}>{sec.title || sec.original_type || 'Section'}</Title>
+            {sec.type === 'text' && <p className="text-xl sm:text-2xl leading-[1.45] max-w-[50ch] whitespace-pre-line">{sec.content?.body}</p>}
+            {sec.type === 'list' && (
+              <ul className="space-y-3 max-w-[56ch]">
+                {(sec.content?.items || []).map((item: string, i: number) => (
+                  <li key={i} className="grid grid-cols-[1.25rem_minmax(0,1fr)] text-lg">
+                    <span aria-hidden="true" className="mt-[0.6em] w-2 h-2" style={{ backgroundColor: ac }} />{item}
+                  </li>
+                ))}
+              </ul>
+            )}
+            {sec.type === 'links' && (
+              <ul className="flex flex-wrap gap-3">
+                {(sec.content?.links || []).map((link: TemplateItem, i: number) => (
+                  <li key={i}><a href={link.url} target="_blank" rel="noreferrer" className={`${loud} border-2`} style={{ borderColor: p.text }}>{link.label}</a></li>
+                ))}
+              </ul>
+            )}
+            {!['text', 'list', 'cards', 'links'].includes(sec.type ?? '') && sec.content && (
+              <div>
+                {(() => {
+                  if ((sec.original_type === 'certification' || sec.type === 'certification') && Array.isArray(sec.content?.items)) {
+                    return (
+                      <div style={{ color: p.text }}>
+                        <CertificationSection items={sec.content?.items} textColor="" subTextColor="opacity-75" accentColor={p.accentText}
+                          cardBg={p.isDark ? 'border-white/20' : 'border-black/15'} />
+                      </div>
+                    );
+                  }
+                  const c = sec.content;
+                  if (c.institution || c.degree || c.field) {
+                    return (
+                      <div className="border-l-4 pl-5" style={{ borderColor: ac }}>
+                        {c.institution && <p className="font-display text-2xl sm:text-3xl font-extrabold tracking-[-0.03em]">{c.institution}</p>}
+                        {(c.degree || c.field) && <p className="mt-1 text-lg">{[c.degree, c.field].filter(Boolean).join(', ')}</p>}
+                        {(c.start_date || c.end_date) && <p className="mt-1 text-sm font-semibold tabular-nums" style={{ color: p.sub }}>{[yr(c.start_date), yr(c.end_date)].filter(Boolean).join('–')}</p>}
+                        {c.gpa && <p className="mt-1 text-sm" style={{ color: p.sub }}>GPA {c.gpa}</p>}
+                      </div>
+                    );
+                  }
+                  if (c.name || c.issuer) {
+                    return (
+                      <div className="border-l-4 pl-5" style={{ borderColor: ac }}>
+                        {c.name && <p className="font-display text-2xl sm:text-3xl font-extrabold tracking-[-0.03em]">{c.name}</p>}
+                        {c.issuer && <p className="mt-1 text-lg">{c.issuer}</p>}
+                        {c.date && <p className="mt-1 text-sm font-semibold" style={{ color: p.sub }}>{c.date}</p>}
+                        {c.credential_url && <a href={c.credential_url} target="_blank" rel="noreferrer" className={`inline-block mt-3 text-sm uppercase tracking-[0.12em] ${underline}`}>View credential</a>}
+                      </div>
+                    );
+                  }
+                  if (c.language) {
+                    return <p className="font-display text-3xl font-extrabold tracking-[-0.03em]">{c.language}{c.proficiency && <span className="font-sans text-lg font-semibold" style={{ color: p.sub }}> — {c.proficiency}</span>}</p>;
+                  }
+                  if (c.body) {
+                    return <p className="text-xl leading-[1.45] max-w-[50ch]">{c.body}</p>;
+                  }
+                  return null;
+                })()}
+              </div>
+            )}
           </section>
         ))}
 
         {/* Contact */}
-        <section id="connect" className="py-32 px-6 md:px-20">
-          <div className="max-w-4xl mx-auto">
-            <PopIn>
-              <div className="mb-16">
-                <span className="text-xs font-black uppercase tracking-[0.4em]" style={{ color: ac }}>Connect</span>
-                <h2 className="text-5xl sm:text-7xl lg:text-8xl font-black tracking-[-0.04em] mt-2">Let&apos;s Talk</h2>
-              </div>
-              <div className="flex gap-6 mb-12 flex-wrap">
-                {(contact?.email || about?.email) && <motion.a href={`mailto:${contact?.email || about?.email}`} whileHover={{ scale: 1.05, letterSpacing: '0.1em' }}
-                  className="px-10 py-5 text-sm font-black uppercase tracking-widest" style={{ backgroundColor: ac, color: '#0a0a0f' }}>Email Me</motion.a>}
-                {contact?.phone && <motion.a href={`https://wa.me/${contact.phone.replace(/[^0-9]/g, '')}`} target="_blank" whileHover={{ scale: 1.05, letterSpacing: '0.1em' }}
-                  className="px-10 py-5 text-sm font-black uppercase tracking-widest border-2" style={{ borderColor: textColor, color: textColor }}>WhatsApp</motion.a>}
-                {contact?.linkedin_url && <motion.a href={contact.linkedin_url} target="_blank" whileHover={{ scale: 1.05, letterSpacing: '0.1em' }}
-                  className="px-10 py-5 text-sm font-black uppercase tracking-widest border-2" style={{ borderColor: textColor, color: textColor }}>LinkedIn</motion.a>}
-                {contact?.github_url && <motion.a href={contact.github_url} target="_blank" whileHover={{ scale: 1.05, letterSpacing: '0.1em' }}
-                  className="px-10 py-5 text-sm font-black uppercase tracking-widest border-2" style={{ borderColor: textColor, color: textColor }}>GitHub</motion.a>}
-              </div>
-              <div style={{ backgroundColor: '#12121a' }} className="p-8 md:p-12">
-                <ContactForm slug={portfolio.slug} accentColor={ac} textColor={textColor} subColor={subColor} />
-              </div>
-            </PopIn>
+        <section id="connect" className={`${wrap} ${sectionPad} border-t-4`} style={{ borderColor: p.text }}>
+          <h2 className="font-display font-extrabold uppercase tracking-[-0.055em] leading-[0.85] text-[clamp(3rem,12vw,9rem)]">
+            Let&apos;s<span className="block" style={{ color: p.accentText }}>talk.</span>
+          </h2>
+          {email && (
+            <a href={`mailto:${email}`} className={`mt-10 inline-block font-display text-2xl sm:text-4xl tracking-[-0.03em] break-all ${underline}`} style={{ textDecorationColor: ac }}>{email}</a>
+          )}
+          {socials.length > 0 && (
+            <ul className="mt-6 flex flex-wrap gap-x-8 gap-y-2 text-sm uppercase tracking-[0.12em]">
+              {socials.map(s => <li key={s.label}><a href={s.href} target="_blank" rel="noreferrer" className={underline}>{s.label}</a></li>)}
+            </ul>
+          )}
+          <div className="mt-14 max-w-lg [&_form]:mx-0">
+            <ContactForm slug={portfolio.slug} accentColor={ac} textColor={p.text} subColor={p.sub} />
           </div>
         </section>
       </div>
 
-      <footer className="py-10 text-center border-t-2" style={{ borderColor: `${ac}20`, backgroundColor: '#0a0a0f' }}>
-        <p className="text-sm font-bold uppercase tracking-widest" style={{ color: subColor }}>(c) 2026 {about?.name || portfolio.title}</p>
-        <p className="text-xs font-bold uppercase tracking-widest mt-2" style={{ color: `${ac}60}` }}>Built with PortfolioKit</p>
+      <footer className={`${wrap} py-8 border-t flex flex-col sm:flex-row gap-2 sm:justify-between text-sm font-semibold`} style={{ borderColor: p.rule, color: p.sub }}>
+        <span>© {new Date().getFullYear()} {name}</span>
+        <span>Built with PortfolioKit</span>
       </footer>
     </div>
   );
 }
-

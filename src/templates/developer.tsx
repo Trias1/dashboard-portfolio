@@ -1,400 +1,464 @@
 'use client';
-import type { TemplateData, TemplateItem, TemplateSectionOrder, ThemeConfig } from '@/types';
+import type { TemplateData, TemplateItem, ThemeConfig } from '@/types';
 import type { SyntheticEvent } from 'react';
-import { useRef } from 'react';
-import { motion, useInView } from 'framer-motion';
 import TechBadge from '@/components/TechIcon';
 import ContactForm from '@/components/ContactForm';
 import CertificationSection from '@/components/CertificationSection';
 
-function FadeUp({ children, delay = 0 }: { children: React.ReactNode; delay?: number }) {
+/* ------------------------------------------------------------------ */
+/* Colour helpers: derive readable ink/rules from whatever bg the      */
+/* user picked in the dashboard (dark or light).                       */
+/* ------------------------------------------------------------------ */
+type RGB = [number, number, number];
+
+function parseHex(hex: string | undefined, fallback: RGB): RGB {
+  const h = (hex || '').trim().replace('#', '');
+  const full = h.length === 3 ? h.split('').map(c => c + c).join('') : h.slice(0, 6);
+  if (!/^[0-9a-fA-F]{6}$/.test(full)) return fallback;
+  return [0, 2, 4].map(i => parseInt(full.slice(i, i + 2), 16)) as RGB;
+}
+const toHex = (c: RGB) => '#' + c.map(v => Math.round(Math.max(0, Math.min(255, v))).toString(16).padStart(2, '0')).join('');
+function lum([r, g, b]: RGB) {
+  const f = (v: number) => { const s = v / 255; return s <= 0.03928 ? s / 12.92 : Math.pow((s + 0.055) / 1.055, 2.4); };
+  return 0.2126 * f(r) + 0.7152 * f(g) + 0.0722 * f(b);
+}
+function contrast(a: RGB, b: RGB) {
+  const [x, y] = [lum(a), lum(b)].sort((p, q) => q - p);
+  return (x + 0.05) / (y + 0.05);
+}
+const mix = (a: RGB, b: RGB, t: number): RGB => [0, 1, 2].map(i => a[i] + (b[i] - a[i]) * t) as RGB;
+function readable(fg: RGB, bg: RGB, toward: RGB, min = 4.5): RGB {
+  let c = fg;
+  for (let i = 0; i < 12 && contrast(c, bg) < min; i++) c = mix(c, toward, 0.15);
+  return c;
+}
+
+function makePalette(theme: ThemeConfig) {
+  const bg = parseHex(theme.bg, [10, 10, 26]);
+  const isDark = lum(bg) < 0.2;
+  const ink: RGB = isDark ? [226, 228, 222] : [28, 30, 33];
+  const acc = parseHex(theme.accent, [99, 102, 241]);
+  return {
+    isDark,
+    bg: toHex(bg),
+    text: toHex(ink),
+    sub: toHex(readable(mix(ink, bg, 0.38), bg, ink)),
+    rule: toHex(mix(bg, ink, isDark ? 0.16 : 0.14)),
+    panel: toHex(mix(bg, ink, isDark ? 0.045 : 0.03)),
+    accent: toHex(acc),
+    accentText: toHex(readable(acc, bg, ink)),
+    onAccent: contrast(acc, [255, 255, 255]) >= contrast(acc, [17, 17, 17]) ? '#ffffff' : '#111111',
+  };
+}
+
+/* ------------------------------------------------------------------ */
+/* Small formatting helpers                                            */
+/* ------------------------------------------------------------------ */
+const ym = (d?: string | null) => (d ? d.slice(0, 7).replace('-', '.') : '');
+const slugify = (s?: string) => (s || 'untitled').toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+function descLines(text?: string) {
+  return (text || '').split(/\n+/).map(s => s.replace(/^\s*[-*•]\s*/, '').trim()).filter(Boolean);
+}
+function shortDate(d?: string) {
+  if (!d) return '';
+  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(d);
+  return m ? `${m[1]}-${m[2]}-${m[3]}` : d;
+}
+
+const focusRing = 'focus-visible:outline-2 focus-visible:outline-offset-2 rounded-[3px]';
+
+type Palette = ReturnType<typeof makePalette>;
+
+function Prompt({ cmd, p }: { cmd: string; p: Palette }) {
   return (
-    <motion.div initial={{ opacity: 0, y: 24 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}
-      transition={{ delay, duration: 0.5 }}>
-      {children}
-    </motion.div>
+    <p className="font-mono text-[13px] mb-5 break-all" style={{ color: p.sub }}>
+      <span style={{ color: p.accentText }}>$</span> {cmd}
+    </p>
   );
 }
 
-const textColor = '#e8e6e3';
-const subColor = '#888490';
-const panelBg = '#1a181e';
+function H2({ children, p }: { children: React.ReactNode; p: Palette }) {
+  return (
+    <h2 className="font-mono text-xl sm:text-2xl font-semibold tracking-tight mb-8" style={{ color: p.text }}>
+      <span aria-hidden="true" style={{ color: p.sub }}>## </span>{children}
+    </h2>
+  );
+}
 
 export default function DeveloperTemplate({ data, theme, isPreview }: { data: TemplateData; theme: ThemeConfig; isPreview?: boolean }) {
   const { portfolio, hero, about, experience = [], projects = [], services = [], skills = [], testimonials = [], contact, gallery = [], custom = [] } = data;
-  const ac = theme.accent;
+  const p = makePalette(theme);
+  const ac = p.accent;
+  const name = about?.name || portfolio.title || portfolio.slug;
+  const handle = slugify(name);
+  const email = contact?.email || about?.email;
+  void isPreview;
+
+  const sectionCls = 'py-14 sm:py-16 border-t';
+  const linkCls = `font-mono text-[13px] underline underline-offset-4 decoration-1 hover:decoration-2 ${focusRing}`;
+
+  const tree = [
+    { id: 'about', label: 'about.md', show: !!about?.name },
+    { id: 'experience', label: 'experience.log', show: experience.length > 0 },
+    { id: 'projects', label: 'projects/', show: projects.length > 0 },
+    { id: 'skills', label: 'stack.json', show: skills.length > 0 },
+    { id: 'services', label: 'services.md', show: services.length > 0 },
+    { id: 'testimonials', label: 'reviews.md', show: testimonials.length > 0 },
+    { id: 'gallery', label: 'certs/', show: gallery.length > 0 },
+    { id: 'contact', label: 'contact.sh', show: true },
+  ].filter(t => t.show);
+
+  const contactRows = [
+    email ? { k: 'email', v: email, href: `mailto:${email}` } : null,
+    contact?.phone ? { k: 'whatsapp', v: contact.phone, href: `https://wa.me/${contact.phone.replace(/[^0-9]/g, '')}` } : null,
+    contact?.linkedin_url ? { k: 'linkedin', v: contact.linkedin_url.replace(/^https?:\/\/(www\.)?/, ''), href: contact.linkedin_url } : null,
+    contact?.github_url ? { k: 'github', v: contact.github_url.replace(/^https?:\/\/(www\.)?/, ''), href: contact.github_url } : null,
+  ].filter((r): r is { k: string; v: string; href: string } => !!r);
 
   return (
-    <div className="min-h-screen" style={{ backgroundColor: '#121016', color: textColor }}>
-      {/* Fixed sidebar  -  terminal-like */}
-      <motion.aside initial={{ x: -280 }} animate={{ x: 0 }} transition={{ type: 'spring', stiffness: 150, delay: 0.2 }}
-        className="fixed left-0 top-0 h-full w-64 z-40 border-r overflow-y-auto hidden lg:block" style={{ backgroundColor: '#0d0b10', borderColor: `${ac}25` }}>
-        <div className="p-5 border-b" style={{ borderColor: `${ac}20` }}>
-          <div className="flex items-center gap-3 mb-1">
-            <motion.div whileHover={{ rotate: 360 }} className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-black" style={{ backgroundColor: ac, color: '#0d0b10' }}>{about?.name?.charAt(0) || 'D'}</motion.div>
-            <div>
-              <p className="text-sm font-bold" style={{ color: textColor }}>{about?.name || portfolio.title}</p>
-              <p className="text-xs font-mono" style={{ color: subColor }}>{about?.title || 'developer'}</p>
-            </div>
-          </div>
+    <div className="min-h-screen font-sans antialiased overflow-x-hidden" style={{ backgroundColor: p.bg, color: p.text }}>
+      {/* Path bar */}
+      <header className="border-b" style={{ borderColor: p.rule }}>
+        <div className="max-w-6xl mx-auto px-5 sm:px-8 h-12 flex items-center justify-between gap-4 font-mono text-[13px]">
+          <span className="truncate" style={{ color: p.sub }}>
+            ~/<span style={{ color: p.text }}>{handle}</span>
+          </span>
+          <a href="#contact" className={`shrink-0 ${linkCls}`} style={{ color: p.accentText }}>./contact</a>
         </div>
-        <nav className="p-4 space-y-1">
-          {[
-            { label: 'about', icon: '◉' },
-            { label: 'experience', icon: '▣' },
-            { label: 'projects', icon: '▤' },
-            { label: 'skills', icon: '◆' },
-            { label: 'contact', icon: '✉' },
-          ].map(s => (
-            <motion.a key={s.label} href={`#${s.label}`} whileHover={{ x: 5, color: ac }}
-              className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-mono transition-colors" style={{ color: subColor }}>
-              <span>{s.icon}</span><span>$ cd {s.label}</span>
-            </motion.a>
-          ))}
-        </nav>
-        <div className="absolute bottom-0 left-0 right-0 p-4 border-t" style={{ borderColor: `${ac}20` }}>
-          <div className="font-mono text-xs" style={{ color: `${ac}60` }}>
-            <p> uptime</p>
-            <p className="text-green-400">online</p>
-          </div>
-        </div>
-      </motion.aside>
+      </header>
 
-      <div className="lg:ml-64 relative">
-        {/* Mobile nav */}
-        <motion.nav initial={{ y: -80 }} animate={{ y: 0 }}
-          className="lg:hidden fixed top-0 w-full z-50 backdrop-blur-md border-b" style={{ backgroundColor: '#121016dd', borderColor: `${ac}25` }}>
-          <div className="flex items-center gap-2 px-4 py-3 font-mono text-sm" style={{ color: subColor }}>
-            <span style={{ color: ac }}></span>
-            <span>{about?.name || portfolio.title}  -  portfolio</span>
-          </div>
-        </motion.nav>
+      <div className="max-w-6xl mx-auto px-5 sm:px-8 lg:grid lg:grid-cols-[200px_minmax(0,1fr)] lg:gap-14">
+        {/* File tree */}
+        <aside className="hidden lg:block">
+          <nav aria-label="Sections" className="sticky top-8 pt-14 font-mono text-[13px] leading-7">
+            <p style={{ color: p.text }}>{handle}/</p>
+            <ul>
+              {tree.map((t, i) => (
+                <li key={t.id} className="whitespace-nowrap">
+                  <span aria-hidden="true" style={{ color: p.rule }}>{i === tree.length - 1 ? '└── ' : '├── '}</span>
+                  <a href={`#${t.id}`} className={`hover:underline underline-offset-4 ${focusRing}`} style={{ color: p.sub }}>{t.label}</a>
+                </li>
+              ))}
+            </ul>
+          </nav>
+        </aside>
 
-        <div className="lg:pt-0 pt-14">
-          {/* Hero */}
-          <section id="hero" className="min-h-screen flex items-center px-6 md:px-16 relative overflow-hidden"
-            style={hero?.background_url ? { backgroundImage: `url(${hero.background_url})`, backgroundSize: 'cover', backgroundPosition: 'center' } : {}}>
-            {hero?.background_url && <div className="absolute inset-0 bg-black/60" />}
-            <motion.div className="absolute inset-0 opacity-[0.03] font-mono text-xs leading-relaxed overflow-hidden select-none pointer-events-none p-10" style={{ color: textColor }}>
-              {Array.from({ length: 60 }).map((_, i) => <div key={i}>{`const ${['app', 'data', 'config', 'state', 'user', 'portfolio'][i % 6]} = await fetch('/api/${['v1', 'latest', 'beta', 'dev', 'stable', 'experimental'][i % 6]}');`}</div>)}
-            </motion.div>
-            <div className="relative z-10 max-w-4xl">
-              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="font-mono text-sm mb-4" style={{ color: `${ac}60` }}>
-                <span style={{ color: '#50fa7b' }}>$</span> cat /etc/README.md
-              </motion.div>
-              {hero?.greeting && <motion.span initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.1 }}
-                className="inline-block px-4 py-1.5 rounded text-xs font-mono font-bold mb-6" style={{ backgroundColor: `${ac}20`, color: ac }}>{hero.greeting}</motion.span>}
-              <motion.h1 initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}
-                className="text-5xl sm:text-7xl font-black leading-none mb-4 font-mono">
-                <span style={{ color: '#50fa7b' }}>{'>'}</span> {hero?.headline || about?.name || portfolio.title}
-              </motion.h1>
-              <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.2 }}
-                className="text-lg sm:text-xl font-mono mb-10" style={{ color: subColor }}>
-                <span style={{ color: '#f1fa8c' }}>{'//'}</span> {hero?.subheadline || 'Building things for the web'}
-              </motion.p>
-              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.3 }}
-                className="flex gap-4 flex-wrap">
-                <motion.a href={hero?.cta_url || '#projects'} whileHover={{ scale: 1.05 }} className="px-8 py-3.5 rounded font-mono font-bold text-sm" style={{ backgroundColor: ac, color: '#121016' }}>
-                  <span style={{ color: '#121016' }}></span> view_projects()
-                </motion.a>
-              {about?.cv_url && <motion.a href={about.cv_url} target="_blank" whileHover={{ scale: 1.05 }}
-                className="px-8 py-3.5 rounded font-mono font-bold text-sm border-2" style={{ borderColor: `${ac}40`, color: subColor }}>
-                <span style={{ color: '#f1fa8c' }}></span> download_resume()
-              </motion.a>}
-              {hero?.cta_secondary_text && hero?.cta_secondary_url && (
-                <motion.a href={hero.cta_secondary_url} target="_blank" whileHover={{ scale: 1.05 }}
-                  className="px-8 py-3.5 rounded font-mono font-bold text-sm border-2" style={{ borderColor: `${ac}40`, color: subColor }}>
-                  <span style={{ color: '#f1fa8c' }}></span> {hero.cta_secondary_text}()
-                </motion.a>
+        <main className="min-w-0">
+          {/* Hero — README header */}
+          <section id="hero" className="pt-14 pb-16 sm:pt-20">
+            {hero?.background_url && (
+              <img src={hero.background_url} alt="" className="w-full h-40 sm:h-56 object-cover border mb-10 rounded-md" style={{ borderColor: p.rule }} />
+            )}
+            <p className="font-mono text-[13px] mb-6" style={{ color: p.sub }}>
+              README.md {hero?.greeting && <span>· {hero.greeting}</span>}
+            </p>
+            <h1 className="font-mono text-4xl sm:text-5xl md:text-6xl font-semibold tracking-tight leading-[1.05] break-words" style={{ color: p.text }}>
+              <span aria-hidden="true" style={{ color: p.accentText }}># </span>{hero?.headline || name}
+            </h1>
+            {(hero?.subheadline || hero?.description) && (
+              <p className="mt-6 text-lg sm:text-xl leading-relaxed max-w-[60ch]" style={{ color: p.sub }}>
+                {hero?.subheadline || hero?.description}
+              </p>
+            )}
+
+            <dl className="mt-10 font-mono text-[13px] grid grid-cols-[88px_minmax(0,1fr)] gap-y-1.5 max-w-xl">
+              {about?.title && (<><dt style={{ color: p.sub }}>role</dt><dd className="break-words">{about.title}</dd></>)}
+              {contact?.location && (<><dt style={{ color: p.sub }}>location</dt><dd className="break-words">{contact.location}</dd></>)}
+              {email && (<><dt style={{ color: p.sub }}>email</dt><dd className="break-all"><a href={`mailto:${email}`} className={`hover:underline underline-offset-4 ${focusRing}`}>{email}</a></dd></>)}
+            </dl>
+
+            <div className="mt-10 flex flex-wrap gap-3 font-mono text-[13px]">
+              <a href={hero?.cta_url || '#projects'} className={`px-4 py-2.5 rounded-md font-medium hover:opacity-90 ${focusRing}`} style={{ backgroundColor: ac, color: p.onAccent }}>
+                {hero?.cta_text || 'view projects'}
+              </a>
+              {about?.cv_url && (
+                <a href={about.cv_url} target="_blank" rel="noreferrer" className={`px-4 py-2.5 rounded-md border hover:border-current ${focusRing}`} style={{ borderColor: p.rule, color: p.text }}>
+                  resume.pdf
+                </a>
               )}
-            </motion.div>
+              {hero?.cta_secondary_text && hero?.cta_secondary_url && (
+                <a href={hero.cta_secondary_url} target="_blank" rel="noreferrer" className={`px-4 py-2.5 rounded-md border hover:border-current ${focusRing}`} style={{ borderColor: p.rule, color: p.text }}>
+                  {hero.cta_secondary_text}
+                </a>
+              )}
             </div>
           </section>
 
           {/* About */}
           {about?.name && (
-            <section id="about" className="py-24 px-6 md:px-16">
-              <div className="max-w-5xl mx-auto">
-                <FadeUp>
-                  <div className="font-mono text-xs mb-8" style={{ color: `${ac}50` }}>
-                    <span style={{ color: '#50fa7b' }}>$</span> cat ~/about.md
-                  </div>
-                  <div className="rounded-xl border p-8 md:p-12" style={{ borderColor: `${ac}20`, backgroundColor: panelBg }}>
-                    <div className="flex flex-col md:flex-row gap-8 items-start">
-                      {about.photo_url && (
-                        <motion.div
-                          whileHover={{ scale: 1.02 }}
-                          className="shrink-0"
-                        >
-                          <img
-                            src={about.photo_url}
-                            alt={about.name}
-                            className="w-40 h-40 rounded-full object-cover border-2"
-                            style={{ borderColor: `${ac}30` }}
-                          />
-                        </motion.div>
-                      )}
-                      <div>
-                        <h2 className="text-2xl font-black font-mono mb-1">{about.name}</h2>
-                        <p style={{ color: ac }} className="font-mono text-sm mb-4">@{about.title}</p>
-                        <p className="text-sm leading-relaxed text-justify whitespace-pre-line" style={{ color: subColor }}>{about.bio}</p>
+            <section id="about" className={sectionCls} style={{ borderColor: p.rule }}>
+              <Prompt p={p} cmd="cat about.md" />
+              <div className="flex flex-col sm:flex-row gap-8 items-start">
+                {about.photo_url && (
+                  <img src={about.photo_url} alt={about.name} className="w-28 h-28 sm:w-32 sm:h-32 rounded-md object-cover border shrink-0" style={{ borderColor: p.rule }} />
+                )}
+                <div className="min-w-0">
+                  <h2 className="font-mono text-xl font-semibold" style={{ color: p.text }}>{about.name}</h2>
+                  {about.title && <p className="font-mono text-[13px] mt-1" style={{ color: p.accentText }}>{about.title}</p>}
+                  {about.bio && <p className="mt-5 text-base leading-[1.75] max-w-[68ch] whitespace-pre-line" style={{ color: p.sub }}>{about.bio}</p>}
+                </div>
+              </div>
+            </section>
+          )}
+
+          {/* Experience — git log */}
+          {experience.length > 0 && (
+            <section id="experience" className={sectionCls} style={{ borderColor: p.rule }}>
+              <Prompt p={p} cmd="git log --career" />
+              <H2 p={p}>Experience</H2>
+              <ol className="border-l" style={{ borderColor: p.rule }}>
+                {experience.map((exp: TemplateItem, i: number) => (
+                  <li key={exp.id ?? i} className="relative pl-6 pb-10 last:pb-0">
+                    <span aria-hidden="true" className="absolute -left-[5px] top-[7px] w-[9px] h-[9px] rounded-full" style={{ backgroundColor: i === 0 ? ac : p.bg, border: `1.5px solid ${i === 0 ? ac : p.sub}` }} />
+                    <p className="font-mono text-[12px] tabular-nums" style={{ color: p.sub }}>
+                      {ym(exp.start_date)} → {ym(exp.end_date) || 'HEAD'}
+                    </p>
+                    <h3 className="mt-1 text-lg font-semibold leading-snug" style={{ color: p.text }}>
+                      {exp.position}
+                      {exp.company && <span className="font-normal" style={{ color: p.sub }}> @ {exp.company}</span>}
+                    </h3>
+                    {descLines(exp.description).length > 0 && (
+                      <ul className="mt-3 space-y-1.5 text-[15px] leading-relaxed max-w-[68ch]" style={{ color: p.sub }}>
+                        {descLines(exp.description).map((s, si) => (
+                          <li key={si} className="flex gap-3">
+                            <span aria-hidden="true" className="font-mono shrink-0" style={{ color: p.accentText }}>+</span>
+                            <span>{s}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </li>
+                ))}
+              </ol>
+            </section>
+          )}
+
+          {/* Projects — file tree */}
+          {projects.length > 0 && (
+            <section id="projects" className={sectionCls} style={{ borderColor: p.rule }}>
+              <Prompt p={p} cmd="tree projects/ -L 1" />
+              <H2 p={p}>Projects</H2>
+              <p className="font-mono text-[13px] mb-2" style={{ color: p.text }}>projects/</p>
+              <ul>
+                {projects.map((proj: TemplateItem, i: number) => {
+                  const last = i === projects.length - 1;
+                  return (
+                    <li key={proj.id ?? i} className="grid grid-cols-[2.25rem_minmax(0,1fr)] font-mono text-[13px]">
+                      <span aria-hidden="true" className="relative" style={{ color: p.rule }}>
+                        <span className="absolute left-[0.35rem] top-0 w-px" style={{ backgroundColor: p.rule, height: last ? '0.9rem' : '100%' }} />
+                        <span className="absolute left-[0.35rem] top-[0.9rem] w-[1.2rem] h-px" style={{ backgroundColor: p.rule }} />
+                      </span>
+                      <div className="pb-9 min-w-0">
+                        <h3 className="text-base font-semibold" style={{ color: p.accentText }}>{slugify(proj.title)}/</h3>
+                        {proj.title && slugify(proj.title) !== proj.title && (
+                          <p className="font-sans text-sm mt-0.5" style={{ color: p.text }}>{proj.title}</p>
+                        )}
+                        {proj.description && <p className="font-sans mt-2 text-[15px] leading-relaxed max-w-[64ch]" style={{ color: p.sub }}>{proj.description}</p>}
+                        {proj.image_url && (
+                          <img src={proj.image_url} alt={proj.title} className="mt-4 w-full max-w-xl aspect-[16/9] object-cover rounded-md border" style={{ borderColor: p.rule }} />
+                        )}
+                        {proj.tech_stack && (
+                          <div className="flex flex-wrap gap-1.5 mt-4">
+                            {proj.tech_stack.split(',').filter(t => t.trim()).map((t: string) => <TechBadge key={t} name={t.trim()} accentColor={ac} textColor={p.text} size="sm" variant="pill" />)}
+                          </div>
+                        )}
+                        {(proj.demo_url || proj.github_url) && (
+                          <div className="flex gap-5 mt-4">
+                            {proj.demo_url && <a href={proj.demo_url} target="_blank" rel="noreferrer" className={linkCls} style={{ color: p.accentText }}>demo ↗</a>}
+                            {proj.github_url && <a href={proj.github_url} target="_blank" rel="noreferrer" className={linkCls} style={{ color: p.text }}>source ↗</a>}
+                          </div>
+                        )}
                       </div>
-                    </div>
-                  </div>
-                </FadeUp>
-              </div>
+                    </li>
+                  );
+                })}
+              </ul>
             </section>
           )}
 
-          {/* Experience */}
-          {((experience?.length ?? 0) > 0) && (
-            <section id="experience" className="py-24 px-6 md:px-16">
-              <div className="max-w-5xl mx-auto">
-                <FadeUp>
-                  <div className="font-mono text-xs mb-8" style={{ color: `${ac}50` }}>
-                    <span style={{ color: '#50fa7b' }}>$</span> ls -la ~/experience/
+          {/* Skills — stack.json */}
+          {skills.length > 0 && (
+            <section id="skills" className={sectionCls} style={{ borderColor: p.rule }}>
+              <Prompt p={p} cmd="cat stack.json" />
+              <H2 p={p}>Stack</H2>
+              <dl className="divide-y border-y" style={{ borderColor: p.rule }}>
+                {skills.map((skill: TemplateItem, i: number) => (
+                  <div key={skill.id ?? i} className="py-4 grid grid-cols-1 sm:grid-cols-[160px_minmax(0,1fr)] gap-3" style={{ borderColor: p.rule }}>
+                    <dt className="font-mono text-[13px] pt-1" style={{ color: p.sub }}>&quot;{slugify(skill.title)}&quot;:</dt>
+                    <dd className="flex flex-wrap gap-1.5">
+                      {skill.skills?.split(',').filter(s => s.trim()).map((s: string) => <TechBadge key={s} name={s.trim()} accentColor={ac} textColor={p.text} size="sm" />)}
+                    </dd>
                   </div>
-                  <div className="space-y-4">
-                    {experience.map((exp: TemplateItem, i: number) => (
-                      <motion.div key={exp.id} initial={{ opacity: 0, x: -30 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }} transition={{ delay: i * 0.08 }}
-                        className="rounded-xl border p-6 md:p-8" style={{ borderColor: `${ac}20`, backgroundColor: panelBg }}>
-                        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-3">
-                          <h3 className="text-lg font-black font-mono" style={{ color: textColor }}>{'>'} {exp.position}</h3>
-                          <span className="font-mono text-xs px-3 py-1 rounded border" style={{ borderColor: `${ac}30`, color: ac }}>{exp.start_date?.slice(0, 7)} to {exp.end_date?.slice(0, 7) || 'HEAD'}</span>
-                        </div>
-                        <p className="font-mono text-sm mb-3" style={{ color: ac }}>@ {exp.company}</p>
-                        {exp.description && <div className="font-mono text-xs space-y-1.5" style={{ color: subColor }}>{exp.description.split(/[*-.\n]/).filter((s: string) => s.trim()).map((s: string, si: number) => (<div key={si} className="flex gap-2"><span className="text-green-400">OK</span><span>{s.trim()}</span></div>))}</div>}
-                      </motion.div>
-                    ))}
-                  </div>
-                </FadeUp>
-              </div>
-            </section>
-          )}
-
-          {/* Projects */}
-          {((projects?.length ?? 0) > 0) && (
-            <section id="projects" className="py-24 px-6 md:px-16">
-              <div className="max-w-6xl mx-auto">
-                <FadeUp>
-                  <div className="font-mono text-xs mb-8" style={{ color: `${ac}50` }}>
-                    <span style={{ color: '#50fa7b' }}>$</span> ./scripts/deploy.sh
-                  </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {projects.map((proj: TemplateItem) => (
-                      <motion.div key={proj.id} whileHover={{ y: -4, borderColor: ac }}
-                        className="rounded-xl border p-5" style={{ borderColor: `${ac}15`, backgroundColor: panelBg }}>
-                        {proj.image_url && <div className="overflow-hidden rounded-lg mb-4"><motion.img whileHover={{ scale: 1.05 }} src={proj.image_url} alt={proj.title} className="w-full h-40 object-cover" /></div>}
-                        <h3 className="font-mono font-bold text-sm mb-1" style={{ color: ac }}>{'>'} {proj.title}</h3>
-                        <p className="font-mono text-xs mb-3" style={{ color: subColor }}>{proj.description}</p>
-                        {proj.tech_stack && <div className="flex flex-wrap gap-1.5 mb-4">{proj.tech_stack.split(',').map((t: string) => <TechBadge key={t} name={t.trim()} accentColor={ac} size="sm" variant="pill" />)}</div>}
-                        <div className="flex gap-2 font-mono text-xs">
-                          {proj.demo_url && <motion.a href={proj.demo_url} target="_blank" whileHover={{ scale: 1.05 }} className="px-4 py-1.5 rounded font-bold" style={{ backgroundColor: ac, color: '#121016' }}>demo</motion.a>}
-                          {proj.github_url && <motion.a href={proj.github_url} target="_blank" whileHover={{ scale: 1.05 }} className="px-4 py-1.5 rounded border font-bold" style={{ borderColor: `${ac}40`, color: subColor }}>source</motion.a>}
-                        </div>
-                      </motion.div>
-                    ))}
-                  </div>
-                </FadeUp>
-              </div>
-            </section>
-          )}
-
-          {/* Skills */}
-          {((skills?.length ?? 0) > 0) && (
-            <section id="skills" className="py-24 px-6 md:px-16">
-              <div className="max-w-5xl mx-auto">
-                <FadeUp>
-                  <div className="font-mono text-xs mb-8" style={{ color: `${ac}50` }}>
-                    <span style={{ color: '#50fa7b' }}>$</span> which skills
-                  </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {skills.map((skill: TemplateItem) => (
-                      <motion.div key={skill.id} initial={{ opacity: 0 }} whileInView={{ opacity: 1 }} viewport={{ once: true }} whileHover={{ borderColor: ac }}
-                        className="rounded-xl border p-5" style={{ borderColor: `${ac}15`, backgroundColor: panelBg }}>
-                        <div className="flex items-center gap-2 mb-4">
-                          <span className="text-green-400"></span>
-                          <h3 className="font-mono font-bold text-sm" style={{ color: textColor }}>{skill.title}</h3>
-                        </div>
-                        <div className="flex flex-wrap gap-2">{skill.skills?.split(',').map((s: string) => <TechBadge key={s} name={s.trim()} accentColor={ac} size="sm" />)}</div>
-                      </motion.div>
-                    ))}
-                  </div>
-                </FadeUp>
-              </div>
+                ))}
+              </dl>
             </section>
           )}
 
           {/* Services */}
-          {((services?.length ?? 0) > 0) && (
-            <section id="services" className="py-24 px-6 md:px-16">
-              <div className="max-w-5xl mx-auto">
-                <FadeUp>
-                  <div className="font-mono text-xs mb-8" style={{ color: `${ac}50` }}>
-                    <span style={{ color: '#50fa7b' }}>$</span> cat services.config.json
-                  </div>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    {services.map((svc: TemplateItem) => (
-                      <motion.div key={svc.id} whileHover={{ y: -4 }} className="rounded-xl border p-6" style={{ borderColor: `${ac}15`, backgroundColor: panelBg }}>
-                        <p className="text-2xl mb-3">{svc.icon || '✦'}</p>
-                        <h3 className="font-mono font-black text-sm mb-2" style={{ color: textColor }}>{'>'} {svc.title}</h3>
-                        <p className="font-mono text-xs text-justify" style={{ color: subColor }}>{svc.description}</p>
-                      </motion.div>
-                    ))}
-                  </div>
-                </FadeUp>
-              </div>
+          {services.length > 0 && (
+            <section id="services" className={sectionCls} style={{ borderColor: p.rule }}>
+              <Prompt p={p} cmd="cat services.md" />
+              <H2 p={p}>Services</H2>
+              <ol className="space-y-7">
+                {services.map((svc: TemplateItem, i: number) => (
+                  <li key={svc.id ?? i} className="grid grid-cols-[2.5rem_minmax(0,1fr)]">
+                    <span className="font-mono text-[13px] pt-1 tabular-nums" style={{ color: p.sub }}>{String(i + 1).padStart(2, '0')}</span>
+                    <div>
+                      <h3 className="text-base font-semibold" style={{ color: p.text }}>{svc.title}</h3>
+                      {svc.description && <p className="mt-1.5 text-[15px] leading-relaxed max-w-[64ch]" style={{ color: p.sub }}>{svc.description}</p>}
+                    </div>
+                  </li>
+                ))}
+              </ol>
             </section>
           )}
 
-          {/* Testimonials */}
-          {((testimonials?.length ?? 0) > 0) && (
-            <section id="testimonials" className="py-24 px-6 md:px-16">
-              <div className="max-w-4xl mx-auto">
-                <FadeUp>
-                  <div className="font-mono text-xs mb-8" style={{ color: `${ac}50` }}>
-                    <span style={{ color: '#50fa7b' }}>$</span> cat ~/testimonials.log
-                  </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {testimonials.map((t: TemplateItem) => (
-                      <div key={t.id} className="rounded-xl border p-5" style={{ borderColor: `${ac}15`, backgroundColor: panelBg }}>
-                        <div className="flex gap-1 mb-3">{[...Array(5)].map((_, i) => <span key={i} className="text-xs" style={{ color: '#f1fa8c' }}></span>)}</div>
-                        <p className="font-mono text-xs italic mb-4" style={{ color: subColor }}>{t.message}</p>
-                        <div className="flex items-center gap-3 font-mono text-xs">
-                          {t.photo_url && <img src={t.photo_url} alt={t.name} className="w-8 h-8 rounded object-cover" />}
-                          <div><span className="font-bold" style={{ color: textColor }}>{t.name}</span><br /><span style={{ color: ac }}>{t.position}</span></div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </FadeUp>
+          {/* Testimonials — markdown quotes */}
+          {testimonials.length > 0 && (
+            <section id="testimonials" className={sectionCls} style={{ borderColor: p.rule }}>
+              <Prompt p={p} cmd="cat reviews.md" />
+              <H2 p={p}>What people said</H2>
+              <div className="space-y-10">
+                {testimonials.map((t: TemplateItem, i: number) => (
+                  <figure key={t.id ?? i} className="border-l-2 pl-5" style={{ borderColor: ac }}>
+                    <blockquote className="text-base sm:text-[17px] leading-relaxed max-w-[64ch]" style={{ color: p.text }}>{t.message}</blockquote>
+                    <figcaption className="mt-4 flex items-center gap-3 font-mono text-[13px]">
+                      {t.photo_url && <img src={t.photo_url} alt={t.name} className="w-8 h-8 rounded object-cover" />}
+                      <span style={{ color: p.text }}>{t.name}</span>
+                      {t.position && <span style={{ color: p.sub }}>· {t.position}</span>}
+                    </figcaption>
+                  </figure>
+                ))}
               </div>
             </section>
           )}
 
           {/* Gallery */}
-          {((gallery?.length ?? 0) > 0) && (
-            <section id="gallery" className="py-24 px-6 md:px-16">
-              <div className="max-w-6xl mx-auto">
-                <FadeUp>
-                  <div className="font-mono text-xs mb-8" style={{ color: `${ac}50` }}>
-                    <span style={{ color: '#50fa7b' }}>$</span> open ~/certificates/
-                  </div>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    {gallery.map((cert: TemplateItem) => (
-                      <div key={cert.id} className="rounded-xl border p-5" style={{ borderColor: `${ac}15`, backgroundColor: panelBg }}>
-                        {(cert.image_url || cert.file_url) && (
-                          <div className="w-full h-32 rounded-lg mb-4 overflow-hidden bg-cover bg-center"
-                            style={{ backgroundImage: `url(${cert.image_url || cert.file_url})` }}>
-                            <img src={cert.image_url || cert.file_url} alt={cert.title}
-                              className="w-full h-full object-cover"
-                              onError={(e: SyntheticEvent<HTMLImageElement>) => { e.currentTarget.style.display = 'none' }} />
-                          </div>
-                        )}
-                        <h3 className="font-mono font-bold text-sm mb-1" style={{ color: textColor }}>{cert.title}</h3>
-                        {cert.description && <p className="font-mono text-xs mb-2" style={{ color: subColor }}>{cert.description}</p>}
-                        {cert.issued_date && <p className="font-mono text-xs mb-3" style={{ color: ac }}>{new Date(cert.issued_date).toLocaleDateString()}</p>}
-                        {cert.file_url && <motion.a href={cert.file_url} target="_blank" whileHover={{ scale: 1.05 }} className="inline-block font-mono text-xs px-4 py-1.5 rounded font-bold" style={{ backgroundColor: ac, color: '#121016' }}>view</motion.a>}
+          {gallery.length > 0 && (
+            <section id="gallery" className={sectionCls} style={{ borderColor: p.rule }}>
+              <Prompt p={p} cmd="ls certs/" />
+              <H2 p={p}>Certificates</H2>
+              <ul className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-10">
+                {gallery.map((cert: TemplateItem, i: number) => (
+                  <li key={cert.id ?? i} className="min-w-0">
+                    {(cert.image_url || cert.file_url) && (
+                      <div className="w-full aspect-[4/3] mb-4 overflow-hidden rounded-md border bg-cover bg-center" style={{ borderColor: p.rule, backgroundColor: p.panel, backgroundImage: `url(${cert.image_url || cert.file_url})` }}>
+                        <img src={cert.image_url || cert.file_url} alt={cert.title} className="w-full h-full object-cover"
+                          onError={(e: SyntheticEvent<HTMLImageElement>) => { e.currentTarget.style.display = 'none'; }} />
                       </div>
-                    ))}
-                  </div>
-                </FadeUp>
-              </div>
+                    )}
+                    <h3 className="text-base font-semibold" style={{ color: p.text }}>{cert.title}</h3>
+                    {cert.issued_date && <p className="font-mono text-[12px] mt-1 tabular-nums" style={{ color: p.sub }}>{shortDate(cert.issued_date)}</p>}
+                    {cert.description && <p className="text-sm mt-2 leading-relaxed" style={{ color: p.sub }}>{cert.description}</p>}
+                    {cert.file_url && <a href={cert.file_url} target="_blank" rel="noreferrer" className={`inline-block mt-3 ${linkCls}`} style={{ color: p.accentText }}>open ↗</a>}
+                  </li>
+                ))}
+              </ul>
             </section>
           )}
 
-          {/* Custom */}
-          {((custom?.length ?? 0) > 0) && custom.map((sec: TemplateItem) => (
-            <section key={sec.id} id={`custom-${(sec.title || sec.original_type || '').toLowerCase().replace(/\s+/g, '-')}`} className="py-24 px-6 md:px-16">
-              <div className="max-w-5xl mx-auto">
-                <FadeUp>
-                  <div className="font-mono text-xs mb-8" style={{ color: `${ac}50` }}>
-                    <span style={{ color: '#50fa7b' }}>$</span> ./custom_sections/{(sec.title || sec.original_type || 'section').toLowerCase().replace(/\s+/g, '_')}.sh
-                  </div>
-                  <h2 className="font-mono text-2xl font-black mb-6" style={{ color: textColor }}>{'>'} {sec.title}</h2>
-                  {sec.type === 'text' && <p className="font-mono text-sm leading-relaxed text-justify" style={{ color: subColor }}>{sec.content?.body}</p>}
-                  {sec.type === 'list' && <div className="space-y-2">{(sec.content?.items || []).map((item: string, i: number) => <div key={i} className="flex gap-2 font-mono text-sm" style={{ color: subColor }}><span className="text-green-400">OK</span>{item}</div>)}</div>}
-                  {sec.type === 'links' && <div className="flex flex-wrap gap-3">{(sec.content?.links || []).map((link: TemplateItem, i: number) => <motion.a key={i} href={link.url} target="_blank" whileHover={{ scale: 1.05 }} className="font-mono text-sm px-6 py-3 rounded font-bold" style={{ backgroundColor: ac, color: '#121016' }}>{link.label}</motion.a>)}</div>}
-                  {!['text','list','cards','links'].includes(sec.type ?? '') && sec.content && (
-                    <div className="space-y-4">
-                      {(() => {
-                        if ((sec.original_type === 'certification' || sec.type === 'certification') && Array.isArray(sec.content?.items)) {
-                          return <CertificationSection items={sec.content?.items} textColor={textColor} subTextColor={subColor} accentColor={ac} cardBg="" />;
-                        }
-                        const c = sec.content;
-                        if (c.institution || c.degree || c.field) {
-                          return (
-                            <div className="p-6 rounded-2xl border" style={{background: '#ffffff08', borderColor: 'rgba(255,255,255,0.08)'}}>
-                              {c.institution && <p className="text-lg font-semibold" style={{color: textColor}}>{c.institution}</p>}
-                              {(c.degree || c.field) && <p className="text-sm mt-1" style={{color: subColor}}>{[c.degree, c.field].filter(Boolean).join('  -  ')}</p>}
-                              {(c.start_date || c.end_date) && <p className="text-xs mt-1" style={{color: subColor}}>{[c.start_date?.slice(0,7), c.end_date?.slice(0,7)].filter(Boolean).join(' - ')}</p>}
-                              {c.gpa && <p className="text-xs mt-1" style={{color: subColor}}>GPA: {c.gpa}</p>}
-                            </div>
-                          );
-                        }
-                        if (c.name || c.issuer) {
-                          return (
-                            <div className="p-6 rounded-2xl border" style={{background: '#ffffff08', borderColor: 'rgba(255,255,255,0.08)'}}>
-                              {c.name && <p className="text-lg font-semibold" style={{color: textColor}}>{c.name}</p>}
-                              {c.issuer && <p className="text-sm mt-1" style={{color: subColor}}>{c.issuer}</p>}
-                              {c.date && <p className="text-xs mt-1" style={{color: subColor}}>{c.date}</p>}
-                              {c.credential_url && <a href={c.credential_url} target="_blank" className="text-sm underline mt-2 inline-block" style={{color: ac}}>View credential</a>}
-                            </div>
-                          );
-                        }
-                        if (c.language) {
-                          return (
-                            <div className="flex items-center gap-3 p-6 rounded-2xl border" style={{background: '#ffffff08', borderColor: 'rgba(255,255,255,0.08)'}}>
-                              <p className="text-lg font-semibold" style={{color: textColor}}>{c.language}</p>
-                              {c.proficiency && <span className="text-xs px-3 py-1 rounded-full" style={{backgroundColor: ac+'30', color: ac}}>{c.proficiency}</span>}
-                            </div>
-                          );
-                        }
-                        if (c.body) {
-                          return <p className="text-base leading-relaxed" style={{color: subColor}}>{c.body}</p>;
-                        }
-                        return null;
-                      })()}
-                    </div>
-                  )}
-                </FadeUp>
-              </div>
+          {/* Custom sections */}
+          {custom.length > 0 && custom.map((sec: TemplateItem) => (
+            <section key={sec.id} id={`custom-${(sec.title || sec.original_type || '').toLowerCase().replace(/\s+/g, '-')}`} className={sectionCls} style={{ borderColor: p.rule }}>
+              <Prompt p={p} cmd={`cat ${(sec.title || sec.original_type || 'section').toLowerCase().replace(/\s+/g, '_')}.md`} />
+              <H2 p={p}>{sec.title}</H2>
+              {sec.type === 'text' && <p className="text-base leading-[1.75] max-w-[68ch] whitespace-pre-line" style={{ color: p.sub }}>{sec.content?.body}</p>}
+              {sec.type === 'list' && (
+                <ul className="space-y-2 max-w-[68ch]">
+                  {(sec.content?.items || []).map((item: string, i: number) => (
+                    <li key={i} className="flex gap-3 text-[15px]" style={{ color: p.sub }}>
+                      <span aria-hidden="true" className="font-mono" style={{ color: p.accentText }}>-</span>{item}
+                    </li>
+                  ))}
+                </ul>
+              )}
+              {sec.type === 'links' && (
+                <ul className="space-y-2">
+                  {(sec.content?.links || []).map((link: TemplateItem, i: number) => (
+                    <li key={i}><a href={link.url} target="_blank" rel="noreferrer" className={linkCls} style={{ color: p.accentText }}>{link.label} ↗</a></li>
+                  ))}
+                </ul>
+              )}
+              {!['text', 'list', 'cards', 'links'].includes(sec.type ?? '') && sec.content && (
+                <div>
+                  {(() => {
+                    if ((sec.original_type === 'certification' || sec.type === 'certification') && Array.isArray(sec.content?.items)) {
+                      return (
+                        <div style={{ color: p.text }}>
+                          <CertificationSection items={sec.content?.items} textColor="" subTextColor="opacity-75" accentColor={p.accentText}
+                            cardBg={p.isDark ? 'border-white/15 bg-white/[0.03]' : 'border-black/10 bg-black/[0.02]'} />
+                        </div>
+                      );
+                    }
+                    const c = sec.content;
+                    const box = 'border rounded-md p-5 font-mono text-[13px] max-w-xl';
+                    if (c.institution || c.degree || c.field) {
+                      return (
+                        <div className={box} style={{ borderColor: p.rule, backgroundColor: p.panel }}>
+                          {c.institution && <p className="font-sans text-base font-semibold" style={{ color: p.text }}>{c.institution}</p>}
+                          {(c.degree || c.field) && <p className="mt-1" style={{ color: p.sub }}>{[c.degree, c.field].filter(Boolean).join(' · ')}</p>}
+                          {(c.start_date || c.end_date) && <p className="mt-1 tabular-nums" style={{ color: p.sub }}>{[ym(c.start_date), ym(c.end_date)].filter(Boolean).join(' → ')}</p>}
+                          {c.gpa && <p className="mt-1" style={{ color: p.sub }}>gpa: {c.gpa}</p>}
+                        </div>
+                      );
+                    }
+                    if (c.name || c.issuer) {
+                      return (
+                        <div className={box} style={{ borderColor: p.rule, backgroundColor: p.panel }}>
+                          {c.name && <p className="font-sans text-base font-semibold" style={{ color: p.text }}>{c.name}</p>}
+                          {c.issuer && <p className="mt-1" style={{ color: p.sub }}>{c.issuer}</p>}
+                          {c.date && <p className="mt-1" style={{ color: p.sub }}>{c.date}</p>}
+                          {c.credential_url && <a href={c.credential_url} target="_blank" rel="noreferrer" className={`inline-block mt-3 ${linkCls}`} style={{ color: p.accentText }}>view credential ↗</a>}
+                        </div>
+                      );
+                    }
+                    if (c.language) {
+                      return (
+                        <p className="font-mono text-[15px]" style={{ color: p.text }}>
+                          {c.language}{c.proficiency && <span style={{ color: p.sub }}> — {c.proficiency}</span>}
+                        </p>
+                      );
+                    }
+                    if (c.body) {
+                      return <p className="text-base leading-[1.75] max-w-[68ch]" style={{ color: p.sub }}>{c.body}</p>;
+                    }
+                    return null;
+                  })()}
+                </div>
+              )}
             </section>
           ))}
 
           {/* Contact */}
-          <section id="contact" className="py-24 px-6 md:px-16">
-            <div className="max-w-3xl mx-auto">
-              <FadeUp>
-                <div className="font-mono text-xs mb-8" style={{ color: `${ac}50` }}>
-                  <span style={{ color: '#50fa7b' }}>$</span> ./send_message.sh
-                </div>
-                <div className="rounded-xl border p-8" style={{ borderColor: `${ac}20`, backgroundColor: panelBg }}>
-                  <h2 className="font-mono text-xl font-black mb-2" style={{ color: textColor }}>{'>'} Contact</h2>
-                  <p className="font-mono text-sm mb-8" style={{ color: subColor }}>{'//'} Fill out the form below</p>
-                  <div className="flex gap-4 mb-8 justify-center flex-wrap">
-                    {(contact?.email || about?.email) && <motion.a href={`mailto:${contact?.email || about?.email}`} whileHover={{ scale: 1.05 }} className="font-mono text-sm px-6 py-3 rounded font-bold" style={{ backgroundColor: ac, color: '#121016' }}>send email</motion.a>}
-                    {contact?.phone && <motion.a href={`https://wa.me/${contact.phone.replace(/[^0-9]/g, '')}`} target="_blank" whileHover={{ scale: 1.05 }} className="font-mono text-sm px-6 py-3 rounded font-bold border-2" style={{ borderColor: `${ac}40`, color: subColor }}>WhatsApp</motion.a>}
-                    {contact?.linkedin_url && <motion.a href={contact.linkedin_url} target="_blank" whileHover={{ scale: 1.05 }} className="font-mono text-sm px-6 py-3 rounded font-bold border-2" style={{ borderColor: `${ac}40`, color: subColor }}>LinkedIn</motion.a>}
-                    {contact?.github_url && <motion.a href={contact.github_url} target="_blank" whileHover={{ scale: 1.05 }} className="font-mono text-sm px-6 py-3 rounded font-bold border-2" style={{ borderColor: `${ac}40`, color: subColor }}>GitHub</motion.a>}
+          <section id="contact" className={sectionCls} style={{ borderColor: p.rule }}>
+            <Prompt p={p} cmd="./contact.sh" />
+            <H2 p={p}>Contact</H2>
+            {contactRows.length > 0 && (
+              <dl className="font-mono text-[13px] grid grid-cols-[88px_minmax(0,1fr)] gap-y-2 mb-10 max-w-xl">
+                {contactRows.map(r => (
+                  <div key={r.k} className="contents">
+                    <dt style={{ color: p.sub }}>{r.k}</dt>
+                    <dd className="break-all">
+                      <a href={r.href} target={r.k === 'email' ? undefined : '_blank'} rel="noreferrer" className={`underline underline-offset-4 decoration-1 hover:decoration-2 ${focusRing}`} style={{ color: p.accentText }}>{r.v}</a>
+                    </dd>
                   </div>
-                  <ContactForm slug={portfolio.slug} accentColor={ac} textColor={textColor} subColor={subColor} />
-                </div>
-              </FadeUp>
+                ))}
+              </dl>
+            )}
+            <p className="text-[15px] mb-6" style={{ color: p.sub }}>Or leave a message here — it lands straight in my inbox.</p>
+            <div className="max-w-lg [&_form]:mx-0">
+              <ContactForm slug={portfolio.slug} accentColor={ac} textColor={p.text} subColor={p.sub} />
             </div>
           </section>
-        </div>
-
-        <footer className="py-8 px-6 text-center border-t" style={{ borderColor: `${ac}20`, backgroundColor: '#0d0b10' }}>
-          <div className="font-mono text-xs" style={{ color: subColor }}>
-            <p><span style={{ color: '#50fa7b' }}>$</span> echo &quot;(c) 2026 {about?.name || portfolio.title}&quot;</p>
-            <p className="mt-1" style={{ color: `${ac}60` }}>Built with PortfolioKit  -  MIT License</p>
-          </div>
-        </footer>
+        </main>
       </div>
+
+      <footer className="border-t mt-6" style={{ borderColor: p.rule }}>
+        <div className="max-w-6xl mx-auto px-5 sm:px-8 py-8 flex flex-col sm:flex-row gap-2 sm:justify-between font-mono text-[12px]" style={{ color: p.sub }}>
+          <span>© {new Date().getFullYear()} {name}</span>
+          <span>built with PortfolioKit</span>
+        </div>
+      </footer>
     </div>
   );
 }
-
-
-

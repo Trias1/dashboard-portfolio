@@ -1,6 +1,5 @@
 'use client';
 import { useState, useRef, useEffect } from 'react';
-import { motion } from 'framer-motion';
 import api, { initAuth, getToken } from '@/lib/api';
 
 interface GeneratedSkillCategory {
@@ -65,6 +64,8 @@ interface ExistingSectionFlags {
 interface Message {
   role: 'user' | 'assistant';
   content: string;
+  /** "notice" = a plain system message (AI unavailable, errors), rendered differently from an answer. */
+  tone?: 'notice';
   preview?: { section: string; data: PreviewData };
 }
 
@@ -72,64 +73,63 @@ function asObject(payload: GeneratedPayload): GeneratedObject {
   return Array.isArray(payload) ? {} : payload;
 }
 
+/** The generate endpoint is expected to return `{ generated }`; anything else (an SSE string, an error) means it isn't available. */
+function isGeneratedPayload(value: unknown): value is GeneratedPayload {
+  return !!value && typeof value === 'object';
+}
+
+/** Fallback text /api/advisor sends when its own upstream request fails. */
+const SERVER_FAILURE = /^sorry, something went wrong\.?$/i;
+const AI_UNAVAILABLE = 'Advisor belum bisa menjawab sekarang: layanan AI belum dikonfigurasi atau sedang tidak tersedia. Kamu tetap bisa mengisi semua bagian secara manual di Builder.';
+const GENERATE_UNAVAILABLE = 'Isi otomatis untuk bagian ini belum tersedia (layanan AI belum aktif). Isi bagian ini manual di Builder.';
+
 const ALL_SUGGESTED = [
-  ' Rapihkan & lengkapi portfolio saya',
-  ' Analyze my portfolio',
-  ' Isi bagian skills saya',
-  ' Generate testimonials untuk portfolio',
-  ' Suggest certificate untuk saya',
-  ' Generate experience saya',
-  ' Generate my bio',
-  ' Buat hero section',
-  ' Generate services saya',
-  ' Suggest experience saya',
-  ' Generate project untuk portfolio',
-  ' Apa yang kurang dari portfolio saya?',
-  ' Gimana cara buat portfolio lebih menarik?',
-  ' Tips untuk contact section',
-  ' Cara dapat testimonial?',
-  ' Tips design portfolio yang bagus?',
-  ' Gimana cara portfolio mudah ditemukan recruiter?',
-  ' Apa yang harus ada di bio yang menarik?',
+  'Rapihkan & lengkapi portfolio saya',
+  'Analyze my portfolio',
+  'Isi bagian skills saya',
+  'Generate testimonials untuk portfolio',
+  'Suggest certificate untuk saya',
+  'Generate experience saya',
+  'Generate my bio',
+  'Buat hero section',
+  'Generate services saya',
+  'Suggest experience saya',
+  'Generate project untuk portfolio',
+  'Apa yang kurang dari portfolio saya?',
+  'Gimana cara buat portfolio lebih menarik?',
+  'Tips untuk contact section',
+  'Cara dapat testimonial?',
+  'Tips design portfolio yang bagus?',
+  'Gimana cara portfolio mudah ditemukan recruiter?',
+  'Apa yang harus ada di bio yang menarik?',
 ];
 
 const pickSuggestions = () => [...ALL_SUGGESTED].sort(() => Math.random() - 0.5).slice(0, 4);
 
-function AdvisorAvatar({ small = false }: { small?: boolean }) {
-  return (
-    <div className={`${small ? 'h-8 w-8 rounded-xl' : 'h-11 w-11 rounded-2xl'} relative flex flex-shrink-0 items-center justify-center bg-gradient-to-br from-purple-500 via-violet-600 to-cyan-500 shadow-lg shadow-purple-950/40`}>
-      <svg viewBox="0 0 24 24" fill="none" className={small ? 'h-4 w-4' : 'h-5 w-5'} aria-hidden="true">
-        <path d="M12 3l1.15 3.1L16 7.25l-2.85 1.15L12 11.5l-1.15-3.1L8 7.25l2.85-1.15L12 3Z" fill="white" />
-        <path d="M6.5 12l.75 2.25L9.5 15l-2.25.75L6.5 18l-.75-2.25L3.5 15l2.25-.75L6.5 12Zm11 1 .65 1.85L20 15.5l-1.85.65L17.5 18l-.65-1.85L15 15.5l1.85-.65L17.5 13Z" fill="white" fillOpacity=".85" />
-      </svg>
-      {!small ? <span className="absolute -bottom-0.5 -right-0.5 h-3.5 w-3.5 rounded-full border-[3px] border-[#0a0a1a] bg-emerald-400" aria-label="Online" /> : null}
-    </div>
-  );
-}
-
 export default function AdvisorWidget({ inline = false }: { inline?: boolean }) {
   const [messages, setMessages] = useState<Message[]>([
-    { role: 'assistant', content: ' Hi! I\'m your Portfolio Advisor.\n\nI can help you:\n* Analyze your portfolio completeness\n* Suggest what content to add\n* **Auto-fill sections** for you!\n\nKlik tombol di bawah untuk langsung merapihkan portfolio kamu, atau tanya apa saja!', preview: { section: 'boom', data: null } }
+    { role: 'assistant', content: 'Saya bisa memeriksa kelengkapan portfolio kamu, menyarankan apa yang perlu ditambah, dan membantu mengisi beberapa bagian.\n\nTekan tombol di bawah untuk memeriksa portfolio, atau tulis pertanyaan.', preview: { section: 'boom', data: null } }
   ]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [applying, setApplying] = useState<string | null>(null);
   const [score, setScore] = useState<{score: number, total: number} | null>(null);
-  // Shuffle dan ambil 4 random; reshuffled whenever a new AI reply is started.
+  // Shuffle and take 4; reshuffled whenever a new reply starts.
   const [suggested, setSuggested] = useState(pickSuggestions);
   const reshuffleSuggestions = () => setSuggested(pickSuggestions());
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
   }, [messages]);
 
   useEffect(() => {
-    setTimeout(() => inputRef.current?.focus(), 300);
+    const t = setTimeout(() => inputRef.current?.focus(), 300);
+    return () => clearTimeout(t);
   }, []);
 
-  // Detect section intent dari message
+  // Detect section intent from the message
   const detectSection = (msg: string): string | null => {
     const lower = msg.toLowerCase();
     if (lower.includes('skill')) return 'skills';
@@ -140,56 +140,57 @@ export default function AdvisorWidget({ inline = false }: { inline?: boolean }) 
     if (lower.includes('project') || lower.includes('proyek')) return 'projects';
     if (lower.includes('testimoni') || lower.includes('testimonial')) return 'testimonials';
     if (lower.includes('sertifikat') || lower.includes('certificate') || lower.includes('certif')) return 'gallery';
-    if (lower.includes('experience') || lower.includes('pengalaman') || lower.includes('kerja')) return 'experience';
+    if (lower.includes('kerja')) return 'experience';
     return null;
   };
 
   const isAutoFillAll = (msg: string): boolean => {
     const lower = msg.toLowerCase();
-    return lower.includes('rapihkan') || lower.includes('lengkapi semua') || 
+    return lower.includes('rapihkan') || lower.includes('lengkapi semua') ||
            lower.includes('boom') || lower.includes('isi semua') ||
            lower.includes('complete all') || lower.includes('fill all') ||
            lower.includes('auto fill') || lower.includes('autofill');
   };
 
+  const replaceLast = (msg: Message) => setMessages(prev => {
+    const updated = [...prev];
+    updated[updated.length - 1] = msg;
+    return updated;
+  });
+
   const generateSection = async (section: string) => {
     reshuffleSuggestions();
     setLoading(true);
-    setMessages(prev => [...prev, { role: 'assistant', content: ` Generating ${section} content...` }]);
+    setMessages(prev => [...prev, { role: 'assistant', content: `Menyiapkan isi untuk bagian ${section}…`, tone: 'notice' }]);
     try {
       if (!getToken()) await initAuth();
-      const res = await api.post<{ generated: GeneratedPayload }>(`/api/advisor/generate/${section}`);
-      const { generated } = res.data;
+      const res = await api.post<{ generated?: unknown }>(`/api/advisor/generate/${section}`);
+      const generated = res.data?.generated;
+      if (!isGeneratedPayload(generated)) {
+        replaceLast({ role: 'assistant', content: GENERATE_UNAVAILABLE, tone: 'notice' });
+        return;
+      }
       const obj = asObject(generated);
 
-      // Format preview text
       let previewText = '';
       if (section === 'skills' && obj.categories) {
         previewText = obj.categories.map((c) => `**${c.title}:** ${c.skills}`).join('\n');
       } else if (section === 'bio') {
-        previewText = obj.bio as string;
+        previewText = obj.bio || '';
       } else if (section === 'hero') {
         previewText = `**Headline:** ${obj.headline}\n**Subheadline:** ${obj.subheadline}`;
       } else if (section === 'services') {
         if (!Array.isArray(generated)) throw new Error('Unexpected services payload');
-        previewText = generated.map((s) => `${s.icon} **${s.title}:** ${s.description}`).join('\n');
+        previewText = generated.map((s) => `**${s.title}:** ${s.description}`).join('\n');
       }
 
-      setMessages(prev => {
-        const updated = [...prev];
-        updated[updated.length - 1] = {
-          role: 'assistant',
-          content: ` Here's what I generated for your **${section}** section:\n\n${previewText}\n\nLooks good? Click "Pakai Ini" to save!`,
-          preview: { section, data: generated }
-        };
-        return updated;
+      replaceLast({
+        role: 'assistant',
+        content: `Usulan untuk bagian **${section}**:\n\n${previewText}\n\nKalau cocok, simpan ke portfolio.`,
+        preview: { section, data: generated },
       });
     } catch {
-      setMessages(prev => {
-        const updated = [...prev];
-        updated[updated.length - 1] = { role: 'assistant', content: ' Failed to generate. Please try again.' };
-        return updated;
-      });
+      replaceLast({ role: 'assistant', content: GENERATE_UNAVAILABLE, tone: 'notice' });
     } finally {
       setLoading(false);
     }
@@ -198,24 +199,26 @@ export default function AdvisorWidget({ inline = false }: { inline?: boolean }) 
   const applySection = async (section: string, data: PreviewData, msgIndex: number) => {
     setApplying(section);
     try {
-      // Handle boom  -  langsung generate all
+      // "boom" = check and fill everything
       if (section === 'boom') {
         setApplying(null);
         await generateAll();
         return;
       }
-      // Handle apply all
       if (section === 'all' && Array.isArray(data)) {
+        let failed = 0;
         for (const item of data as GeneratedResult[]) {
           try {
             await api.post(`/api/advisor/apply/${item.section}`, { data: item.data });
-          } catch {}
+          } catch { failed++; }
         }
         setMessages(prev => {
           const updated = [...prev];
           updated[msgIndex] = {
             ...updated[msgIndex],
-            content: updated[msgIndex].content + '\n\n **Semua section berhasil disimpan!** Refresh preview untuk melihat hasilnya.',
+            content: updated[msgIndex].content + (failed
+              ? `\n\n${failed} bagian gagal disimpan. Isi bagian itu manual di Builder.`
+              : '\n\n**Semua bagian sudah disimpan.** Muat ulang preview untuk melihat hasilnya.'),
             preview: undefined
           };
           return updated;
@@ -228,13 +231,13 @@ export default function AdvisorWidget({ inline = false }: { inline?: boolean }) 
         const updated = [...prev];
         updated[msgIndex] = {
           ...updated[msgIndex],
-          content: updated[msgIndex].content + '\n\n **Saved successfully!** Refresh preview to see changes.',
+          content: updated[msgIndex].content + '\n\n**Tersimpan.** Muat ulang preview untuk melihat perubahan.',
           preview: undefined
         };
         return updated;
       });
     } catch {
-      alert('Failed to apply. Please try again.');
+      setMessages(prev => [...prev, { role: 'assistant', content: 'Gagal menyimpan. Coba lagi, atau isi bagian ini manual di Builder.', tone: 'notice' }]);
     } finally {
       setApplying(null);
     }
@@ -243,7 +246,7 @@ export default function AdvisorWidget({ inline = false }: { inline?: boolean }) 
   const generateAll = async () => {
     reshuffleSuggestions();
     setLoading(true);
-    // Fetch data existing dulu
+    // Check what already exists first
     let existingData: ExistingSectionFlags = {};
     try {
       const [aboutRes, heroRes, skillsRes, expRes, projRes] = await Promise.all([
@@ -264,9 +267,8 @@ export default function AdvisorWidget({ inline = false }: { inline?: boolean }) 
 
     const allSections = ['bio', 'hero', 'skills', 'services', 'projects', 'experience', 'testimonials', 'gallery', 'contact'];
 
-    // Hanya generate yang kosong
+    // Only generate optional sections; important ones are listed for the user to fill.
     const importantSections = ['bio', 'hero', 'experience', 'skills', 'projects', 'contact'];
-
 
     const missingSections: string[] = [];
     const sectionsToGenerate = allSections.filter(s => {
@@ -279,7 +281,6 @@ export default function AdvisorWidget({ inline = false }: { inline?: boolean }) 
       if (s === 'testimonials' && existingData.hasTestimonials) return false;
       if (s === 'gallery' && existingData.hasCertificates) return false;
       if (s === 'contact' && existingData.hasContact) return false;
-      // Kalau section penting kosong, catat tapi jangan generate
       if (importantSections.includes(s)) {
         missingSections.push(s);
         return false;
@@ -295,7 +296,7 @@ export default function AdvisorWidget({ inline = false }: { inline?: boolean }) 
     if (sectionsToGenerate.length === 0 && missingSections.length === 0) {
       setMessages(prev => [...prev, {
         role: 'assistant',
-        content: ' Portfolio kamu sudah lengkap! Semua section sudah terisi.\n\nMau saya improve section tertentu? Ketik misalnya "improve bio saya" atau "enhance skills section".'
+        content: 'Semua bagian portfolio sudah terisi.\n\nMau saya bantu memperbaiki bagian tertentu? Tulis misalnya "improve bio saya".'
       }]);
       setLoading(false);
       return;
@@ -303,71 +304,72 @@ export default function AdvisorWidget({ inline = false }: { inline?: boolean }) 
 
     if (missingSections.length > 0) {
       const missingLabels = missingSections.map(s => `* **${sectionLabels[s] || s}**`).join('\n');
-      const dummyCount = sectionsToGenerate.length;
-      const dummyMsg = dummyCount > 0 ? `\n\nSambil itu, saya akan generate contoh untuk section opsional yang kosong.` : '';
+      const dummyMsg = sectionsToGenerate.length > 0 ? `\n\nSementara itu saya coba siapkan contoh untuk bagian opsional yang masih kosong.` : '';
       setMessages(prev => [...prev, {
         role: 'assistant',
-        content: ` **Beberapa section penting belum diisi:**\n\n${missingLabels}\n\nSilakan isi section tersebut di Builder terlebih dahulu agar portfolio kamu terlihat profesional dan akurat.${dummyMsg}`
+        content: `**Bagian penting yang belum diisi:**\n\n${missingLabels}\n\nIsi bagian-bagian ini di Builder dengan data asli kamu.${dummyMsg}`
       }]);
-      if (dummyCount === 0) {
+      if (sectionsToGenerate.length === 0) {
         setLoading(false);
         return;
       }
     }
 
     const skipped = allSections.filter(s => !sectionsToGenerate.includes(s));
-    const skipMsg = skipped.length > 0 ? `\n\nOK Section yang sudah ada (skip): ${skipped.join(', ')}` : '';
+    const skipMsg = skipped.length > 0 ? `\n\nSudah terisi (dilewati): ${skipped.join(', ')}` : '';
 
     setMessages(prev => [...prev, {
       role: 'assistant',
-      content: ` **Generating ${sectionsToGenerate.length} section yang belum lengkap...**${skipMsg}\n\nMohon tunggu sebentar...`
-    }]);
-
-    const sections = sectionsToGenerate;
-    setMessages(prev => [...prev, { 
-      role: 'assistant', 
-      content: ' **Sedang merapihkan portfolio Anda...**\n\nAI akan generate semua section yang belum lengkap. Mohon tunggu sebentar...' 
+      tone: 'notice',
+      content: `Menyiapkan ${sectionsToGenerate.length} bagian…${skipMsg}`
     }]);
 
     const results: GeneratedResult[] = [];
 
-    for (const section of sections) {
+    for (const section of sectionsToGenerate) {
       try {
         if (!getToken()) await initAuth();
-        const res = await api.post<{ generated: GeneratedPayload }>(`/api/advisor/generate/${section}`);
-        const { generated } = res.data;
+        const res = await api.post<{ generated?: unknown }>(`/api/advisor/generate/${section}`);
+        const generated = res.data?.generated;
+        if (!isGeneratedPayload(generated)) continue;
         const obj = asObject(generated);
 
         let previewText = '';
         if (section === 'skills' && obj.categories) {
           previewText = obj.categories.map((c) => `**${c.title}:** ${c.skills}`).join('\n');
         } else if (section === 'bio') {
-          previewText = obj.bio as string;
+          previewText = obj.bio || '';
         } else if (section === 'hero') {
           previewText = `**Headline:** ${obj.headline}\n**Subheadline:** ${obj.subheadline}`;
         } else if (section === 'services') {
-          previewText = Array.isArray(generated) ? generated.map((s) => `${s.icon} **${s.title}:** ${s.description}`).join('\n') : '';
+          previewText = Array.isArray(generated) ? generated.map((s) => `**${s.title}:** ${s.description}`).join('\n') : '';
         } else if (section === 'projects') {
           previewText = `**${obj.title}**\n${obj.description}\nTech: ${obj.tech_stack}`;
         } else if (section === 'experience') {
           previewText = `**${obj.position}** at ${obj.company}\n${obj.description}`;
         } else if (section === 'testimonials') {
-          previewText = Array.isArray(generated) ? generated.map((t) => ` "${t.message}"  -  **${t.name}**, ${t.position}`).join('\n\n') : '';
+          previewText = Array.isArray(generated) ? generated.map((t) => `"${t.message}" — **${t.name}**, ${t.position}`).join('\n\n') : '';
         } else if (section === 'gallery') {
-          previewText = Array.isArray(generated) ? generated.map((g) => ` **${g.title}**\n${g.description}`).join('\n\n') : '';
+          previewText = Array.isArray(generated) ? generated.map((g) => `**${g.title}**\n${g.description}`).join('\n\n') : '';
         } else if (section === 'contact') {
-          previewText = ` ${obj.email}\n ${obj.phone}\n ${obj.location}`;
+          previewText = [obj.email, obj.phone, obj.location].filter(Boolean).join('\n');
         }
         results.push({ section, data: generated, previewText });
       } catch {}
     }
 
-    // Tampilkan semua hasil sekaligus dengan satu tombol apply all
-    const summaryText = results.map(r => ` **${r.section === 'gallery' ? 'CERTIFICATE' : r.section.toUpperCase()}:**\n${r.previewText}`).join('\n\n---\n\n');
+    if (results.length === 0) {
+      // Before, this still said "everything generated" and showed an apply button for nothing.
+      setMessages(prev => [...prev, { role: 'assistant', content: GENERATE_UNAVAILABLE, tone: 'notice' }]);
+      setLoading(false);
+      return;
+    }
+
+    const summaryText = results.map(r => `**${r.section === 'gallery' ? 'CERTIFICATE' : r.section.toUpperCase()}:**\n${r.previewText}`).join('\n\n---\n\n');
 
     setMessages(prev => [...prev, {
       role: 'assistant',
-      content: ` **Semua section sudah di-generate!**\n\n${summaryText}\n\n---\nKlik **"Terapkan Semua"** untuk save ke portfolio!`,
+      content: `Usulan untuk ${results.length} bagian:\n\n${summaryText}\n\nPeriksa dulu, lalu simpan semuanya ke portfolio.`,
       preview: { section: 'all', data: results }
     }]);
     setLoading(false);
@@ -380,16 +382,14 @@ export default function AdvisorWidget({ inline = false }: { inline?: boolean }) 
 
     setMessages(prev => [...prev, { role: 'user', content: userMsg }]);
 
-    // Check apakah auto fill all
     if (isAutoFillAll(userMsg)) {
       await generateAll();
       return;
     }
 
-    // Check apakah ada intent generate section
     const section = detectSection(userMsg);
-    const isGenerateIntent = userMsg.toLowerCase().includes('isi') || 
-      userMsg.toLowerCase().includes('generate') || 
+    const isGenerateIntent = userMsg.toLowerCase().includes('isi') ||
+      userMsg.toLowerCase().includes('generate') ||
       userMsg.toLowerCase().includes('buat') ||
       userMsg.toLowerCase().includes('tambah') ||
       userMsg.toLowerCase().includes('fill');
@@ -403,6 +403,7 @@ export default function AdvisorWidget({ inline = false }: { inline?: boolean }) 
     setLoading(true);
     setMessages(prev => [...prev, { role: 'assistant', content: '' }]);
 
+    let fullContent = '';
     try {
       if (!getToken()) await initAuth();
       const token = getToken();
@@ -412,175 +413,141 @@ export default function AdvisorWidget({ inline = false }: { inline?: boolean }) 
           'Content-Type': 'application/json',
           'Authorization': token ? `Bearer ${token}` : ''
         },
-        body: JSON.stringify({ message: userMsg, history: messages.slice(-6) })
+        body: JSON.stringify({ message: userMsg, history: messages.filter(m => m.tone !== 'notice').slice(-6).map(({ role, content }) => ({ role, content })) })
       });
 
-      const reader = res.body!.getReader();
+      if (!res.body) throw new Error('No response body');
+      const reader = res.body.getReader();
       const decoder = new TextDecoder();
-      let fullContent = '';
+      let buffer = '';
 
       while (true) {
         const { done, value } = await reader.read();
         if (done) break;
-        const chunk = decoder.decode(value);
-        const lines = chunk.split('\n').filter(l => l.startsWith('data: '));
-        for (const line of lines) {
+        buffer += decoder.decode(value, { stream: true });
+        const rawLines = buffer.split('\n');
+        buffer = rawLines.pop() || '';
+        for (const line of rawLines.filter(l => l.startsWith('data: '))) {
           try {
             const json: AdvisorStreamEvent = JSON.parse(line.slice(6));
             if (json.score !== undefined) setScore({ score: json.score, total: json.total as number });
             if (json.token) {
-              const nextContent = fullContent + json.token;
-              fullContent = nextContent;
-              setMessages(prev => {
-                const updated = [...prev];
-                updated[updated.length - 1] = { role: 'assistant', content: nextContent };
-                return updated;
-              });
+              fullContent += json.token;
+              const snapshot = fullContent;
+              replaceLast({ role: 'assistant', content: snapshot });
             }
             if (json.done) setLoading(false);
           } catch {}
         }
       }
+      // The route streams nothing when the AI key is missing, and a canned "Sorry…" token when the upstream call throws.
+      if (!fullContent.trim() || SERVER_FAILURE.test(fullContent.trim())) replaceLast({ role: 'assistant', content: AI_UNAVAILABLE, tone: 'notice' });
     } catch {
-      setMessages(prev => {
-        const updated = [...prev];
-        updated[updated.length - 1] = { role: 'assistant', content: 'Sorry, something went wrong.' };
-        return updated;
-      });
+      replaceLast({ role: 'assistant', content: fullContent ? `${fullContent}\n\n(Jawaban terputus.)` : AI_UNAVAILABLE, tone: fullContent ? undefined : 'notice' });
     } finally {
       setLoading(false);
     }
   };
 
-
-  const scorePercent = score ? Math.round(score.score / score.total * 100) : null;
-  const scoreColor = scorePercent ? (scorePercent >= 80 ? '#22c55e' : scorePercent >= 50 ? '#f59e0b' : '#ef4444') : '#a855f7';
+  const scorePercent = score && score.total ? Math.round(score.score / score.total * 100) : null;
 
   const renderContent = (text: string) => {
     // Render **bold** as React elements (no raw HTML from LLM output)
     return text.split('\n').map((line, i) => {
-      if (!line) return <p key={i} className="leading-relaxed">{' '}</p>;
+      if (!line) return <div key={i} className="h-2" aria-hidden="true" />;
+      if (line.trim() === '---') return <hr key={i} className="my-2 border-rule" />;
       const parts = line.split(/\*\*(.*?)\*\*/g);
       return (
-        <p key={i} className="leading-relaxed">
-          {parts.map((part, j) => (j % 2 === 1 ? <strong key={j}>{part}</strong> : part))}
+        <p key={i}>
+          {parts.map((part, j) => (j % 2 === 1 ? <strong key={j} className="font-semibold">{part}</strong> : part))}
         </p>
       );
     });
   };
 
+  const last = messages[messages.length - 1];
+
   return (
-    <div className="flex flex-col h-full bg-[#0a0a1a]">
-      <div className="flex flex-shrink-0 items-center gap-3 border-b border-purple-900/20 px-6 py-4">
-        <AdvisorAvatar />
-        <div className="min-w-0">
-          <div className="flex items-center gap-2">
-            <h2 className="truncate text-sm font-semibold text-white">Portfolio Advisor</h2>
-            <span className="rounded-full border border-emerald-400/20 bg-emerald-400/10 px-2 py-0.5 text-[10px] font-medium text-emerald-300">Online</span>
-          </div>
-          <p className="mt-0.5 truncate text-xs text-gray-400">AI-powered portfolio assistant</p>
+    <div className={`flex h-full flex-col bg-paper text-ink ${inline ? '' : 'min-h-0'}`}>
+      <header className="flex flex-shrink-0 flex-wrap items-end justify-between gap-3 border-b border-rule px-5 py-4 sm:px-8">
+        <div>
+          <h2 className="font-display text-2xl font-semibold tracking-tight">Advisor</h2>
+          <p className="mt-0.5 text-sm text-ink-soft">Saran untuk melengkapi portfolio. Jawaban dibuat AI; periksa sebelum disimpan.</p>
         </div>
-      </div>
-
-      {/* Completeness bar  -  compact */}
-      {scorePercent !== null && (
-        <div className="flex-shrink-0 px-6 py-2 border-b border-purple-900/20 flex items-center gap-3">
-          <span className="text-xs text-gray-400">Portfolio Completeness:</span>
-          <div className="w-32 h-2 bg-white/10 rounded-full overflow-hidden">
-            <motion.div className="h-full rounded-full" style={{ backgroundColor: scoreColor }}
-              initial={{ width: 0 }} animate={{ width: `${scorePercent}%` }} transition={{ duration: 0.8 }} />
-          </div>
-          <span className="text-xs font-bold" style={{ color: scoreColor }}>{scorePercent}%</span>
-          <span className="text-lg">{scorePercent >= 80 ? '' : scorePercent >= 50 ? '' : ''}</span>
-        </div>
-      )}
-
-      {/* Messages */}
-      <div className="flex-1 overflow-y-auto p-6 space-y-4">
-        {messages.map((msg, i) => (
-          <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-            {msg.role === 'assistant' && (
-              <div className="mr-3 mt-1"><AdvisorAvatar small /></div>
-            )}
-            <div className="max-w-[80%]">
-              <div className={`px-4 py-3 rounded-2xl text-sm ${msg.role === 'user' ? 'rounded-br-sm' : 'rounded-bl-sm'}`}
-                style={{
-                  backgroundColor: msg.role === 'user' ? '#7c3aed' : 'rgba(255,255,255,0.06)',
-                  color: 'white',
-                  border: msg.role === 'assistant' ? '1px solid rgba(168,85,247,0.15)' : 'none'
-                }}>
-                <div className="space-y-1">{renderContent(msg.content)}</div>
-                {loading && i === messages.length - 1 && msg.role === 'assistant' && msg.content && (
-                  <motion.span animate={{ opacity: [1, 0] }} transition={{ duration: 0.5, repeat: Infinity }}></motion.span>
-                )}
-              </div>
-              {/* Preview action button */}
-              {msg.preview && (
-                <button
-                  onClick={() => applySection(msg.preview!.section, msg.preview!.data, i)}
-                  disabled={applying !== null}
-                  className="mt-2 w-full py-2 px-4 rounded-xl text-sm font-medium transition hover:opacity-90 disabled:opacity-50"
-                  style={{ backgroundColor: msg.preview.section === 'all' ? '#059669' : msg.preview.section === 'boom' ? '#7c3aed' : '#7c3aed', color: 'white', background: msg.preview.section === 'boom' ? 'linear-gradient(135deg, #7c3aed, #059669)' : undefined }}>
-                  {applying !== null ? ' Saving...' : msg.preview.section === 'all' ? ' Terapkan Semua ke Portfolio!' : msg.preview.section === 'boom' ? ' Rapihkan Portfolio Saya Sekarang!' : ' Pakai Ini  -  Save ke Portfolio'}
-                </button>
-              )}
+        {scorePercent !== null && (
+          <div className="flex items-center gap-3" aria-label={`Kelengkapan portfolio ${scorePercent} persen`}>
+            <span className="text-xs text-ink-soft">Kelengkapan</span>
+            <div className="h-1 w-28 overflow-hidden rounded-full bg-paper-deep">
+              <div className="h-full bg-accent transition-[width] duration-300 motion-reduce:transition-none" style={{ width: `${scorePercent}%` }} />
             </div>
-          </div>
-        ))}
-
-        {loading && messages[messages.length - 1]?.content === '' && (
-          <div className="flex justify-start">
-            <div className="mr-3"><AdvisorAvatar small /></div>
-            <div className="px-4 py-3 rounded-2xl rounded-bl-sm border border-purple-900/20" style={{ backgroundColor: 'rgba(255,255,255,0.06)' }}>
-              <div className="flex gap-1">
-                {[0,1,2].map(i => (
-                  <motion.div key={i} className="w-2 h-2 rounded-full bg-purple-500"
-                    animate={{ y: [0, -6, 0] }}
-                    transition={{ duration: 0.6, repeat: Infinity, delay: i * 0.15 }} />
-                ))}
-              </div>
-            </div>
+            <span className="font-mono text-sm tabular-nums">{scorePercent}%</span>
           </div>
         )}
-        <div ref={messagesEndRef} />
+      </header>
+
+      {/* Messages */}
+      <div className="flex-1 overflow-y-auto" aria-live="polite">
+        <div className="mx-auto max-w-3xl space-y-5 px-5 py-6 sm:px-8">
+          {messages.map((msg, i) => {
+            if (msg.role === 'assistant' && !msg.content && loading && i === messages.length - 1) return null;
+            return (
+              <div key={i} className={msg.role === 'user' ? 'flex justify-end' : ''}>
+                {msg.role === 'user' ? (
+                  <div className="max-w-[85%] rounded-lg border border-rule bg-white px-3.5 py-2.5 text-sm leading-relaxed whitespace-pre-wrap">{msg.content}</div>
+                ) : msg.tone === 'notice' ? (
+                  <div role="status" className="max-w-[90%] rounded-md border border-rule bg-paper-deep px-3.5 py-2.5 text-[13px] leading-relaxed text-ink-soft">{msg.content}</div>
+                ) : (
+                  <div className="max-w-[90%]">
+                    <p className="mb-1 text-xs font-medium text-ink-soft">Advisor</p>
+                    <div className="border-l-2 border-rule pl-3.5 text-sm leading-relaxed">{renderContent(msg.content)}</div>
+                    {msg.preview && (
+                      <button
+                        type="button"
+                        onClick={() => applySection(msg.preview!.section, msg.preview!.data, i)}
+                        disabled={applying !== null || loading}
+                        className="mt-3 ml-3.5 rounded-md bg-ink px-3.5 py-2 text-sm font-medium text-paper transition-colors hover:bg-black disabled:cursor-not-allowed disabled:opacity-50">
+                        {applying !== null ? 'Menyimpan…' : msg.preview.section === 'all' ? 'Simpan semua ke portfolio' : msg.preview.section === 'boom' ? 'Periksa portfolio saya' : 'Simpan ke portfolio'}
+                      </button>
+                    )}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+
+          {loading && last?.role === 'assistant' && last.content === '' && (
+            <p className="text-[13px] text-ink-soft" role="status">Advisor sedang menulis…</p>
+          )}
+          <div ref={messagesEndRef} />
+        </div>
       </div>
 
-      {/* Suggested  -  selalu tampil, random 4 */}
-      {!loading && (
-        <div className="px-6 pb-3 flex flex-wrap gap-2">
-          {suggested.slice(0, messages.length === 1 ? 4 : 4).map(q => (
-            <button key={q} onClick={() => sendMessage(q)}
+      {/* Suggestions + input */}
+      <div className="flex-shrink-0 border-t border-rule bg-paper">
+        <div className="mx-auto max-w-3xl px-5 py-4 sm:px-8">
+          {!loading && (
+            <div className="mb-3 flex flex-wrap gap-1.5">
+              {suggested.map(q => (
+                <button key={q} type="button" onClick={() => sendMessage(q)}
+                  className="rounded-md border border-rule bg-white px-2.5 py-1 text-[13px] text-ink-soft transition-colors hover:border-ink-soft hover:text-ink">
+                  {q}
+                </button>
+              ))}
+            </div>
+          )}
+          <form className="flex items-center gap-2" onSubmit={(e) => { e.preventDefault(); sendMessage(); }}>
+            <label htmlFor="advisor-input" className="sr-only">Pertanyaan untuk Advisor</label>
+            <input id="advisor-input" ref={inputRef} value={input}
+              onChange={e => setInput(e.target.value)}
+              placeholder='Contoh: "Apa yang kurang dari portfolio saya?"'
               disabled={loading}
-              className="text-xs px-4 py-2 rounded-full border transition hover:opacity-80 disabled:opacity-40"
-              style={{ borderColor: 'rgba(168,85,247,0.4)', color: '#a855f7', backgroundColor: 'rgba(168,85,247,0.1)' }}>
-              {q}
+              className="min-w-0 flex-1 rounded-md border border-rule bg-white px-3 py-2 text-sm text-ink placeholder:text-[#9a9aa0] outline-none transition-colors focus:border-ink focus:ring-2 focus:ring-ink/10 disabled:opacity-60"
+            />
+            <button type="submit" disabled={loading || !input.trim()}
+              className="shrink-0 rounded-md bg-ink px-3.5 py-2 text-sm font-medium text-paper transition-colors hover:bg-black disabled:cursor-not-allowed disabled:opacity-50">
+              {loading ? 'Menunggu…' : 'Kirim'}
             </button>
-          ))}
-        </div>
-      )}
-
-      {/* Input */}
-      <div className="flex-shrink-0 px-6 pb-6">
-        <div className="flex items-center gap-3 rounded-2xl border border-purple-400/20 bg-white/[0.04] p-2.5 transition focus-within:border-purple-400/60 focus-within:bg-white/[0.06] focus-within:shadow-[0_0_0_3px_rgba(168,85,247,0.08)]">
-          <input ref={inputRef} value={input}
-            onChange={e => setInput(e.target.value)}
-            onKeyDown={e => e.key === 'Enter' && !e.shiftKey && sendMessage()}
-            placeholder='Try: "Isi bagian skills saya"'
-            disabled={loading}
-            className="flex-1 bg-transparent text-white text-sm outline-none placeholder-gray-500 disabled:opacity-50"
-          />
-          <button type="button" onClick={() => sendMessage()} disabled={loading || !input.trim()}
-            className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-purple-500 to-violet-700 text-white shadow-lg shadow-purple-950/40 transition hover:-translate-y-0.5 hover:shadow-purple-900/60 disabled:translate-y-0 disabled:cursor-not-allowed disabled:opacity-35"
-            aria-label={loading ? 'Sending message' : 'Send message'}>
-            {loading ? (
-              <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/40 border-t-white" />
-            ) : (
-              <svg viewBox="0 0 24 24" fill="none" className="h-5 w-5" aria-hidden="true">
-                <path d="m5 12 14-7-4.5 14-3-5.5L5 12Z" fill="currentColor" />
-                <path d="m11.5 13.5 7-8.5" stroke="#7c3aed" strokeWidth="1.5" strokeLinecap="round" />
-              </svg>
-            )}
-          </button>
+          </form>
         </div>
       </div>
     </div>

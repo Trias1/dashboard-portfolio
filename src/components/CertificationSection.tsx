@@ -1,5 +1,4 @@
 'use client';
-import { motion } from 'framer-motion';
 import { useState } from 'react';
 
 type DatePart = string | number;
@@ -68,77 +67,58 @@ export default function CertificationSection({
   const visible = showAll ? items : items.slice(0, initialCount);
   return (
     <div>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <ul className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
       {visible.map((rawCert, i: number) => {
         const cert = toCertification(rawCert);
         const issueDate = formatCertificationDate(cert);
         const expiryDate = formatCertExpiry(cert);
         const skills: string[] = Array.isArray(cert.skills) ? cert.skills : [];
         const certImage = cert.imageUrl || '';
+        const credential = cert.credentialUrl || cert.credential_url;
 
         return (
-          <motion.div key={i}
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ delay: i * 0.1 }}
-            whileHover={{ y: -6 }}
-            className={`p-5 rounded-2xl border flex flex-col ${cardBg}`}
-          >
+          <li key={i} className={`flex flex-col rounded-md border p-4 ${cardBg}`}>
             {certImage && (
-              <div className="w-full h-36 rounded-lg mb-3 overflow-hidden bg-cover bg-center"
-                style={{ backgroundImage: `url(${certImage})` }}>
-                <img src={certImage} alt={cert.name || cert.title}
-                  className="w-full h-full object-cover"
+              <div className="mb-3 h-36 w-full overflow-hidden rounded-sm">
+                <img src={certImage} alt={cert.name || cert.title || 'Certificate'}
+                  className="h-full w-full object-cover"
                   onError={(e) => { e.currentTarget.style.display = 'none' }} />
               </div>
             )}
-            <h3 className={`text-base font-bold mb-1 ${textColor}`}>{cert.name || cert.title}</h3>
+            <h3 className={`text-base font-semibold leading-snug ${textColor}`}>{cert.name || cert.title}</h3>
             {cert.issuer && (
-              <p className="text-sm" style={{ color: accentColor }}>{cert.issuer}</p>
+              <p className="mt-0.5 text-sm" style={{ color: accentColor }}>{cert.issuer}</p>
             )}
-            {issueDate && (
-              <p className={`text-xs mt-1 ${subTextColor}`}>
-                Diterbitkan: {issueDate}
-              </p>
-            )}
-            {expiryDate && (
-              <p className={`text-xs ${subTextColor}`}>
-                {cert.noExpiration || cert.noExpiry ? expiryDate : `Berlaku hingga: ${expiryDate}`}
+            {(issueDate || expiryDate) && (
+              <p className={`mt-1 font-mono text-xs ${subTextColor}`}>
+                {issueDate}
+                {issueDate && expiryDate && ' · '}
+                {expiryDate && (cert.noExpiration || cert.noExpiry ? expiryDate : `berlaku s.d. ${expiryDate}`)}
               </p>
             )}
             {cert.description && (
-              <p className={`text-sm mt-2 flex-1 text-justify ${subTextColor}`}>{cert.description}</p>
+              <p className={`mt-2 flex-1 text-sm leading-relaxed ${subTextColor}`}>{cert.description}</p>
             )}
             {skills.length > 0 && (
-              <div className="flex flex-wrap gap-1.5 mt-3">
-                {skills.map((skill: string) => (
-                  <span key={skill}
-                    className="text-xs px-2 py-0.5 rounded-full"
-                    style={{ backgroundColor: accentColor + '20', color: accentColor }}>
-                    {skill}
-                  </span>
-                ))}
-              </div>
+              <p className={`mt-3 text-xs ${subTextColor}`}>{skills.join(' · ')}</p>
             )}
-            {(cert.credentialUrl || cert.credential_url) && (
-              <motion.a href={cert.credentialUrl || cert.credential_url} target="_blank"
-                whileHover={{ scale: 1.05 }}
-                className="mt-3 text-center text-xs px-3 py-1.5 rounded-full font-medium text-white"
-                style={{ backgroundColor: accentColor }}>
-                Lihat Kredensial
-              </motion.a>
+            {credential && (
+              <a href={credential} target="_blank" rel="noopener noreferrer"
+                className="mt-3 self-start text-sm font-medium underline underline-offset-4 hover:no-underline"
+                style={{ color: accentColor }}>
+                Lihat kredensial ↗
+              </a>
             )}
-          </motion.div>
+          </li>
         );
       })}
-    </div>
+      </ul>
     {items.length > initialCount && (
-      <div className="text-center mt-8">
-        <button onClick={() => setShowAll(!showAll)}
-          className="px-6 py-2 rounded-full text-sm font-medium transition-all hover:scale-105 text-white"
-          style={{ backgroundColor: accentColor }}>
-          {showAll ? 'Tampilkan Lebih Sedikit' : `Lihat Lainnya (${items.length - initialCount})`}
+      <div className="mt-6">
+        <button type="button" onClick={() => setShowAll(!showAll)}
+          className="text-sm font-medium underline underline-offset-4 hover:no-underline"
+          style={{ color: accentColor }}>
+          {showAll ? 'Tampilkan lebih sedikit' : `Lihat ${items.length - initialCount} lainnya`}
         </button>
       </div>
     )}

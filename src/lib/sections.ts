@@ -48,8 +48,8 @@ export const defaultSections: Section[] = [
 ];
 
 export const themes = [
-  { id: 'dark-space', label: 'Dark bawaan', icon: 'D', bg: '#0a0a1a', accent: '#a855f7' },
-  { id: 'white', label: 'White', icon: 'W', bg: '#ffffff', accent: '#6366f1' },
+  { id: 'dark-space', label: 'Gelap', icon: 'D', bg: '#111214', accent: '#5b8def' },
+  { id: 'white', label: 'Terang', icon: 'W', bg: '#ffffff', accent: '#1f45c9' },
 ];
 
 export const normalizeThemeId = (themeId?: string | null) => {
