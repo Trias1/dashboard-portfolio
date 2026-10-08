@@ -2,7 +2,7 @@
 // All CSS is scoped under .cv-doc and lives inside the .cv-doc element so the client can hand that element
 // to html2pdf (which clones only the element, not <head>) and still get the same layout.
 
-export type CvTemplate = 'professional' | 'modern' | 'executive';
+export type CvTemplate = 'ats' | 'professional' | 'modern' | 'executive';
 
 type Row = Record<string, unknown>;
 
@@ -18,13 +18,15 @@ export interface CvSourceData {
 }
 
 const TEMPLATES: Record<CvTemplate, { accent: string; font: string; headFont: string }> = {
+  // Plain black, single column, no side-by-side layout: what applicant tracking systems parse most reliably.
+  ats: { accent: '#111111', font: "Arial, 'Helvetica Neue', Helvetica, sans-serif", headFont: "Arial, 'Helvetica Neue', Helvetica, sans-serif" },
   professional: { accent: '#1e3a8a', font: "Arial, 'Helvetica Neue', Helvetica, sans-serif", headFont: "Arial, 'Helvetica Neue', Helvetica, sans-serif" },
   modern: { accent: '#0f766e', font: "Arial, 'Helvetica Neue', Helvetica, sans-serif", headFont: "Arial, 'Helvetica Neue', Helvetica, sans-serif" },
   executive: { accent: '#7a2e2e', font: "Georgia, 'Times New Roman', Times, serif", headFont: "Georgia, 'Times New Roman', Times, serif" },
 };
 
 export function resolveTemplate(t: string | null | undefined): CvTemplate {
-  return t === 'modern' || t === 'executive' ? t : 'professional';
+  return t === 'professional' || t === 'modern' || t === 'executive' ? t : 'ats';
 }
 
 export function esc(value: unknown) {
@@ -82,6 +84,11 @@ function renderEntry(e: Entry, t: CvTemplate) {
   const title = `<div class="cv-title">${e.title}</div>`;
   const sub = e.sub ? `<div class="cv-sub">${e.sub}</div>` : '';
   const body = e.body || '';
+  if (t === 'ats') {
+    // Reading order = visual order; every piece is plain text on its own line.
+    const date = e.date ? `<div class="cv-date">${esc(e.date)}</div>` : '';
+    return `<div class="cv-entry">${title}${sub}${date}${body}</div>`;
+  }
   if (t === 'modern') {
     return `<div class="cv-entry cv-row"><div class="cv-side">${e.date ? esc(e.date) : ''}</div><div class="cv-main">${title}${sub}${body}</div></div>`;
   }
@@ -130,6 +137,7 @@ function css(t: CvTemplate) {
 .cv-doc .cv-skill{margin-bottom:3pt}
 .cv-doc .cv-skill b{font-weight:700}
 .cv-doc .cv-text,.cv-doc .cv-li,.cv-doc .cv-meta,.cv-doc .cv-contact{overflow-wrap:anywhere}
+${t === 'ats' ? '.cv-doc.cv-ats .cv-date{display:block;margin-top:1pt;color:#333}.cv-doc.cv-ats .cv-h2{color:#111;border-bottom-color:#111}.cv-doc.cv-ats .cv-header{border-bottom:0.75pt solid #111}.cv-doc.cv-ats .cv-role{color:#111}.cv-doc.cv-ats .cv-dot{color:#111}' : ''}
 @page{size:A4;margin:16mm 14mm}
 html.cv-standalone{background:#ecebe7}
 html.cv-standalone body{margin:0;padding:24px 0}
@@ -159,7 +167,7 @@ export function buildCvHtml(data: CvSourceData, template: string): { html: strin
 
   // Experience
   sections.push(renderSection('Experience', (data.experience || []).map((e) => renderEntry({
-    title: `${esc(s(e.position) || 'Role')}${s(e.company) && t !== 'modern' ? `<span class="cv-at">, ${esc(e.company)}</span>` : ''}`,
+    title: `${esc(s(e.position) || 'Role')}${s(e.company) && t !== 'modern' ? `<span class="cv-at">${t === 'ats' ? ' — ' : ', '}${esc(e.company)}</span>` : ''}`,
     sub: t === 'modern' && s(e.company) ? esc(e.company) : undefined,
     date: range(e.start_date, e.end_date, true),
     body: bullets(e.description),
@@ -255,7 +263,7 @@ export function buildCvHtml(data: CvSourceData, template: string): { html: strin
     ${role ? `<div class="cv-role">${esc(role)}</div>` : ''}
     ${contactParts.length ? `<div class="cv-contact">${contactParts.map((p) => `<span>${esc(p)}</span>`).join('')}</div>` : ''}
   </header>
-  ${s(a.bio) ? `<p class="cv-summary">${esc(a.bio)}</p>` : ''}`;
+  ${s(a.bio) ? (t === 'ats' ? `<section class="cv-section"><h2 class="cv-h2">Summary</h2><p class="cv-text">${esc(a.bio)}</p></section>` : `<p class="cv-summary">${esc(a.bio)}</p>`) : ''}`;
 
   // Empty-title entries (languages, skills…) shouldn't print an empty bold line.
   const body = sections.filter(Boolean).join('\n').replace(/<div class="cv-title"><\/div>/g, '');

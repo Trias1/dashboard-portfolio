@@ -8,12 +8,11 @@ import { Section, SECTION_ORDER } from '@/lib/sections';
 import { getErrorMessage } from '@/lib/utils';
 import type { DashboardPortfolio } from '@/types';
 
-type Html2PdfOptions = Parameters<InstanceType<(typeof import('html2pdf.js'))['default']['Worker']>['set']>[0];
-
 const isCustomSectionKey = (key: CvAppliedSection): key is `custom:${string}` => key.startsWith('custom:');
 
 const TEMPLATES = [
-  { id: 'professional', label: 'Professional', desc: 'Satu kolom, sans-serif. Paling aman untuk ATS.' },
+  { id: 'ats', label: 'ATS (untuk melamar kerja)', desc: 'Hitam-putih, satu kolom, judul bagian standar. Paling mudah dibaca sistem rekrutmen.' },
+  { id: 'professional', label: 'Professional', desc: 'Satu kolom dengan aksen biru tua.' },
   { id: 'modern', label: 'Dua kolom', desc: 'Tanggal di kolom kiri, isi di kanan.' },
   { id: 'executive', label: 'Executive', desc: 'Serif, header di tengah. Kesan formal.' },
 ];
@@ -42,7 +41,7 @@ function cvErrorMessage(err: unknown) {
 }
 
 export default function CVPanel({ portfolio, setSections, loadPreview }: Props) {
-  const [cvTemplate, setCvTemplate] = useState('professional');
+  const [cvTemplate, setCvTemplate] = useState('ats');
   const [busy, setBusy] = useState<null | 'pdf' | 'print'>(null);
   const [cvError, setCvError] = useState('');
 
@@ -97,27 +96,24 @@ export default function CVPanel({ portfolio, setSections, loadPreview }: Props) 
     return res.data;
   };
 
+  // PDFs come from the browser's print engine ("Save as PDF"): the text stays real text, which applicant
+  // tracking systems need. (html2pdf drew the CV as an image, so ATS saw an empty document.)
+  // The window is opened synchronously so pop-up blockers allow it.
   const downloadPdf = async () => {
     setCvError('');
+    const win = window.open('', '_blank');
+    if (!win) { setCvError('Pop-up diblokir browser. Izinkan pop-up untuk situs ini lalu coba lagi.'); return; }
     setBusy('pdf');
     try {
       const html = await fetchCvHtml();
-      const parsed = new DOMParser().parseFromString(html, 'text/html');
-      const docEl = parsed.querySelector('.cv-doc');
-      if (!docEl) throw new Error('Format CV tidak dikenali.');
-      const baseName = (parsed.title || 'CV').replace(/[\\/:*?"<>|]+/g, '').trim() || 'CV';
-      const { default: html2pdf } = await import('html2pdf.js');
-      // Margins live in the PDF, not in the HTML. `pagebreak` keeps entries and section titles from being cut across pages.
-      const options = {
-        margin: [16, 14, 16, 14] as [number, number, number, number],
-        filename: `${baseName}.pdf`,
-        image: { type: 'jpeg' as const, quality: 0.98 },
-        html2canvas: { scale: 2, useCORS: true, backgroundColor: '#ffffff', logging: false },
-        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' as const },
-        pagebreak: { mode: ['css', 'legacy'], avoid: ['.cv-entry', '.cv-keep'] },
-      };
-      await html2pdf().set(options as Html2PdfOptions).from(docEl.outerHTML).save();
+      win.document.open();
+      win.document.write(html);
+      win.document.close();
+      const print = () => { win.focus(); win.print(); };
+      if (win.document.readyState === 'complete') setTimeout(print, 300);
+      else win.addEventListener('load', () => setTimeout(print, 300), { once: true });
     } catch (err) {
+      win.close();
       setCvError(cvErrorMessage(err));
     } finally {
       setBusy(null);
@@ -188,14 +184,14 @@ export default function CVPanel({ portfolio, setSections, loadPreview }: Props) 
             <div className="flex flex-wrap items-center gap-2">
               <button type="button" onClick={downloadPdf} disabled={busy !== null}
                 className="rounded-md bg-ink px-3.5 py-2 text-sm font-medium text-paper transition-colors hover:bg-black disabled:cursor-not-allowed disabled:opacity-60">
-                {busy === 'pdf' ? 'Membuat PDF…' : 'Unduh PDF'}
+                {busy === 'pdf' ? 'Menyiapkan…' : 'Unduh PDF'}
               </button>
               <button type="button" onClick={openPrintable} disabled={busy !== null}
                 className="rounded-md border border-rule bg-white px-3.5 py-2 text-sm text-ink transition-colors hover:border-ink-soft disabled:cursor-not-allowed disabled:opacity-60">
                 {busy === 'print' ? 'Membuka…' : 'Buka versi cetak'}
               </button>
             </div>
-            <p className="text-[12px] text-ink-soft">Versi cetak dibuka di tab baru: tekan Ctrl+P lalu pilih &ldquo;Simpan sebagai PDF&rdquo; untuk teks yang bisa diseleksi. Untuk file resume yang ditampilkan di portfolio, unggah lewat bagian About.</p>
+            <p className="text-[12px] text-ink-soft">&ldquo;Unduh PDF&rdquo; membuka jendela cetak: pilih tujuan <b className="font-medium text-ink">Simpan sebagai PDF</b>. Hasilnya PDF berisi teks asli, jadi bisa dibaca sistem ATS saat melamar kerja. Matikan opsi &ldquo;Header dan footer&rdquo; di jendela cetak supaya tidak ada tanggal/URL di pinggir halaman.</p>
           </div>
         </section>
       </div>
