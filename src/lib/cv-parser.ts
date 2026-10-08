@@ -189,17 +189,64 @@ export function matchHeader(line: string): string | null {
 
 interface Block { head: string[]; desc: string[]; start: string; end: string }
 
-/** Group a section's lines into entries: a short non-bullet line after a description, or a second date range, starts a new entry. */
+/** A line that is only a date range, e.g. "Mar 2018 - Dec 2020" or "(2014 – 2018)". */
+const isDateOnly = (line: string) => {
+  const m = line.match(DATE_RANGE_RX);
+  return !!m && line.replace(m[0], '').replace(/[\s|,()·•–—-]/g, '').length === 0;
+};
+
+/**
+ * Group a section's lines into entries.
+ * When the CV puts dates on their own line ("Role - Company" / "Jan 2021 - Present" / details), the line right
+ * above a date line starts a new entry and lines after the date are its description.
+ * Otherwise: a short non-bullet line after a description, or a second date range, starts a new entry.
+ */
 export function groupBlocks(lines: string[]): Block[] {
   const blocks: Block[] = [];
   let cur: Block | null = null;
   const fresh = (): Block => { const b = { head: [], desc: [], start: '', end: '' }; blocks.push(b); return b; };
-  for (const raw of lines) {
-    const bullet = BULLET_RX.test(raw);
-    const line = raw.replace(BULLET_RX, '').trim();
-    if (!line) continue;
+  const items = lines
+    .map((raw) => ({ bullet: BULLET_RX.test(raw), line: raw.replace(BULLET_RX, '').trim() }))
+    .filter((it) => it.line);
+  const dateLines = items.some((it) => isDateOnly(it.line));
+  // Some CVs put the date first: "Jan 2021 - Present" / "Role - Company" / details.
+  const dateFirst = !!items[0] && isDateOnly(items[0].line);
+  items.forEach(({ bullet, line }, i) => {
     const dm = line.match(DATE_RANGE_RX);
     const headLike = !bullet && line.length <= 90;
+    if (dateFirst) {
+      if (isDateOnly(line)) { cur = fresh(); cur.start = dm![1].trim(); cur.end = dm![2].trim(); return; }
+      if (!cur) cur = fresh();
+      if (headLike && cur.head.length === 0 && cur.desc.length === 0) cur.head.push(line);
+      else cur.desc.push(line);
+      return;
+    }
+    if (dateLines) {
+      if (isDateOnly(line)) {
+        if (!cur) cur = fresh();
+        if (cur.start) cur = fresh();
+        cur.start = dm![1].trim(); cur.end = dm![2].trim();
+        return;
+      }
+      const next = items[i + 1];
+      const startsEntry = headLike && !!next && isDateOnly(next.line);
+      // Two-line headers ("Role" / "Company" / date) stay together while the entry has no date or details yet.
+      if (!cur || (startsEntry && (cur.start || cur.desc.length > 0))) {
+        const prevBlock: Block | null = cur;
+        cur = fresh();
+        // "Intern" / "PT Gamma" / "Jun 2019 - Dec 2019": the short, non-bullet line above belongs to this new header.
+        const prev = items[i - 1];
+        if (prevBlock && prev && !prev.bullet && prevBlock.desc[prevBlock.desc.length - 1] === prev.line
+          && prev.line.split(/\s+/).length <= 5 && !/[.;:!?,]$/.test(prev.line) && !isDateOnly(prev.line)) {
+          prevBlock.desc.pop();
+          cur.head.push(prev.line);
+        }
+      }
+      if (dm && !cur.start) { cur.start = dm[1].trim(); cur.end = dm[2].trim(); }
+      if (!bullet && headLike && !cur.start && cur.desc.length === 0 && cur.head.length < 3) cur.head.push(line);
+      else cur.desc.push(line);
+      return;
+    }
     if (!cur) cur = fresh();
     else if (headLike) {
       const prev = cur.desc[cur.desc.length - 1] || '';
@@ -209,7 +256,7 @@ export function groupBlocks(lines: string[]): Block[] {
     if (dm && !cur.start) { cur.start = dm[1].trim(); cur.end = dm[2].trim(); }
     if (bullet || !headLike || cur.head.length >= 3) cur.desc.push(line);
     else cur.head.push(line);
-  }
+  });
   return blocks.filter((b) => b.head.length || b.desc.length);
 }
 
