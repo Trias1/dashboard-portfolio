@@ -14,7 +14,6 @@ export async function GET(request: NextRequest) {
   try {
     const auth = await requireAuth(request);
     const template = resolveTemplate(request.nextUrl.searchParams.get('template'));
-    const lang = request.nextUrl.searchParams.get('lang');
     const userId = auth.id;
     const db = getSupabaseAdmin();
 
@@ -44,7 +43,7 @@ export async function GET(request: NextRequest) {
       certificates: certificates.data || [],
       custom: customSections.data || [],
       portfolioUrl: portfolioLink(portfolio.data),
-    }, template, lang ?? undefined);
+    }, template);
 
     const filename = `${name.replace(/[^\p{L}\p{N}]+/gu, '_').replace(/^_|_$/g, '') || 'CV'}_CV.html`;
     return new Response(html, {

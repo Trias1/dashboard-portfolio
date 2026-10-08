@@ -42,7 +42,6 @@ function cvErrorMessage(err: unknown) {
 
 export default function CVPanel({ portfolio, setSections, loadPreview }: Props) {
   const [cvTemplate, setCvTemplate] = useState('ats');
-  const [cvLang, setCvLang] = useState<'en' | 'id'>('en');
   const [busy, setBusy] = useState<null | 'pdf' | 'print'>(null);
   const [cvError, setCvError] = useState('');
 
@@ -90,7 +89,7 @@ export default function CVPanel({ portfolio, setSections, loadPreview }: Props) 
   };
 
   const fetchCvHtml = async () => {
-    const res = await api.get<string>(`/api/cv/generate?template=${encodeURIComponent(cvTemplate)}&lang=${cvLang}`, {
+    const res = await api.get<string>(`/api/cv/generate?template=${encodeURIComponent(cvTemplate)}`, {
       responseType: 'text', timeout: 30000, transformResponse: (d) => d,
     });
     if (typeof res.data !== 'string' || !res.data.includes('cv-doc')) throw new Error('Respons server bukan dokumen CV.');
@@ -173,18 +172,6 @@ export default function CVPanel({ portfolio, setSections, loadPreview }: Props) 
             </fieldset>
 
             <div>
-              <fieldset className="mb-5">
-                <legend className="mb-2 text-[13px] font-medium text-ink">Bahasa CV</legend>
-                <div role="radiogroup" className="inline-flex overflow-hidden rounded-md border border-rule bg-white text-sm">
-                  {([['en', 'English'], ['id', 'Indonesia']] as const).map(([code, label]) => (
-                    <button key={code} type="button" role="radio" aria-checked={cvLang === code} onClick={() => setCvLang(code)}
-                      className={`px-3 py-1.5 transition-colors ${cvLang === code ? 'bg-ink text-paper' : 'text-ink-soft hover:text-ink'}`}>
-                      {label}
-                    </button>
-                  ))}
-                </div>
-                <p className="mt-1.5 text-[12px] text-ink-soft">Mengubah judul bagian, nama bulan, dan teks tetap. Isi yang kamu tulis ditampilkan apa adanya — samakan bahasanya supaya CV tidak campur.</p>
-              </fieldset>
               <p className="mb-2 text-[13px] font-medium text-ink">Yang dimasukkan</p>
               <ul className="space-y-1 text-[13px] text-ink-soft">
                 {INCLUDED.map((item) => <li key={item} className="border-l border-rule pl-2.5">{item}</li>)}
