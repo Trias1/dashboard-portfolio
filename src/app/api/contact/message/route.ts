@@ -3,6 +3,7 @@ import { getSupabaseAdmin } from '@/lib/supabase/admin';
 import { errorResponse, successResponse, getErrorMessage } from '@/lib/utils';
 import { checkRateLimit, getClientId } from '@/lib/rate-limit';
 import { sendContactNotification } from '@/lib/mailer';
+import { notifyRecipient } from '@/lib/notify-email';
 
 const MAX_NAME_LENGTH = 100;
 const MAX_EMAIL_LENGTH = 254;
@@ -36,12 +37,12 @@ export async function POST(request: NextRequest) {
 
     await getSupabaseAdmin().from('contact_messages').insert({ name, email, message, owner_id });
 
-    // Notify owner at their account email (users.email), not the free-form public contact_info.email,
-    // so the contact form cannot be abused to relay mail to arbitrary third-party addresses.
-    const { data: owner } = await getSupabaseAdmin().from('users').select('email').eq('id', owner_id).maybeSingle();
-    if (owner?.email) {
+    // Notify the owner at their confirmed notification email or their account email — never the free-form
+    // public contact_info.email, so the contact form cannot be abused to relay mail to arbitrary addresses.
+    const recipient = await notifyRecipient(owner_id);
+    if (recipient) {
       try {
-        await sendContactNotification(owner.email, name, email, message);
+        await sendContactNotification(recipient, name, email, message);
       } catch (err) {
         console.error('[SMTP Error] Failed to send contact email:', err);
         // Return error so the user knows it failed, preventing silent data loss.

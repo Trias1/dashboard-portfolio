@@ -1,6 +1,7 @@
 ﻿"use client";
 
 import type { EditFormData, StringFieldKey } from "@/types";
+import NotifyEmailSettings from "@/components/dashboard/NotifyEmailSettings";
 
 const inputClass =
   "w-full rounded-md border border-rule bg-white px-3 py-2 text-sm text-ink placeholder:text-[#9a9aa0] outline-none transition-colors focus:border-ink focus:ring-2 focus:ring-ink/10";
@@ -111,6 +112,7 @@ export function ContactEditor({
         onChange,
         "https://github.com/...",
       )}
+      <NotifyEmailSettings />
     </div>
   );
 }

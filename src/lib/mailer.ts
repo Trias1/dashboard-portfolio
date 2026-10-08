@@ -67,6 +67,17 @@ export async function sendResetPassword(email: string, name: string, token: stri
   });
 }
 
+export async function sendNotifyEmailVerification(email: string, token: string) {
+  const sender = getSender();
+  const verifyUrl = `${BASE_URL}/api/contact/notify-email/verify?token=${encodeURIComponent(token)}`;
+  await transporter.sendMail({
+    from: sender.from,
+    to: headerSafe(email, 320),
+    subject: 'Confirm where your portfolio messages go - PortfolioKit',
+    html: `<div style="font-family:-apple-system,Segoe UI,Helvetica,Arial,sans-serif;max-width:480px;margin:0 auto;padding:32px 24px;background:#ffffff;color:#141414;line-height:1.55"><p style="margin:0 0 24px;font-weight:600;font-size:16px">PortfolioKit</p><h1 style="margin:0 0 8px;font-size:22px">Send portfolio messages here?</h1><p style="margin:0 0 20px">Confirm this address and messages from your portfolio's contact form will be delivered to it.</p><a href="${escapeHtml(verifyUrl)}" style="display:inline-block;background:#1f45c9;color:#ffffff;padding:11px 18px;border-radius:6px;text-decoration:none;font-weight:600;margin:8px 0 4px">Confirm this email</a><p style="margin:32px 0 0;padding-top:16px;border-top:1px solid #dcdcd5;color:#55555a;font-size:12px">This link expires in 24 hours. If you didn't ask for this, ignore this email and nothing will change.</p></div>`,
+  });
+}
+
 export async function sendContactNotification(ownerEmail: string, name: string, email: string, message: string) {
   const sender = getSender();
   await transporter.sendMail({
