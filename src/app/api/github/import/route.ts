@@ -54,7 +54,16 @@ export async function POST(request: NextRequest) {
       repos.forEach((r) => { if (r.language) langCount[r.language] = (langCount[r.language] || 0) + 1; });
       const topLangs = Object.entries(langCount).sort((a, b) => b[1] - a[1]).slice(0, 12).map(([l]) => l);
       if (topLangs.length > 0) {
-        await getSupabaseAdmin().from('skills').insert({ title: 'GitHub Languages', skills: topLangs.join(', '), owner_id: userId });
+        // Add to the user's programming-languages group (re-importing doesn't create a second one).
+        const { data: groups } = await getSupabaseAdmin().from('skills').select('id,title,skills').eq('owner_id', userId);
+        const group = (groups || []).find((g) => /^(?:programming\s+languages?|languages?|github\s+languages)$/i.test(String(g.title || '').trim()));
+        if (group) {
+          const current = String(group.skills || '').split(',').map((s) => s.trim()).filter(Boolean);
+          const merged = [...current, ...topLangs.filter((l) => !current.some((c) => c.toLowerCase() === l.toLowerCase()))];
+          await getSupabaseAdmin().from('skills').update({ title: 'Programming Languages', skills: merged.join(', ') }).eq('id', group.id).eq('owner_id', userId);
+        } else {
+          await getSupabaseAdmin().from('skills').insert({ title: 'Programming Languages', skills: topLangs.join(', '), owner_id: userId });
+        }
         results.push('skills');
       }
     }
