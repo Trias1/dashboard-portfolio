@@ -8,6 +8,7 @@ interface ProfileForm {
   email: string;
   password: string;
   confirmPassword: string;
+  currentPassword?: string;
   photo_url: string;
 }
 
@@ -142,6 +143,28 @@ export default function DashboardProfileModal({
                 placeholder="Repeat password"
               />
             </div>
+          </div>
+          <div>
+            <label className={labelClass}>
+              {lang === "id" ? "Password Saat Ini" : "Current Password"}
+            </label>
+            <input
+              type="password"
+              autoComplete="current-password"
+              value={profileForm.currentPassword || ""}
+              onChange={(event) =>
+                setProfileForm({
+                  ...profileForm,
+                  currentPassword: event.target.value,
+                })
+              }
+              className={inputClass}
+              placeholder={
+                lang === "id"
+                  ? "Wajib jika mengganti email/password"
+                  : "Required to change email/password"
+              }
+            />
           </div>
           <div>
             <label className={labelClass}>

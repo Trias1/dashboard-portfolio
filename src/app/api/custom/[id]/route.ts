@@ -8,7 +8,8 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     const auth = await requireAuth(request);
     const { id } = await params;
     const { title, type, content } = await request.json();
-    const { data } = await getSupabaseAdmin().from('custom_sections').update({ title, type, content: JSON.stringify(content || {}) }).eq('id', id).select().single();
+    const { data } = await getSupabaseAdmin().from('custom_sections').update({ title, type, content: JSON.stringify(content || {}) }).eq('id', id).eq('owner_id', auth.id).select().maybeSingle();
+    if (!data) return errorResponse('Not found', 404);
     return successResponse(data);
   } catch (err: any) { return errorResponse(err.message); }
 }
@@ -17,7 +18,8 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
   try {
     const auth = await requireAuth(request);
     const { id } = await params;
-    await getSupabaseAdmin().from('custom_sections').delete().eq('id', id);
+    const { data } = await getSupabaseAdmin().from('custom_sections').delete().eq('id', id).eq('owner_id', auth.id).select('id');
+    if (!data || data.length === 0) return errorResponse('Not found', 404);
     return successResponse({ message: 'Deleted' });
   } catch (err: any) { return errorResponse(err.message); }
 }

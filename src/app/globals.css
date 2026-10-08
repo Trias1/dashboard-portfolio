@@ -10,6 +10,18 @@
   --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+  --font-display: var(--font-bricolage), var(--font-geist-sans), sans-serif;
+}
+
+/* Palette for landing + auth pages (non-inline so the vars also exist at runtime). */
+@theme {
+  --color-paper: #fafaf7;
+  --color-paper-deep: #efefe9;
+  --color-ink: #141414;
+  --color-ink-soft: #55555a;
+  --color-rule: #dcdcd5;
+  --color-accent: #1f45c9;
+  --color-accent-dark: #17349a;
 }
 
 @media (prefers-color-scheme: dark) {

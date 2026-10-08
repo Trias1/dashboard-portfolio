@@ -1,31 +1,38 @@
 import { NextRequest } from 'next/server';
 import { getSupabaseAdmin } from '@/lib/supabase/admin';
-import { signAccessToken, signRefreshToken, setAuthCookies } from '@/lib/auth';
+import {
+  signAccessToken, signRefreshToken, setAuthCookies, clearChallengeCookies, hasOtpChallenge, normalizeEmail, verifyOtpChallenge,
+} from '@/lib/auth';
+import { checkRateLimit, getClientId } from '@/lib/rate-limit';
 import { errorResponse, successResponse } from '@/lib/utils';
-import otpStore from '@/lib/otp-store';
 
 export async function POST(request: NextRequest) {
   try {
-    const { email, otp } = await request.json();
+    const body = await request.json();
+    const email = normalizeEmail(body.email);
+    const otp = typeof body.otp === 'string' ? body.otp.trim() : String(body.otp ?? '').trim();
     if (!email || !otp) return errorResponse('Email and OTP required', 400);
 
-    const stored = otpStore.get(email);
-    if (!stored) return errorResponse('OTP not found or expired', 400);
-    if (Date.now() > stored.expires) {
-      otpStore.delete(email);
-      return errorResponse('OTP expired', 400);
-    }
-    if (stored.otp !== otp) return errorResponse('Invalid OTP', 400);
-    otpStore.delete(email);
+    const ipRl = await checkRateLimit(`otp-verify-ip:${getClientId(request)}`, 'auth');
+    if (!ipRl.allowed) return errorResponse('Too many attempts. Please try again later.', 429);
+
+    // Only count per-email attempts once the caller holds a challenge for this email (password step passed),
+    // so strangers can't burn the victim's attempt budget and lock them out.
+    if (!(await hasOtpChallenge(email))) return errorResponse('Invalid or expired OTP', 400);
+    const emailRl = await checkRateLimit(`otp-verify:${email}`, 'otp');
+    if (!emailRl.allowed) return errorResponse('Too many attempts. Please try again later.', 429);
+
+    if (!(await verifyOtpChallenge(email, otp))) return errorResponse('Invalid or expired OTP', 400);
 
     const { data: user } = await getSupabaseAdmin()
       .from('users')
-      .select('*')
+      .select('id, name, email, role, is_verified, is_active')
       .eq('email', email)
       .maybeSingle();
 
-    if (!user) return errorResponse('User not found', 404);
+    if (!user || !user.is_verified || !user.is_active) return errorResponse('Invalid or expired OTP', 400);
 
+    await clearChallengeCookies();
     const accessToken = await signAccessToken({ id: user.id, email: user.email, role: user.role });
     const refreshToken = await signRefreshToken({ id: user.id });
     await setAuthCookies(accessToken, refreshToken);
@@ -35,7 +42,7 @@ export async function POST(request: NextRequest) {
       accessToken,
       user: { id: user.id, name: user.name, email: user.email, role: user.role },
     });
-  } catch (err: any) {
-    return errorResponse(err.message);
+  } catch {
+    return errorResponse('Unable to verify OTP', 500);
   }
 }

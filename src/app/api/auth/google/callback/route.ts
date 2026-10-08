@@ -1,6 +1,8 @@
 ﻿import { NextRequest } from 'next/server';
+import { cookies } from 'next/headers';
+import crypto from 'crypto';
 import { getSupabaseAdmin } from '@/lib/supabase/admin';
-import { signAccessToken, signRefreshToken, setAuthCookies } from '@/lib/auth';
+import { signAccessToken, signRefreshToken, setAuthCookies, GOOGLE_STATE_COOKIE, safeRedirectPath } from '@/lib/auth';
 import { generateSlug } from '@/lib/utils';
 
 const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
@@ -16,6 +18,21 @@ function redirectToLogin(error: string) {
 export async function GET(request: NextRequest) {
   try {
     const code = request.nextUrl.searchParams.get('code');
+    const returnedState = request.nextUrl.searchParams.get('state') || '';
+
+    // CSRF protection: state must match the value stored in the httpOnly cookie by /api/auth/google.
+    const cookieStore = await cookies();
+    const rawState = cookieStore.get(GOOGLE_STATE_COOKIE)?.value;
+    cookieStore.delete({ name: GOOGLE_STATE_COOKIE, path: '/api/auth/google' });
+    let saved: { state?: unknown; from?: unknown } = {};
+    try { saved = rawState ? JSON.parse(rawState) : {}; } catch { saved = {}; }
+    const expected = typeof saved.state === 'string' ? Buffer.from(saved.state) : null;
+    const actual = Buffer.from(returnedState);
+    if (!expected || expected.length !== actual.length || !crypto.timingSafeEqual(expected, actual)) {
+      return redirectToLogin('invalid_state');
+    }
+    const from = safeRedirectPath(saved.from);
+
     if (!code) return redirectToLogin('no_code');
 
     const tokenRes = await fetch('https://oauth2.googleapis.com/token', {
@@ -46,6 +63,8 @@ export async function GET(request: NextRequest) {
       console.error('[google oauth] profile lookup failed', { status: userRes.status, error: profile.error });
       return redirectToLogin('profile_failed');
     }
+    // Never link/create an account from an email address Google hasn't verified.
+    if (profile.verified_email !== true && profile.email_verified !== true) return redirectToLogin('email_not_verified');
 
     const supabase = getSupabaseAdmin();
     const { data: existingUser, error: lookupError } = await supabase
@@ -102,12 +121,15 @@ export async function GET(request: NextRequest) {
     }
 
     if (!user) return redirectToLogin('user_creation_failed');
+    if (user.is_active === false) return redirectToLogin('account_inactive');
 
     const accessToken = await signAccessToken({ id: user.id, email: user.email, role: user.role });
     const refreshToken = await signRefreshToken({ id: user.id });
     await setAuthCookies(accessToken, refreshToken);
 
-    return Response.redirect(new URL(user.role === 'admin' || user.role === 'superadmin' ? '/dashboard' : '/', BASE_URL));
+    const fallback = new URL(user.role === 'admin' || user.role === 'superadmin' ? '/dashboard' : '/', BASE_URL);
+    const target = from ? new URL(from, BASE_URL) : fallback;
+    return Response.redirect(target.origin === fallback.origin ? target : fallback);
   } catch (error) {
     console.error('[google oauth] unexpected error', error instanceof Error ? { name: error.name, message: error.message } : error);
     return redirectToLogin('oauth_failed');

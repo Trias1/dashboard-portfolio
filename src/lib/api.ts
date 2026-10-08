@@ -13,8 +13,10 @@ export const setUser = (user: any) => {
 };
 export const getUser = () => {
   if (memoryUser) return memoryUser;
-  const stored = localStorage.getItem('user');
-  return stored ? JSON.parse(stored) : null;
+  try {
+    const stored = localStorage.getItem('user');
+    return stored ? JSON.parse(stored) : null;
+  } catch { return null; }
 };
 
 const api = axios.create({
@@ -32,7 +34,8 @@ api.interceptors.response.use(
   (response) => response,
   async (error) => {
     const original = error.config;
-    if (error.response?.status === 401 && !original._retry) {
+    const isRefreshCall = typeof original?.url === 'string' && original.url.includes('/api/auth/refresh');
+    if (error.response?.status === 401 && original && !original._retry && !isRefreshCall) {
       original._retry = true;
       try {
         const res = await axios.post('/api/auth/refresh', {}, { withCredentials: true });

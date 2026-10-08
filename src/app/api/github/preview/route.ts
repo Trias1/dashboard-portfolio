@@ -11,21 +11,25 @@ const ghFetch = async (url: string) => {
   return res.json();
 };
 
-const extractUsername = (input: string) => {
-  const match = input.match(/github\.com\/([^/]+)/);
-  return match ? match[1] : input.replace(/\.git$/, '').trim();
+const GITHUB_USERNAME_RE = /^[A-Za-z0-9-]{1,39}$/;
+const extractUsername = (input: unknown): string | null => {
+  if (typeof input !== 'string') return null;
+  const match = input.match(/github\.com\/([^/?#]+)/);
+  const username = (match ? match[1] : input.replace(/\.git$/, '')).trim();
+  return GITHUB_USERNAME_RE.test(username) ? username : null;
 };
 
 export async function GET(request: NextRequest) {
   try {
     await requireAuth(request);
-    let username = request.nextUrl.searchParams.get('username');
-    if (!username) return errorResponse('Username required', 400);
-    username = extractUsername(username);
+    const rawUsername = request.nextUrl.searchParams.get('username');
+    if (!rawUsername) return errorResponse('Username required', 400);
+    const username = extractUsername(rawUsername);
+    if (!username) return errorResponse('Invalid GitHub username', 400);
 
     const [user, repos] = await Promise.all([
-      ghFetch(`https://api.github.com/users/${username}`),
-      ghFetch(`https://api.github.com/users/${username}/repos?sort=updated&per_page=100&type=owner`),
+      ghFetch(`https://api.github.com/users/${encodeURIComponent(username)}`),
+      ghFetch(`https://api.github.com/users/${encodeURIComponent(username)}/repos?sort=updated&per_page=100&type=owner`),
     ]);
 
     const langCount: Record<string, number> = {};
@@ -51,5 +55,9 @@ export async function GET(request: NextRequest) {
         stars: r.stargazers_count, fork: r.fork,
       })),
     });
-  } catch (err: any) { return errorResponse(err.message); }
+  } catch (err: any) {
+    if (err?.message === 'GitHub API error: 404') return errorResponse('GitHub user not found', 404);
+    if (err?.message?.startsWith('GitHub API error')) return errorResponse(err.message, 502);
+    return errorResponse(err.message);
+  }
 }

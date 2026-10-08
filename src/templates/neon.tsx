@@ -339,8 +339,8 @@ export default function NeonTemplate({ data, theme, isPreview }: { data: Templat
               {sec.type === 'text' && (sec.items || []).map((item: TemplateItem) => (
                 <NeonBorder key={item.id} ac={ac} className="p-6 mb-4"><p className="text-sm leading-relaxed text-center text-justify font-mono" style={{ color: subColor }}>{item.content?.body}</p></NeonBorder>
               ))}
-              {sec.type === 'list' && (sec.items || []).map((item: TemplateItem) => (
-                <ul className="space-y-3 max-w-2xl mx-auto">
+              {sec.type === 'list' && (sec.items || []).map((item: TemplateItem, idx: number) => (
+                <ul key={item.id ?? idx} className="space-y-3 max-w-2xl mx-auto">
                   {(item.content?.items || []).map((listItem: string, i: number) => (
                     <motion.li key={i} initial={{ opacity: 0, x: -20 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }}
                       className="text-sm font-mono flex gap-2" style={{ color: subColor }}>

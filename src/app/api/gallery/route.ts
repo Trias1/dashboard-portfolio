@@ -1,13 +1,16 @@
 import { NextRequest } from 'next/server';
 import { requireAuth } from '@/lib/auth';
 import { getSupabaseAdmin } from '@/lib/supabase/admin';
-import { uploadFile, deleteFile } from '@/lib/supabase/storage';
+import { uploadFile } from '@/lib/supabase/storage';
+import { sanitizeExternalUrl, validateUpload } from '@/lib/upload-validation';
 import { errorResponse, successResponse } from '@/lib/utils';
 
 export async function GET(request: NextRequest) {
   try {
     const auth = await requireAuth(request);
-    const owner_id = request.nextUrl.searchParams.get('owner_id') || auth.id;
+    // Only superadmin may read another user's data via ?owner_id=
+    const requestedOwner = request.nextUrl.searchParams.get('owner_id');
+    const owner_id = auth.role === 'superadmin' && requestedOwner ? requestedOwner : auth.id;
     if (!owner_id) return successResponse([]);
     const { data } = await getSupabaseAdmin().from('gallery').select('*').eq('owner_id', owner_id).order('created_at', { ascending: false });
     return successResponse(data || []);
@@ -27,14 +30,16 @@ export async function POST(request: NextRequest) {
     let file_url = null;
     let image_url = null;
 
-    if (file) {
-      const ext = file.name.split('.').pop() || 'pdf';
-      const fileName = `gallery-${auth.id}-${Date.now()}.${ext}`;
-      const buffer = Buffer.from(await file.arrayBuffer());
-      file_url = await uploadFile(buffer, fileName, file.type, 'gallery');
-      image_url = (file.type === 'application/pdf' || ext.toLowerCase() === 'pdf') ? null : file_url;
+    if (file && typeof file !== 'string') {
+      const checked = await validateUpload(file, ['image', 'pdf']);
+      if (!checked.ok) return errorResponse(checked.error, 400);
+      const fileName = `gallery-${auth.id}.${checked.type.ext}`;
+      file_url = await uploadFile(checked.buffer, fileName, checked.type.mime, 'gallery');
+      image_url = checked.type.kind === 'pdf' ? null : file_url;
     } else {
-      file_url = formData.get('file_url') as string || null;
+      const rawUrl = formData.get('file_url');
+      file_url = rawUrl ? sanitizeExternalUrl(rawUrl) : null;
+      if (rawUrl && !file_url) return errorResponse('Invalid file URL', 400);
       image_url = file_url;
     }
 

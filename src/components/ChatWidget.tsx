@@ -69,14 +69,17 @@ export default function ChatWidget({ slug, accentColor, ownerName }: ChatWidgetP
       const reader = res.body.getReader();
       const decoder = new TextDecoder();
       let fullContent = '';
+      let buffer = '';
 
       setMessages(prev => [...prev, { role: 'assistant', content: '' }]);
 
       while (true) {
         const { done, value } = await reader.read();
         if (done) break;
-        const chunk = decoder.decode(value);
-        const lines = chunk.split('\n').filter(l => l.startsWith('data: '));
+        buffer += decoder.decode(value, { stream: true });
+        const rawLines = buffer.split('\n');
+        buffer = rawLines.pop() || '';
+        const lines = rawLines.filter(l => l.startsWith('data: '));
 
         for (const line of lines) {
           const data = line.slice(6).trim();
@@ -88,9 +91,10 @@ export default function ChatWidget({ slug, accentColor, ownerName }: ChatWidgetP
             } else if (json.token) {
               fullContent += json.token;
             }
+            const snapshot = fullContent;
             setMessages(prev => {
               const updated = [...prev];
-              updated[updated.length - 1] = { role: 'assistant', content: fullContent };
+              updated[updated.length - 1] = { role: 'assistant', content: snapshot };
               return updated;
             });
           } catch {}
@@ -99,7 +103,9 @@ export default function ChatWidget({ slug, accentColor, ownerName }: ChatWidgetP
     } catch {
       setMessages(prev => {
         const updated = [...prev];
-        updated[updated.length - 1] = { role: 'assistant', content: ' Sorry, I cannot connect right now.' };
+        const fallback: Message = { role: 'assistant', content: ' Sorry, I cannot connect right now.' };
+        if (updated[updated.length - 1]?.role === 'assistant') updated[updated.length - 1] = fallback;
+        else updated.push(fallback);
         return updated;
       });
     } finally {

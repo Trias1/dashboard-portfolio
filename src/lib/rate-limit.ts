@@ -2,7 +2,7 @@ import { getSupabaseAdmin } from './supabase/admin';
 
 const WINDOW_MS = 15 * 60 * 1000;
 const MAX_REQUESTS: Record<string, number> = {
-  global: 200, auth: 30, otp: 5, message: 3,
+  global: 200, auth: 30, otp: 5, message: 3, chat: 30, ai: 20, upload: 30, ogimage: 30,
 };
 
 export type RateLimitType = keyof typeof MAX_REQUESTS;
@@ -26,8 +26,8 @@ export async function checkRateLimit(identifier: string, type: RateLimitType = '
 }
 
 export function getClientId(request: Request): string {
-  const forwarded = request.headers.get('x-forwarded-for');
-  const ip = forwarded?.split(',')[0]?.trim() || 'unknown';
-  const ua = request.headers.get('user-agent') || '';
-  return `${ip}:${ua.slice(0, 30)}`;
+  const realIp = request.headers.get('x-real-ip')?.trim();
+  if (realIp) return realIp;
+  const forwarded = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim();
+  return forwarded || 'unknown';
 }

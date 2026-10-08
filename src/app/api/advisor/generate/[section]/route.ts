@@ -1,6 +1,7 @@
 import { NextRequest } from 'next/server';
 import { requireAuth } from '@/lib/auth';
 import { getSupabaseAdmin } from '@/lib/supabase/admin';
+import { checkRateLimit } from '@/lib/rate-limit';
 
 const NINE_ROUTER_API_KEY = process.env.NINE_ROUTER_API_KEY!;
 const NINE_ROUTER_BASE_URL = process.env.NINE_ROUTER_BASE_URL || "https://router.zeen.my.id/v1";
@@ -10,6 +11,12 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     const auth = await requireAuth(request);
     const { section } = await params;
     const userId = auth.id;
+    const rl = await checkRateLimit(`ai:${auth.id}`, 'ai');
+    if (!rl.allowed) {
+      return new Response(`data: ${JSON.stringify({ token: 'Too many AI requests. Please try again later.', done: true })}\n\n`, {
+        status: 429, headers: { 'Content-Type': 'text/event-stream' },
+      });
+    }
 
     const [aboutRes, heroRes, skillsRes, expRes, projRes, servicesRes] = await Promise.all([
       getSupabaseAdmin().from('about').select('*').eq('owner_id', userId).maybeSingle(),
@@ -29,7 +36,8 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       services: `Suggest 4-5 relevant services for ${about.name || 'a tech professional'} based on current portfolio data.`,
     };
 
-    const systemPrompt = systemPrompts[section] || `Generate content for "${section}" section.`;
+    const safeSection = section.replace(/[^a-zA-Z0-9 _-]/g, '').slice(0, 40);
+    const systemPrompt = systemPrompts[section] || `Generate content for "${safeSection}" section.`;
 
     const groqRes = await fetch(`${NINE_ROUTER_BASE_URL}/chat/completions`, {
       method: 'POST',

@@ -19,7 +19,16 @@ export function formatDate(date: string | Date): string {
 }
 
 // Error response helper
+// - Auth errors thrown by requireAuth/requireAdmin ('Unauthorized'/'Forbidden') that reach a
+//   generic catch are mapped to 401/403 instead of 500.
+// - Other 500s return a generic message so internal error details (DB/SDK errors) don't leak.
 export function errorResponse(message: string, status: number = 500) {
+  if (status === 500) {
+    if (message === 'Unauthorized') return Response.json({ message }, { status: 401 });
+    if (message === 'Forbidden') return Response.json({ message }, { status: 403 });
+    console.error('[API 500]', message);
+    return Response.json({ message: 'Internal server error' }, { status });
+  }
   return Response.json({ message }, { status });
 }
 

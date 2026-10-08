@@ -1,5 +1,5 @@
 "use client";
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   KeyboardSensor,
@@ -14,7 +14,6 @@ import {
   defaultSections,
   Section,
   availableSections,
-  themes,
   getThemeById,
   normalizeThemeId,
 } from "@/lib/sections";
@@ -58,13 +57,42 @@ function parseSectionsOrder(value: any): Section[] {
   }
 }
 
+function parseJsonSafe<T = unknown>(value: unknown, fallback: T): T {
+  if (typeof value !== "string") return (value ?? fallback) as T;
+  try {
+    return JSON.parse(value);
+  } catch {
+    return fallback;
+  }
+}
+
+const typedSectionMap: Record<string, string> = {
+  Education: "education",
+  Certifications: "certification",
+  Languages: "language",
+  "Specialization Areas": "specialization",
+  Awards: "award",
+  Organizations: "organization",
+};
+
+const customTitleAliases: Record<string, string> = {
+  Certification: "Certifications",
+  "Specialization Area": "Specialization Areas",
+};
+
+const normalizeCustomTitle = (title?: string) => {
+  const trimmed = (title || "").trim();
+  return customTitleAliases[trimmed] || trimmed;
+};
+
 export default function DashboardPage() {
   const router = useRouter();
   const { users, adminStats, vercelLogs, vercelLogsLoading, vercelLogsError, fetchUsers, fetchAdminStats, fetchVercelLogs } = useDashboardAdmin();
   const { portfolio, setPortfolio, sections, setSections, activeSection, setActiveSection, selectedTheme, setSelectedTheme, previewData, previewLoading, loadPreview } = useDashboardPortfolio();
   const [user, setUser] = useState<any>(null);
   const [activeMenu, setActiveMenu] = useState("builder"); // akan di-override setelah user load
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  // null = responsive default (collapsed below `md`, expanded on desktop) until the user toggles it.
+  const [sidebarOpen, setSidebarOpen] = useState<boolean | null>(null);
   const [showProfile, setShowProfile] = useState(false);
   const [showAddSection, setShowAddSection] = useState(false);
   const [profileForm, setProfileForm] = useState({
@@ -107,16 +135,25 @@ export default function DashboardPage() {
     }),
   );
 
+  const userId = user?.id;
   useEffect(() => {
-    if (!user) return;
-    const beat = () => api.post('/api/auth/heartbeat').catch(() => undefined);
+    if (!userId) return;
+    const beat = () => {
+      if (document.hidden) return;
+      api.post('/api/auth/heartbeat').catch(() => undefined);
+    };
     beat();
     const timer = window.setInterval(beat, 120000);
     return () => window.clearInterval(timer);
-  }, [user]);
+  }, [userId]);
   useEffect(() => {
-    const stored = localStorage.getItem("user");
-    const u = stored ? JSON.parse(stored) : null;
+    let u: { role?: string; name?: string; photo_url?: string } | null = null;
+    try {
+      const stored = localStorage.getItem("user");
+      u = stored ? JSON.parse(stored) : null;
+    } catch {
+      u = null;
+    }
     if (u && u.role !== "admin" && u.role !== "superadmin") {
       router.push("/");
       return;
@@ -162,7 +199,9 @@ export default function DashboardPage() {
             photo_url: res.data.photo_url || "",
           });
         })
-        .catch(() => {});
+        .catch(() => {
+          if (!u) router.replace("/login");
+        });
 
       api
         .get("/api/portfolios/my")
@@ -171,7 +210,7 @@ export default function DashboardPage() {
           if (portfolios.length > 0) {
             const p = portfolios[0];
             setPortfolio(p);
-            loadPreview(p.slug);
+            if (p.theme) setSelectedTheme(getThemeById(p.theme));
             // Load sections dari DB
             const parsedSectionsOrder = parseSectionsOrder(p.sections_order);
             if (parsedSectionsOrder.length > 0) {
@@ -201,43 +240,20 @@ export default function DashboardPage() {
         })
         .catch((err) => console.error("Failed to fetch portfolio", err));
     });
-    const savedLang = localStorage.getItem("lang") as "id" | "en";
-    if (savedLang) setLang(savedLang);
-    const savedSections = localStorage.getItem("portfolio-sections");
-    const savedTheme = localStorage.getItem("portfolio-theme");
-    if (savedSections) {
-      const parsed = JSON.parse(savedSections).filter((s: any) =>
-        allowedSectionTypes.includes(s.type),
-      );
-      const merged = defaultSections.map((def) => {
-        const saved = parsed.find((s: any) =>
-          s.type === "custom" ? s.label === def.label : s.type === def.type,
-        );
-        return saved ? { ...def, ...saved } : def;
-      });
-      const customDefaultLabels = new Set(
-        defaultSections.filter((d) => d.type === "custom").map((d) => d.label),
-      );
-      const extras = parsed.filter((s: any) => {
-        if (s.type === "custom") return !customDefaultLabels.has(s.label);
-        return !defaultSections.find((d) => d.type === s.type);
-      });
-      setSections([...merged, ...extras]);
-    }
-    if (savedTheme) {
-      try {
-        setSelectedTheme(getThemeById(JSON.parse(savedTheme)?.id));
-      } catch {
-        setSelectedTheme(themes[0]);
-      }
-    }
+    try {
+      const savedLang = localStorage.getItem("lang");
+      if (savedLang === "id" || savedLang === "en") setLang(savedLang);
+      // Sections & theme are loaded from the DB (per user). Drop the legacy
+      // unscoped caches so another account's layout never leaks in.
+      localStorage.removeItem("portfolio-sections");
+      localStorage.removeItem("portfolio-theme");
+    } catch {}
 
   }, []);
 
   useEffect(() => {
     if (!user) return;
     if (activeMenu === "users") fetchUsers();
-    if (activeMenu === "builder") loadPreview();
     if (activeMenu === "analytics") fetchVisits();
     if (activeMenu === "github") {
       setGithubPreview(null);
@@ -249,37 +265,7 @@ export default function DashboardPage() {
     }
   }, [activeMenu, user]);
 
-  useEffect(() => {
-    if (!activeSection) return;
-    fetchSectionData(activeSection.type);
-  }, [activeSection]);
-
-  useEffect(() => {
-    if (portfolio?.slug) {
-      loadPreview();
-    }
-  }, [portfolio?.slug]);
-
-  const typedSectionMap: Record<string, string> = {
-    Education: "education",
-    Certifications: "certification",
-    Languages: "language",
-    "Specialization Areas": "specialization",
-    Awards: "award",
-    Organizations: "organization",
-  };
-
-  const customTitleAliases: Record<string, string> = {
-    Certification: "Certifications",
-    "Specialization Area": "Specialization Areas",
-  };
-
-  const normalizeCustomTitle = (title?: string) => {
-    const trimmed = (title || "").trim();
-    return customTitleAliases[trimmed] || trimmed;
-  };
-
-  const fetchSectionData = async (type: string, selectedId?: number) => {
+  const fetchSectionData = useCallback(async (type: string, selectedId?: number) => {
     try {
       const apiType = type.split("-")[0];
       const endpoint =
@@ -295,13 +281,11 @@ export default function DashboardPage() {
               (subType !== "text" && i.type === subType),
           );
           setListData(matched);
-          if (selectedId) {
-            const item =
-              matched.find((i: any) => i.id === selectedId) || matched[0];
-            const content =
-              typeof item.content === "string"
-                ? JSON.parse(item.content)
-                : item.content;
+          const item = selectedId
+            ? matched.find((i: any) => i.id === selectedId) || matched[0]
+            : undefined;
+          if (item) {
+            const content = parseJsonSafe(item.content, {});
             setEditForm({ ...item, content });
             console.log(
               `... [${sectionTitle}] editForm loaded from row #${item.id}`,
@@ -330,7 +314,21 @@ export default function DashboardPage() {
     } catch (err) {
       console.error(err);
     }
-  };
+  }, [activeSection]);
+
+  useEffect(() => {
+    if (!activeSection) return;
+    // State updates in fetchSectionData happen after the awaited request, not synchronously.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    fetchSectionData(activeSection.type);
+  }, [activeSection, fetchSectionData]);
+
+  // Single source of initial preview loading: fires when the portfolio slug is known/changes.
+  useEffect(() => {
+    if (portfolio?.slug) {
+      loadPreview(portfolio.slug);
+    }
+  }, [portfolio?.slug]);
 
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
@@ -339,7 +337,6 @@ export default function DashboardPage() {
         const oldIndex = items.findIndex((i) => i.id === active.id);
         const newIndex = items.findIndex((i) => i.id === over?.id);
         const newOrder = arrayMove(items, oldIndex, newIndex);
-        localStorage.setItem("portfolio-sections", JSON.stringify(newOrder));
         if (portfolio) {
           api
             .put(`/api/portfolios/${portfolio.id}`, {
@@ -363,7 +360,6 @@ export default function DashboardPage() {
       const updated = prev.map((s) =>
         s.id === id ? { ...s, enabled: !s.enabled } : s,
       );
-      localStorage.setItem("portfolio-sections", JSON.stringify(updated));
       // Simpan ke DB
       if (portfolio) {
         api
@@ -392,7 +388,6 @@ export default function DashboardPage() {
       const updated = prev.map((s) =>
         s.id === id ? { ...s, enabled: false } : s,
       );
-      localStorage.setItem("portfolio-sections", JSON.stringify(updated));
       if (portfolio) {
         api
           .put(`/api/portfolios/${portfolio.id}`, {
@@ -432,7 +427,6 @@ export default function DashboardPage() {
     if (!res.data?.message) throw new Error("Gagal menghapus section");
     setSections((prev) => {
       const updated = prev.filter((s) => s.id !== section.id);
-      localStorage.setItem("portfolio-sections", JSON.stringify(updated));
       return updated;
     });
     if (activeSection?.id === section.id) setActiveSection(null);
@@ -453,7 +447,6 @@ export default function DashboardPage() {
     const updated = [...sections, newSection];
     setSections(updated);
     setActiveSection(newSection);
-    localStorage.setItem("portfolio-sections", JSON.stringify(updated));
     setShowAddSection(false);
 
     if (portfolio) {
@@ -480,7 +473,6 @@ export default function DashboardPage() {
 
   const handleThemeChange = async (theme: any) => {
     setSelectedTheme(theme);
-    localStorage.setItem("portfolio-theme", JSON.stringify(theme));
     if (portfolio) {
       try {
         await api.put(`/api/portfolios/${portfolio.id}`, {
@@ -488,6 +480,7 @@ export default function DashboardPage() {
           theme: normalizeThemeId(theme.id),
           sections_order: portfolio.sections_order,
           is_published: portfolio.is_published,
+          template: portfolio.template,
         });
         setPortfolio({ ...portfolio, theme: normalizeThemeId(theme.id) });
       } catch (err) {
@@ -676,7 +669,11 @@ export default function DashboardPage() {
         ];
 
         if (listTypes.includes(type)) {
-          await api.post(`/api/${type}`, formData);
+          if (formData.id) {
+            await api.put(`/api/${type}/${formData.id}`, formData);
+          } else {
+            await api.post(`/api/${type}`, formData);
+          }
         } else if (type === "contact") {
           await api.put("/api/contact", formData);
         } else {
@@ -750,7 +747,7 @@ export default function DashboardPage() {
       gallery: <GalleryEditor value={editForm} onChange={setEditForm} setMessage={setSaveMsg} onRefresh={async () => { await fetchSectionData("gallery"); await loadPreview(); }} />,
       custom: <DashboardCustomEditor activeSection={activeSection} normalizeCustomTitle={normalizeCustomTitle} typedSectionMap={typedSectionMap} editForm={editForm} setEditForm={setEditForm} inputClass={inputClass} labelClass={labelClass} certSkillSearch={certSkillSearch} handleCertSkillSearch={handleCertSkillSearch} addCertSkill={addCertSkill} certSkillSuggestions={certSkillSuggestions} removeCertSkill={removeCertSkill} detectOgImage={detectOgImage} />,
     };
-    return <DashboardEditorPanel activeSection={activeSection} field={fields[type]} saveMsg={saveMsg} saveStatus={saveStatus} listData={listData} showAllItems={showAllItems} saving={saving} saveLabel={t2("save")} savingLabel={t2("saving")} normalizeCustomTitle={normalizeCustomTitle} typedSectionMap={typedSectionMap} onClose={() => setActiveSection(null)} onSave={handleSave} onEditStored={(item) => setEditForm({ ...item, content: typeof item.content === "string" ? JSON.parse(item.content) : item.content })} onDeleteStored={async (item) => { if (!confirm("Delete this item?")) return; try { await api.delete(`/api/${activeSection.type.split("-")[0]}/${item.id}`); setListData((previous) => previous.filter((entry: any) => entry.id !== item.id)); await loadPreview(); } catch { setSaveMsg("Failed to delete"); } }} onToggleItems={() => setShowAllItems(!showAllItems)} />;
+    return <DashboardEditorPanel activeSection={activeSection} field={fields[type]} saveMsg={saveMsg} saveStatus={saveStatus} listData={listData} showAllItems={showAllItems} saving={saving} saveLabel={t2("save")} savingLabel={t2("saving")} normalizeCustomTitle={normalizeCustomTitle} typedSectionMap={typedSectionMap} onClose={() => setActiveSection(null)} onSave={handleSave} onEditStored={(item) => setEditForm({ ...item, content: parseJsonSafe(item.content, {}) })} onDeleteStored={async (item) => { if (!confirm("Delete this item?")) return; try { await api.delete(`/api/${activeSection.type.split("-")[0]}/${item.id}`); setListData((previous) => previous.filter((entry: any) => entry.id !== item.id)); await loadPreview(); } catch { setSaveMsg("Failed to delete"); } }} onToggleItems={() => setShowAllItems(!showAllItems)} />;
   };
 
   return (
@@ -879,10 +876,6 @@ export default function DashboardPage() {
                     }
                   }
                 });
-                localStorage.setItem(
-                  "portfolio-sections",
-                  JSON.stringify(updated),
-                );
                 if (portfolio) {
                   api
                     .put(`/api/portfolios/${portfolio.id}`, {

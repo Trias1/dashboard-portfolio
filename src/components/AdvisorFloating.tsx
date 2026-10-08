@@ -65,21 +65,25 @@ export default function AdvisorFloating({ accentColor }: { accentColor: string }
       const reader = res.body!.getReader();
       const decoder = new TextDecoder();
       let fullContent = '';
+      let buffer = '';
 
       while (true) {
         const { done, value } = await reader.read();
         if (done) break;
-        const chunk = decoder.decode(value);
-        const lines = chunk.split('\n').filter(l => l.startsWith('data: '));
+        buffer += decoder.decode(value, { stream: true });
+        const rawLines = buffer.split('\n');
+        buffer = rawLines.pop() || '';
+        const lines = rawLines.filter(l => l.startsWith('data: '));
         for (const line of lines) {
           try {
             const json = JSON.parse(line.slice(6));
             if (json.score !== undefined) setScore({ score: json.score, total: json.total });
             if (json.token) {
               fullContent += json.token;
+              const snapshot = fullContent;
               setMessages(prev => {
                 const updated = [...prev];
-                updated[updated.length - 1] = { role: 'assistant', content: fullContent };
+                updated[updated.length - 1] = { role: 'assistant', content: snapshot };
                 return updated;
               });
             }

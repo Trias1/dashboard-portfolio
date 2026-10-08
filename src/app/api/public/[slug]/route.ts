@@ -1,5 +1,6 @@
 ﻿import { NextRequest } from 'next/server';
 import { getSupabaseAdmin } from '@/lib/supabase/admin';
+import { getAuthUser } from '@/lib/auth';
 import { errorResponse, successResponse } from '@/lib/utils';
 
 export const dynamic = 'force-dynamic';
@@ -7,7 +8,7 @@ export const dynamic = 'force-dynamic';
 export async function GET(request: NextRequest, { params }: { params: Promise<{ slug: string }> }) {
   try {
     const { slug } = await params;
-    const isPreview = request.nextUrl.searchParams.get('preview') === 'true';
+    const previewRequested = request.nextUrl.searchParams.get('preview') === 'true';
 
     if (slug === 'demo') {
       const template = request.nextUrl.searchParams.get('template') || 'modern';
@@ -58,11 +59,16 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       });
     }
 
-    const query = getSupabaseAdmin().from('portfolios').select('*').eq('slug', slug);
-    if (!isPreview) query.eq('is_published', true);
-
-    const { data: portfolio } = await query.maybeSingle();
+    const { data: portfolio } = await getSupabaseAdmin().from('portfolios').select('*').eq('slug', slug).maybeSingle();
     if (!portfolio) return errorResponse('Portfolio not found or not published', 404);
+
+    // Preview of unpublished portfolios is only allowed for the owner (or superadmin)
+    let isPreview = false;
+    if (previewRequested) {
+      const viewer = await getAuthUser(request);
+      isPreview = !!viewer && (String(viewer.id) === String(portfolio.owner_id) || viewer.role === 'superadmin');
+    }
+    if (!portfolio.is_published && !isPreview) return errorResponse('Portfolio not found or not published', 404);
 
     const ownerId = portfolio.owner_id;
 

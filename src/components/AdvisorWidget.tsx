@@ -391,9 +391,15 @@ export default function AdvisorWidget({ inline = false }: { inline?: boolean }) 
   const scoreColor = scorePercent ? (scorePercent >= 80 ? '#22c55e' : scorePercent >= 50 ? '#f59e0b' : '#ef4444') : '#a855f7';
 
   const renderContent = (text: string) => {
+    // Render **bold** as React elements (no raw HTML from LLM output)
     return text.split('\n').map((line, i) => {
-      const bold = line.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
-      return <p key={i} className="leading-relaxed" dangerouslySetInnerHTML={{ __html: bold || '&nbsp;' }} />;
+      if (!line) return <p key={i} className="leading-relaxed">{' '}</p>;
+      const parts = line.split(/\*\*(.*?)\*\*/g);
+      return (
+        <p key={i} className="leading-relaxed">
+          {parts.map((part, j) => (j % 2 === 1 ? <strong key={j}>{part}</strong> : part))}
+        </p>
+      );
     });
   };
 

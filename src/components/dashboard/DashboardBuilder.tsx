@@ -36,8 +36,8 @@ export default function DashboardBuilder({
   preview,
 }: DashboardBuilderProps) {
   return (
-    <div className="flex flex-1 overflow-hidden bg-slate-950">
-      <aside className="flex w-64 shrink-0 flex-col border-r border-white/10 bg-slate-950/80">
+    <div className="flex flex-1 flex-col overflow-y-auto bg-slate-950 md:flex-row md:overflow-hidden">
+      <aside className="flex max-h-[50vh] w-full shrink-0 flex-col border-b border-white/10 bg-slate-950/80 md:max-h-none md:w-64 md:border-b-0 md:border-r">
         <div className="flex items-center justify-between border-b border-white/10 px-4 py-3">
           <h3 className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
             {lang === "id" ? "Bagian" : "Sections"}
@@ -81,11 +81,11 @@ export default function DashboardBuilder({
         </p>
       </aside>
       {activeSection && (
-        <section className="w-80 shrink-0 overflow-y-auto border-r border-white/10 bg-slate-900/70 p-5">
+        <section className="w-full shrink-0 overflow-y-auto border-b border-white/10 bg-slate-900/70 p-5 md:w-80 md:border-b-0 md:border-r">
           {editor}
         </section>
       )}
-      <section className="flex min-w-0 flex-1 flex-col overflow-hidden">
+      <section className="flex min-h-[70vh] min-w-0 flex-1 flex-col overflow-hidden md:min-h-0">
         {preview}
       </section>
     </div>

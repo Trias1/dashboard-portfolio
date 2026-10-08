@@ -5,6 +5,7 @@ import { getSupabaseAdmin } from '@/lib/supabase/admin';
 import { sendVerificationEmail } from '@/lib/mailer';
 import { generateSlug, errorResponse, successResponse } from '@/lib/utils';
 import { checkRateLimit, getClientId } from '@/lib/rate-limit';
+import { MIN_PASSWORD_LENGTH, normalizeEmail } from '@/lib/auth';
 
 export async function POST(request: NextRequest) {
   try {
@@ -12,8 +13,13 @@ export async function POST(request: NextRequest) {
     const rl = await checkRateLimit(getClientId(request), 'auth');
     if (!rl.allowed) return errorResponse('Too many requests', 429);
 
-    const { name, email, password } = await request.json();
+    const body = await request.json();
+    const name = typeof body.name === 'string' ? body.name.trim() : '';
+    const email = normalizeEmail(body.email);
+    const password = typeof body.password === 'string' ? body.password : '';
     if (!name || !email || !password) return errorResponse('Name, email, password required', 400);
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return errorResponse('Invalid email address', 400);
+    if (password.length < MIN_PASSWORD_LENGTH) return errorResponse(`Password must be at least ${MIN_PASSWORD_LENGTH} characters`, 400);
 
     // Check existing user
     const { data: existing } = await getSupabaseAdmin()
@@ -40,7 +46,7 @@ export async function POST(request: NextRequest) {
       .select('id, name, email, role')
       .single();
 
-    if (error) return errorResponse(error.message, 500);
+    if (error) return errorResponse(error.code === '23505' ? 'Email already exists' : 'Registration failed', error.code === '23505' ? 400 : 500);
 
     // Create portfolio
     const slug = generateSlug(name, user.id);
@@ -58,7 +64,8 @@ export async function POST(request: NextRequest) {
     await sendVerificationEmail(email, name, verificationToken);
 
     return successResponse({ message: 'Registration successful! Please check your email to verify your account.' }, 201);
-  } catch (err: any) {
-    return errorResponse(err.message);
+  } catch (err) {
+    console.error('[register] failed', err instanceof Error ? { name: err.name, message: err.message } : err);
+    return errorResponse('Registration failed', 500);
   }
 }

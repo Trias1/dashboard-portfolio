@@ -1,6 +1,7 @@
 import { NextRequest } from 'next/server';
 import { requireAuth } from '@/lib/auth';
 import { getSupabaseAdmin } from '@/lib/supabase/admin';
+import { checkRateLimit } from '@/lib/rate-limit';
 
 const NINE_ROUTER_API_KEY = process.env.NINE_ROUTER_API_KEY!;
 const NINE_ROUTER_BASE_URL = process.env.NINE_ROUTER_BASE_URL || "https://router.zeen.my.id/v1";
@@ -10,6 +11,17 @@ export async function POST(request: NextRequest) {
   try {
     const auth = await requireAuth(request);
     const { message, history = [] } = await request.json();
+    if (!message || typeof message !== 'string' || !message.trim() || message.length > 2000) {
+      return new Response(`data: ${JSON.stringify({ token: 'Message is empty or too long (max 2000 characters).', done: true })}\n\n`, {
+        status: 400, headers: { 'Content-Type': 'text/event-stream' },
+      });
+    }
+    const rl = await checkRateLimit(`ai:${auth.id}`, 'ai');
+    if (!rl.allowed) {
+      return new Response(`data: ${JSON.stringify({ token: 'Too many AI requests. Please try again later.', done: true })}\n\n`, {
+        status: 429, headers: { 'Content-Type': 'text/event-stream' },
+      });
+    }
 
     const [aboutRes, heroRes, skillsRes, servicesRes, expRes, projRes] = await Promise.all([
       getSupabaseAdmin().from('about').select('*').eq('owner_id', auth.id).maybeSingle(),
@@ -41,7 +53,9 @@ Portfolio completeness: ${score}/${total}. Be helpful and concise.`;
         model: NINE_ROUTER_MODEL,
         messages: [
           { role: 'system', content: systemPrompt },
-          ...history.slice(-6).map((m: any) => ({ role: m.role, content: m.content })),
+          ...(Array.isArray(history) ? history : []).slice(-6)
+            .filter((m: any) => m && typeof m.content === 'string')
+            .map((m: any) => ({ role: m.role === 'assistant' ? 'assistant' : 'user', content: m.content.slice(0, 2000) })),
           { role: 'user', content: message },
         ],
         stream: true, max_tokens: 600,

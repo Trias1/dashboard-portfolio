@@ -14,6 +14,8 @@ export async function GET(request: NextRequest) {
 
     const dateFrom = from ? new Date(from) : new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
     const dateTo = to ? new Date(to) : new Date();
+    if (Number.isNaN(dateFrom.getTime()) || Number.isNaN(dateTo.getTime())) return errorResponse('Invalid date range', 400);
+    if (dateFrom.getTime() > dateTo.getTime()) return errorResponse('Invalid date range', 400);
     dateTo.setHours(23, 59, 59, 999);
 
     // Use raw queries for Supabase aggregations
@@ -42,5 +44,5 @@ export async function GET(request: NextRequest) {
     const chartData = Object.entries(chart).map(([date, count]) => ({ date, count }));
 
     return successResponse({ total: total || 0, today: today || 0, week: week || 0, chart: chartData, from: dateFrom, to: dateTo });
-  } catch (err: any) { return errorResponse(err.message); }
+  } catch (err: any) { return errorResponse(err.message, err?.message === 'Unauthorized' ? 401 : 500); }
 }

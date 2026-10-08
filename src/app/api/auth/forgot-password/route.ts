@@ -4,6 +4,7 @@ import { getSupabaseAdmin } from '@/lib/supabase/admin';
 import { sendResetPassword } from '@/lib/mailer';
 import { errorResponse, successResponse } from '@/lib/utils';
 import { checkRateLimit, getClientId } from '@/lib/rate-limit';
+import { normalizeEmail } from '@/lib/auth';
 
 const GENERIC_MESSAGE = 'Jika email terdaftar, link reset akan dikirim.';
 
@@ -13,8 +14,11 @@ export async function POST(request: NextRequest) {
     if (!rl.allowed) return errorResponse('Too many requests', 429);
 
     const body = await request.json();
-    const email = typeof body.email === 'string' ? body.email.trim().toLowerCase() : '';
+    const email = normalizeEmail(body.email);
     if (!email) return errorResponse('Email required', 400);
+    // Per-email cap to prevent mail-bombing; answer generically either way.
+    const emailRl = await checkRateLimit(`forgot:${email}`, 'otp');
+    if (!emailRl.allowed) return successResponse({ message: GENERIC_MESSAGE });
 
     const supabase = getSupabaseAdmin();
     const { data: user, error: lookupError } = await supabase
@@ -45,8 +49,8 @@ export async function POST(request: NextRequest) {
     try {
       await sendResetPassword(user.email, user.name, token);
     } catch (error) {
+      // Don't reveal (via a different status) that the account exists.
       console.error('[forgot password] email delivery failed', error instanceof Error ? { name: error.name, message: error.message } : error);
-      return errorResponse('Unable to send reset email', 502);
     }
 
     return successResponse({ message: GENERIC_MESSAGE });

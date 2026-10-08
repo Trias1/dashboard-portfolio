@@ -4,7 +4,8 @@ interface DashboardSidebarProps {
   role?: string;
   lang: "id" | "en";
   activeMenu: string;
-  sidebarOpen: boolean;
+  /** null = responsive default: collapsed below `md`, expanded from `md` up. */
+  sidebarOpen: boolean | null;
   setActiveMenu: (menu: string) => void;
   setSidebarOpen: (open: boolean) => void;
   usersLabel: string;
@@ -68,13 +69,23 @@ export default function DashboardSidebar({
           { key: "cv", label: "CV Generator", icon: "cv" },
         ];
 
+  const isAuto = sidebarOpen === null;
+  const widthClass = isAuto ? "w-16 md:w-64" : sidebarOpen ? "w-64" : "w-16";
+  const expandedOnlyClass = isAuto ? "hidden md:block" : "";
+  const toggleSidebar = () => {
+    const currentlyOpen = isAuto
+      ? window.matchMedia("(min-width: 768px)").matches
+      : sidebarOpen;
+    setSidebarOpen(!currentlyOpen);
+  };
+
   return (
     <aside
-      className={`${sidebarOpen ? "w-64" : "w-16"} transition-[width] duration-300 bg-slate-950/90 border-r border-white/10 flex flex-col shrink-0`}
+      className={`${widthClass} transition-[width] duration-300 bg-slate-950/90 border-r border-white/10 flex flex-col shrink-0`}
     >
       <div className="h-16 px-4 border-b border-white/10 flex items-center justify-between">
-        {sidebarOpen && (
-          <div>
+        {sidebarOpen !== false && (
+          <div className={expandedOnlyClass}>
             <p className="text-[10px] uppercase tracking-[0.22em] text-purple-300">
               PortfolioKit
             </p>
@@ -85,11 +96,16 @@ export default function DashboardSidebar({
         )}
         <button
           type="button"
-          aria-label={sidebarOpen ? "Collapse sidebar" : "Expand sidebar"}
-          onClick={() => setSidebarOpen(!sidebarOpen)}
+          aria-label={isAuto ? "Toggle sidebar" : sidebarOpen ? "Collapse sidebar" : "Expand sidebar"}
+          onClick={toggleSidebar}
           className="h-9 w-9 rounded-xl border border-white/10 text-gray-400 hover:text-white hover:bg-white/10 transition"
         >
-          {sidebarOpen ? "‹" : "›"}
+          {isAuto ? (
+            <>
+              <span className="md:hidden">›</span>
+              <span className="hidden md:inline">‹</span>
+            </>
+          ) : sidebarOpen ? "‹" : "›"}
         </button>
       </div>
       <nav className="flex-1 p-3 space-y-1">
@@ -101,7 +117,7 @@ export default function DashboardSidebar({
             className={`w-full rounded-xl px-3 py-3 text-left text-sm font-medium flex items-center gap-3 transition ${activeMenu === item.key ? "bg-purple-500 text-white shadow-lg shadow-purple-950/40" : "text-slate-400 hover:bg-white/10 hover:text-white"}`}
           >
             <MenuIcon name={item.icon} />
-            {sidebarOpen && <span>{item.label}</span>}
+            {sidebarOpen !== false && <span className={isAuto ? "hidden md:inline" : ""}>{item.label}</span>}
           </button>
         ))}
       </nav>

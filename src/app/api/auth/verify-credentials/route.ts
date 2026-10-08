@@ -1,27 +1,41 @@
 import { NextRequest } from 'next/server';
 import bcrypt from 'bcryptjs';
 import { getSupabaseAdmin } from '@/lib/supabase/admin';
+import { issuePasswordChallenge, isBcryptHash, normalizeEmail } from '@/lib/auth';
+import { checkRateLimit, getClientId } from '@/lib/rate-limit';
 import { errorResponse, successResponse } from '@/lib/utils';
+
+// Used to keep response timing similar when the user does not exist.
+const DUMMY_HASH = '$2b$10$35ISAoEVyvlDq89yCb07D.jDTaStzT5GyHTirLdKnpOVRUKuPGjKO';
 
 export async function POST(request: NextRequest) {
   try {
-    const { email, password } = await request.json();
+    const body = await request.json();
+    const email = normalizeEmail(body.email);
+    const password = typeof body.password === 'string' ? body.password : '';
+    if (!email || !password) return errorResponse('Email and password required', 400);
+
+    const [ipRl, emailRl] = await Promise.all([
+      checkRateLimit(getClientId(request), 'auth'),
+      checkRateLimit(`email:${email}`, 'auth'),
+    ]);
+    if (!ipRl.allowed || !emailRl.allowed) return errorResponse('Too many requests', 429);
 
     const { data: user } = await getSupabaseAdmin()
       .from('users')
-      .select('*')
+      .select('id, email, password, is_verified, is_active')
       .eq('email', email)
       .maybeSingle();
 
-    if (!user) return errorResponse('Invalid credentials', 400);
+    const hash = user && isBcryptHash(user.password) ? user.password : DUMMY_HASH;
+    const match = await bcrypt.compare(password, hash);
+    if (!user || hash === DUMMY_HASH || !match) return errorResponse('Invalid credentials', 400);
     if (!user.is_verified) return errorResponse('Please verify your email first', 403);
     if (!user.is_active) return errorResponse('Account is inactive', 403);
 
-    const match = await bcrypt.compare(password, user.password);
-    if (!match) return errorResponse('Invalid credentials', 400);
-
+    await issuePasswordChallenge(email);
     return successResponse({ message: 'Credentials valid' });
-  } catch (err: any) {
-    return errorResponse(err.message);
+  } catch {
+    return errorResponse('Unable to process request', 500);
   }
 }

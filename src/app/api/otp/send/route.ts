@@ -1,32 +1,26 @@
 import { NextRequest } from 'next/server';
-import { getSupabaseAdmin } from '@/lib/supabase/admin';
+import crypto from 'crypto';
 import { sendOTP } from '@/lib/mailer';
 import { checkRateLimit, getClientId } from '@/lib/rate-limit';
+import { issueOtpChallenge, normalizeEmail, verifyPasswordChallenge } from '@/lib/auth';
 import { errorResponse, successResponse } from '@/lib/utils';
-import otpStore from '@/lib/otp-store';
 
 export async function POST(request: NextRequest) {
   try {
     const rl = await checkRateLimit(getClientId(request), 'otp');
     if (!rl.allowed) return errorResponse('Too many OTP requests', 429);
 
-    const { email } = await request.json();
-    if (!email) return errorResponse('Email required', 400);
+    const body = await request.json();
+    const email = normalizeEmail(body.email);
+    // A password check must have succeeded for this email (pwChallenge cookie) before an OTP is issued.
+    if (!email || !(await verifyPasswordChallenge(email))) return errorResponse('Unable to send OTP. Please log in again.', 400);
 
-    const { data: user } = await getSupabaseAdmin()
-      .from('users')
-      .select('id')
-      .eq('email', email)
-      .maybeSingle();
-
-    if (!user) return errorResponse('Email not found', 404);
-
-    const otp = Math.floor(100000 + Math.random() * 900000).toString();
-    otpStore.set(email, { otp, expires: Date.now() + 5 * 60 * 1000 });
-
+    const otp = crypto.randomInt(100000, 1000000).toString();
+    await issueOtpChallenge(email, otp);
     await sendOTP(email, otp);
     return successResponse({ message: 'OTP sent successfully' });
-  } catch (err: any) {
-    return errorResponse(err.message);
+  } catch (err) {
+    console.error('[otp send] failed', err instanceof Error ? { name: err.name, message: err.message } : err);
+    return errorResponse('Unable to send OTP', 500);
   }
 }

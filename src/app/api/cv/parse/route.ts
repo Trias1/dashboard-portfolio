@@ -1,6 +1,7 @@
 import { NextRequest } from 'next/server';
 import { requireAuth } from '@/lib/auth';
 import { errorResponse, successResponse } from '@/lib/utils';
+import { checkRateLimit } from '@/lib/rate-limit';
 import PDF2JSON from 'pdf2json';
 import Groq from 'groq-sdk';
 
@@ -480,10 +481,13 @@ function estimateConfidence(parsed: any, rawText: string): { score: number; warn
 
 export async function POST(request: NextRequest) {
   try {
-    await requireAuth(request);
+    const auth = await requireAuth(request);
+    const rl = await checkRateLimit(`ai:${auth.id}`, 'ai');
+    if (!rl.allowed) return errorResponse('Too many requests. Please try again later.', 429);
     const formData = await request.formData();
     const file = (formData.get('cv') || formData.get('file')) as File | null;
-    if (!file) return errorResponse('No file uploaded', 400);
+    if (!file || typeof file === 'string') return errorResponse('No file uploaded', 400);
+    if (file.size > 10 * 1024 * 1024) return errorResponse('File too large (max 10MB)', 400);
 
     const buffer = Buffer.from(await file.arrayBuffer());
     let rawText = '';

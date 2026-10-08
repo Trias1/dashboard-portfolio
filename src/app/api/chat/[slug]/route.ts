@@ -1,17 +1,36 @@
 import { NextRequest } from 'next/server';
 import { getSupabaseAdmin } from '@/lib/supabase/admin';
+import { checkRateLimit, getClientId } from '@/lib/rate-limit';
 
 const NINE_ROUTER_API_KEY = process.env.NINE_ROUTER_API_KEY!;
 const NINE_ROUTER_BASE_URL = process.env.NINE_ROUTER_BASE_URL || "https://router.zeen.my.id/v1";
 const NINE_ROUTER_MODEL = process.env.NINE_ROUTER_MODEL || 'Projects';
 
+const MAX_MESSAGE_LENGTH = 1000;
+const MAX_HISTORY_ITEMS = 6;
+
+const sanitizeHistory = (history: unknown) => {
+  if (!Array.isArray(history)) return [];
+  return history
+    .slice(-MAX_HISTORY_ITEMS)
+    .filter((h: any) => h && typeof h.content === 'string' && h.content.trim())
+    .map((h: any) => ({
+      role: h.role === 'assistant' ? 'assistant' : 'user',
+      content: h.content.slice(0, MAX_MESSAGE_LENGTH),
+    }));
+};
+
 export async function POST(request: NextRequest, { params }: { params: Promise<{ slug: string }> }) {
   try {
     const { slug } = await params;
     const { message, history = [] } = await request.json();
-    if (!message) return new Response('Message required', { status: 400 });
+    if (!message || typeof message !== 'string' || !message.trim()) return new Response('Message required', { status: 400 });
+    if (message.length > MAX_MESSAGE_LENGTH) return new Response(`Message too long (max ${MAX_MESSAGE_LENGTH} characters)`, { status: 400 });
 
-    const { data: portfolio } = await getSupabaseAdmin().from('portfolios').select('owner_id, title').eq('slug', slug).maybeSingle();
+    const rl = await checkRateLimit(`chat:${getClientId(request)}`, 'chat');
+    if (!rl.allowed) return new Response('Too many requests. Please try again later.', { status: 429 });
+
+    const { data: portfolio } = await getSupabaseAdmin().from('portfolios').select('owner_id, title').eq('slug', slug).eq('is_published', true).maybeSingle();
     if (!portfolio) return new Response('Portfolio not found', { status: 404 });
 
     const ownerId = portfolio.owner_id;
@@ -45,7 +64,7 @@ Contact: ${ct.email || '-'}`;
 
     const messages = [
       { role: 'system', content: context },
-      ...history.slice(-6).map((h: any) => ({ role: h.role, content: h.content })),
+      ...sanitizeHistory(history),
       { role: 'user', content: message },
     ];
 
@@ -56,8 +75,8 @@ Contact: ${ct.email || '-'}`;
     });
 
     if (!groqRes.ok) {
-      const err = await groqRes.text();
-      return new Response(`data: ${JSON.stringify({ error: err })}\n\n`, {
+      console.error('Chat upstream error:', groqRes.status, await groqRes.text().catch(() => ''));
+      return new Response(`data: ${JSON.stringify({ error: 'AI service unavailable' })}\n\n`, {
         headers: { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache', 'Connection': 'keep-alive' },
       });
     }
@@ -87,7 +106,8 @@ Contact: ${ct.email || '-'}`;
             }
           }
         } catch (err) {
-          controller.enqueue(encoder.encode(`data: ${JSON.stringify({ error: String(err) })}\n\n`));
+          console.error('Chat stream error:', err);
+          controller.enqueue(encoder.encode(`data: ${JSON.stringify({ error: 'Stream interrupted' })}\n\n`));
         } finally {
           controller.close();
         }
@@ -98,7 +118,8 @@ Contact: ${ct.email || '-'}`;
       headers: { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache', 'Connection': 'keep-alive' },
     });
   } catch (err: any) {
-    return new Response(`data: ${JSON.stringify({ error: err.message })}\n\n`, {
+    console.error('Chat error:', err);
+    return new Response(`data: ${JSON.stringify({ error: 'Unable to process message' })}\n\n`, {
       headers: { 'Content-Type': 'text/event-stream' },
     });
   }

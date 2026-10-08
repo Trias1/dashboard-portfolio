@@ -2,22 +2,18 @@ import { NextRequest } from 'next/server';
 import { requireAuth } from '@/lib/auth';
 import { getSupabaseAdmin } from '@/lib/supabase/admin';
 import { uploadFile } from '@/lib/supabase/storage';
+import { validateUpload } from '@/lib/upload-validation';
 import { errorResponse, successResponse } from '@/lib/utils';
 
 export async function POST(request: NextRequest) {
   try {
     const auth = await requireAuth(request);
     const formData = await request.formData();
-    const file = formData.get('cv') as File | null;
-    if (!file) return errorResponse('No file uploaded', 400);
+    const checked = await validateUpload(formData.get('cv'), ['pdf', 'doc']);
+    if (!checked.ok) return errorResponse(checked.error === 'Unsupported file type' ? 'Only PDF, DOC, DOCX allowed' : checked.error, 400);
 
-    const ext = file.name.split('.').pop() || 'pdf';
-    const allowed = ['pdf', 'doc', 'docx'];
-    if (!allowed.includes(ext.toLowerCase())) return errorResponse('Only PDF, DOC, DOCX allowed', 400);
-
-    const fileName = `cv-${auth.id}-${Date.now()}.${ext}`;
-    const buffer = Buffer.from(await file.arrayBuffer());
-    const cv_url = await uploadFile(buffer, fileName, file.type, 'cv');
+    const fileName = `cv-${auth.id}.${checked.type.ext}`;
+    const cv_url = await uploadFile(checked.buffer, fileName, checked.type.mime, 'cv');
 
     const { data: existing } = await getSupabaseAdmin().from('about').select('id').eq('owner_id', auth.id).maybeSingle();
 

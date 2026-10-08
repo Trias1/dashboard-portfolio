@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useParams, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { motion } from "framer-motion";
@@ -39,34 +39,45 @@ export default function PublicPortfolioPage() {
   const params = useParams();
   const slug = params.slug as string;
   const searchParams = useSearchParams();
-  const [data, setData] = useState<PortfolioPageData | null>(null);
-  const [theme, setTheme] = useState(themes[0]);
-  const [loading, setLoading] = useState(true);
-  const [notFound, setNotFound] = useState(false);
+  const [result, setResult] = useState<{ key: string; data: PortfolioPageData | null; notFound: boolean } | null>(null);
   const isPreview = searchParams.get("preview") === "true";
+  const orderParam = isPreview ? searchParams.get("order") : null;
+  const themeParam = searchParams.get("theme");
+  const requestKey = `${slug}|${isPreview}`;
+  // Loading resets automatically whenever the slug/preview mode changes.
+  const loading = result?.key !== requestKey;
+  const rawData = loading ? null : result.data;
+  const notFound = !loading && result.notFound;
+  // Guards against duplicate fetches (and duplicate visit counts) for the same
+  // slug, e.g. React Strict Mode re-running effects in development.
+  const requestKeyRef = useRef<string | null>(null);
   useEffect(() => {
-    const preview = isPreview;
+    if (requestKeyRef.current === requestKey) return;
+    requestKeyRef.current = requestKey;
     api
-      .get(`/api/public/${slug}${preview ? "?preview=true" : ""}`)
+      .get(`/api/public/${slug}${isPreview ? "?preview=true" : ""}`)
       .then((res) => {
-        const order = preview ? searchParams.get("order") : null;
-        if (order) {
-          try {
-            res.data.portfolio.sections_order = JSON.parse(order);
-          } catch {}
-        }
-        setData(res.data);
-        const urlTheme =
-          typeof window !== "undefined"
-            ? searchParams.get("theme")
-            : null;
-        setTheme(getThemeById(urlTheme || res.data.portfolio?.theme));
+        if (requestKeyRef.current !== requestKey) return;
+        setResult({ key: requestKey, data: res.data, notFound: false });
       })
       .catch(() => {
-        setNotFound(true);
-      })
-      .finally(() => setLoading(false));
-  }, [isPreview, searchParams, slug]);
+        if (requestKeyRef.current !== requestKey) return;
+        setResult({ key: requestKey, data: null, notFound: true });
+      });
+  }, [isPreview, requestKey, slug]);
+  // Query-param overrides (order/theme) are applied client-side without refetching.
+  const data = useMemo<PortfolioPageData | null>(() => {
+    if (!rawData || !orderParam) return rawData;
+    try {
+      return { ...rawData, portfolio: { ...rawData.portfolio, sections_order: JSON.parse(orderParam) } };
+    } catch {
+      return rawData;
+    }
+  }, [rawData, orderParam]);
+  const theme = useMemo(
+    () => (rawData ? getThemeById(themeParam || rawData.portfolio?.theme) : themes[0]),
+    [rawData, themeParam],
+  );
   if (loading)
     return (
       <div className="min-h-screen flex items-center justify-center bg-[#0a0a1a]">

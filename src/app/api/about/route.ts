@@ -7,7 +7,11 @@ import { uploadFile } from '@/lib/supabase/storage';
 export async function GET(request: NextRequest) {
   try {
     const auth = await getAuthUser(request);
-    const owner_id = request.nextUrl.searchParams.get('owner_id') || auth?.id;
+    // Unauthenticated callers get nothing (public pages use /api/public/[slug]);
+    // only superadmin may read another user's data via ?owner_id=
+    if (!auth) return successResponse({});
+    const requestedOwner = request.nextUrl.searchParams.get('owner_id');
+    const owner_id = auth.role === 'superadmin' && requestedOwner ? requestedOwner : auth.id;
     if (!owner_id) return successResponse({});
     const { data } = await getSupabaseAdmin().from('about').select('*').eq('owner_id', owner_id).maybeSingle();
     return successResponse(data || {});

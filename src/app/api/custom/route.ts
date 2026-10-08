@@ -6,7 +6,9 @@ import { errorResponse, successResponse } from '@/lib/utils';
 export async function GET(request: NextRequest) {
   try {
     const auth = await requireAuth(request);
-    const owner_id = request.nextUrl.searchParams.get('owner_id') || auth.id;
+    // Only superadmin may read another user's data via ?owner_id=
+    const requestedOwner = request.nextUrl.searchParams.get('owner_id');
+    const owner_id = auth.role === 'superadmin' && requestedOwner ? requestedOwner : auth.id;
     if (!owner_id) return successResponse([]);
     const { data } = await getSupabaseAdmin().from('custom_sections').select('*').eq('owner_id', owner_id).order('sort_order', { ascending: true });
     return successResponse(data || []);

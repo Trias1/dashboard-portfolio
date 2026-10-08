@@ -4,17 +4,28 @@ import { getSupabaseAdmin } from '@/lib/supabase/admin';
 import { errorResponse, successResponse } from '@/lib/utils';
 import { normalizeCustomDomain } from '@/lib/custom-domain';
 
+const authStatus = (err: unknown) => {
+  const message = err instanceof Error ? err.message : '';
+  return message === 'Unauthorized' ? 401 : message === 'Forbidden' ? 403 : 500;
+};
+
 export async function PUT(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const auth = await requireAuth(request);
     if (auth.role !== 'admin' && auth.role !== 'superadmin') return errorResponse('Forbidden', 403);
     const { id } = await params;
     const { title, theme, sections_order, is_published, template } = await request.json();
-    const { data } = await getSupabaseAdmin().from('portfolios').update({
-      title, theme, sections_order, is_published, template: template || 'modern', updated_at: new Date().toISOString(),
-    }).eq('id', id).eq('owner_id', auth.id).select().single();
+    const updates: Record<string, unknown> = { updated_at: new Date().toISOString() };
+    if (title !== undefined) updates.title = title;
+    if (theme !== undefined) updates.theme = theme;
+    if (sections_order !== undefined) updates.sections_order = sections_order;
+    if (is_published !== undefined) updates.is_published = is_published;
+    if (template !== undefined) updates.template = template;
+    const { data, error } = await getSupabaseAdmin().from('portfolios').update(updates).eq('id', id).eq('owner_id', auth.id).select().maybeSingle();
+    if (error) return errorResponse(error.message, 500);
+    if (!data) return errorResponse('Portfolio not found', 404);
     return successResponse(data);
-  } catch (err: any) { console.error('[portfolio PUT]', err); return errorResponse(err.message); }
+  } catch (err) { console.error('[portfolio PUT]', err); return errorResponse(err instanceof Error ? err.message : 'Request failed', authStatus(err)); }
 }
 
 export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -51,7 +62,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
 
     const { data } = await getSupabaseAdmin().from('portfolios').update(updates).eq('id', id).eq('owner_id', auth.id).select().single();
     return successResponse(data);
-  } catch (err: any) { return errorResponse(err.message); }
+  } catch (err) { return errorResponse(err instanceof Error ? err.message : 'Request failed', authStatus(err)); }
 }
 
 export async function DELETE(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -61,5 +72,5 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
     const { id } = await params;
     await getSupabaseAdmin().from('portfolios').delete().eq('id', id).eq('owner_id', auth.id);
     return successResponse({ message: 'Portfolio deleted' });
-  } catch (err: any) { return errorResponse(err.message); }
+  } catch (err) { return errorResponse(err instanceof Error ? err.message : 'Request failed', authStatus(err)); }
 }

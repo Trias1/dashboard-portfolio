@@ -1,37 +1,130 @@
 // JWT Auth Helpers
 import { SignJWT, jwtVerify } from 'jose';
 import { cookies } from 'next/headers';
+import crypto from 'crypto';
 import type { JWTPayload, UserRole } from '@/types';
 
-const getSecret = () => new TextEncoder().encode(process.env.JWT_SECRET!);
-const getRefreshSecret = () => new TextEncoder().encode(process.env.JWT_REFRESH_SECRET!);
+function readSecret(name: 'JWT_SECRET' | 'JWT_REFRESH_SECRET'): string {
+  const value = process.env[name];
+  if (!value || value.length < 32) throw new Error(`${name} is missing or shorter than 32 characters`);
+  return value;
+}
+
+const getSecret = () => new TextEncoder().encode(readSecret('JWT_SECRET'));
+const getRefreshSecret = () => new TextEncoder().encode(readSecret('JWT_REFRESH_SECRET'));
+
+export const MIN_PASSWORD_LENGTH = 8;
+export const normalizeEmail = (email: unknown) => (typeof email === 'string' ? email.trim().toLowerCase() : '');
+export const isBcryptHash = (hash: unknown): hash is string => typeof hash === 'string' && /^\$2[aby]\$\d{2}\$/.test(hash);
 
 export async function signAccessToken(payload: JWTPayload): Promise<string> {
-  return new SignJWT(payload as any)
+  return new SignJWT({ id: payload.id, email: payload.email, role: payload.role })
     .setProtectedHeader({ alg: 'HS256' })
+    .setAudience('access')
     .setExpirationTime(process.env.JWT_EXPIRES_IN || '15m')
     .sign(getSecret());
 }
 
 export async function signRefreshToken(payload: { id: number }): Promise<string> {
-  return new SignJWT(payload as any)
+  return new SignJWT({ id: payload.id })
     .setProtectedHeader({ alg: 'HS256' })
+    .setAudience('refresh')
     .setExpirationTime(process.env.JWT_REFRESH_EXPIRES_IN || '7d')
     .sign(getRefreshSecret());
 }
 
+// Secrets are read outside try/catch so a misconfiguration surfaces as an error, not as "invalid token".
 export async function verifyAccessToken(token: string): Promise<JWTPayload | null> {
+  const key = getSecret();
   try {
-    const { payload } = await jwtVerify(token, getSecret());
+    const { payload } = await jwtVerify(token, key, { audience: 'access', algorithms: ['HS256'] });
     return payload as unknown as JWTPayload;
   } catch { return null; }
 }
 
 export async function verifyRefreshToken(token: string): Promise<{ id: number } | null> {
+  const key = getRefreshSecret();
   try {
-    const { payload } = await jwtVerify(token, getRefreshSecret());
+    const { payload } = await jwtVerify(token, key, { audience: 'refresh', algorithms: ['HS256'] });
     return payload as unknown as { id: number };
   } catch { return null; }
+}
+
+export const GOOGLE_STATE_COOKIE = 'googleOauthState';
+
+/** Only same-site relative paths ("/x", not "//x" or "/\x") are allowed as post-login redirects. */
+export function safeRedirectPath(value: unknown): string {
+  // Reject whitespace/control chars too: URL parsers strip tabs/newlines, so "/\t/evil.com" would become "//evil.com".
+  return typeof value === 'string' && /^\/(?![/\\])[^\s\x00-\x1f\x7f]*$/.test(value) ? value : '';
+}
+
+// --- Login challenges (stateless, signed, stored in httpOnly cookies) ---
+export const PW_CHALLENGE_COOKIE = 'pwChallenge';
+export const OTP_CHALLENGE_COOKIE = 'otpChallenge';
+
+const otpHash = (email: string, otp: string) =>
+  crypto.createHmac('sha256', readSecret('JWT_SECRET')).update(`${email}:${otp}`).digest('hex');
+
+async function setChallengeCookie(name: string, value: string, maxAge: number) {
+  (await cookies()).set(name, value, {
+    httpOnly: true, secure: process.env.NODE_ENV === 'production', sameSite: 'lax', maxAge, path: '/',
+  });
+}
+
+export async function clearChallengeCookies() {
+  const cookieStore = await cookies();
+  cookieStore.delete(PW_CHALLENGE_COOKIE);
+  cookieStore.delete(OTP_CHALLENGE_COOKIE);
+}
+
+/** Issued after a successful password check; allows requesting an OTP for 10 minutes. */
+export async function issuePasswordChallenge(email: string) {
+  const token = await new SignJWT({ email })
+    .setProtectedHeader({ alg: 'HS256' }).setAudience('pw-ok').setIssuedAt().setExpirationTime('10m')
+    .sign(getSecret());
+  await setChallengeCookie(PW_CHALLENGE_COOKIE, token, 10 * 60);
+}
+
+export async function verifyPasswordChallenge(email: string): Promise<boolean> {
+  const token = (await cookies()).get(PW_CHALLENGE_COOKIE)?.value;
+  if (!token || !email) return false;
+  try {
+    const { payload } = await jwtVerify(token, getSecret(), { audience: 'pw-ok', algorithms: ['HS256'] });
+    return payload.email === email;
+  } catch { return false; }
+}
+
+/** Stores only an HMAC of the OTP in a signed cookie valid for 5 minutes. */
+export async function issueOtpChallenge(email: string, otp: string) {
+  const token = await new SignJWT({ email, h: otpHash(email, otp) })
+    .setProtectedHeader({ alg: 'HS256' }).setAudience('otp').setIssuedAt().setExpirationTime('5m')
+    .sign(getSecret());
+  await setChallengeCookie(OTP_CHALLENGE_COOKIE, token, 5 * 60);
+}
+
+async function readOtpChallenge(email: string): Promise<string | null> {
+  const token = (await cookies()).get(OTP_CHALLENGE_COOKIE)?.value;
+  if (!token || !email) return null;
+  try {
+    const { payload } = await jwtVerify(token, getSecret(), { audience: 'otp', algorithms: ['HS256'] });
+    return payload.email === email && typeof payload.h === 'string' ? payload.h : null;
+  } catch { return null; }
+}
+
+/** True when the request carries a live OTP challenge for this email (i.e. the password step passed). */
+export async function hasOtpChallenge(email: string): Promise<boolean> {
+  return (await readOtpChallenge(email)) !== null;
+}
+
+export async function verifyOtpChallenge(email: string, otp: string): Promise<boolean> {
+  if (!/^\d{6}$/.test(otp)) return false;
+  const h = await readOtpChallenge(email);
+  if (!h) return false;
+  try {
+    const expected = Buffer.from(h, 'hex');
+    const actual = Buffer.from(otpHash(email, otp), 'hex');
+    return expected.length === actual.length && crypto.timingSafeEqual(expected, actual);
+  } catch { return false; }
 }
 
 export async function setAuthCookies(accessToken: string, refreshToken: string) {

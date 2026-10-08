@@ -12,9 +12,12 @@ const ghFetch = async (url: string) => {
   return res.json();
 };
 
-const extractUsername = (input: string) => {
-  const match = input.match(/github\.com\/([^/]+)/);
-  return match ? match[1] : input.replace(/\.git$/, '').trim();
+const GITHUB_USERNAME_RE = /^[A-Za-z0-9-]{1,39}$/;
+const extractUsername = (input: unknown): string | null => {
+  if (typeof input !== 'string') return null;
+  const match = input.match(/github\.com\/([^/?#]+)/);
+  const username = (match ? match[1] : input.replace(/\.git$/, '')).trim();
+  return GITHUB_USERNAME_RE.test(username) ? username : null;
 };
 
 export async function POST(request: NextRequest) {
@@ -23,11 +26,13 @@ export async function POST(request: NextRequest) {
     if (auth.role !== 'admin' && auth.role !== 'superadmin') return errorResponse('Forbidden', 403);
     const { username: rawUsername, options } = await request.json();
     const username = extractUsername(rawUsername);
+    if (!username) return errorResponse('Invalid GitHub username', 400);
+    if (!options || typeof options !== 'object') return errorResponse('Invalid options', 400);
     const userId = auth.id;
 
     const [user, repos] = await Promise.all([
-      ghFetch(`https://api.github.com/users/${username}`),
-      ghFetch(`https://api.github.com/users/${username}/repos?sort=updated&per_page=100&type=owner`),
+      ghFetch(`https://api.github.com/users/${encodeURIComponent(username)}`),
+      ghFetch(`https://api.github.com/users/${encodeURIComponent(username)}/repos?sort=updated&per_page=100&type=owner`),
     ]);
 
     const results: string[] = [];
@@ -65,5 +70,9 @@ export async function POST(request: NextRequest) {
     }
 
     return successResponse({ success: true, imported: results });
-  } catch (err: any) { return errorResponse(err.message); }
+  } catch (err: any) {
+    if (err?.message === 'GitHub API error: 404') return errorResponse('GitHub user not found', 404);
+    if (err?.message?.startsWith('GitHub API error')) return errorResponse(err.message, 502);
+    return errorResponse(err.message);
+  }
 }
