@@ -95,7 +95,7 @@ export default function NotifyEmailSettings() {
       )}
 
       <form
-        className="mt-3 flex flex-col gap-2 sm:flex-row"
+        className="mt-3 flex flex-col gap-2"
         onSubmit={(e) => { e.preventDefault(); if (draft.trim()) void send(draft.trim()); }}
       >
         <label htmlFor="notify-email-input" className="sr-only">Send messages to another email</label>
@@ -110,7 +110,7 @@ export default function NotifyEmailSettings() {
         <button
           type="submit"
           disabled={busy || !draft.trim()}
-          className="shrink-0 rounded-md bg-accent px-3 py-2 text-sm font-semibold text-white transition-colors hover:bg-accent-dark disabled:opacity-50"
+          className="self-start rounded-md bg-accent px-3 py-2 text-sm font-semibold text-white transition-colors hover:bg-accent-dark disabled:opacity-50"
         >
           Send confirmation link
         </button>
