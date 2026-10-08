@@ -1,16 +1,15 @@
-<svg width="1200" height="630" xmlns="http://www.w3.org/2000/svg">
-  <defs>
-    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" style="stop-color:#0a0a1a"/>
-      <stop offset="100%" style="stop-color:#1a0a2e"/>
-    </linearGradient>
-  </defs>
-  <rect width="1200" height="630" fill="url(#bg)"/>
-  <circle cx="200" cy="150" r="300" fill="#a855f7" opacity="0.05"/>
-  <circle cx="1000" cy="480" r="250" fill="#06b6d4" opacity="0.05"/>
-  <text x="600" y="220" font-family="Arial" font-size="72" font-weight="bold" fill="white" text-anchor="middle">PortfolioKit</text>
-  <text x="600" y="300" font-family="Arial" font-size="32" fill="#a855f7" text-anchor="middle">Buat Portfolio Profesional Gratis</text>
-  <text x="600" y="380" font-family="Arial" font-size="24" fill="#94a3b8" text-anchor="middle">Designer • Developer • Marketer • Konsultan</text>
-  <rect x="450" y="430" width="300" height="60" rx="30" fill="#a855f7"/>
-  <text x="600" y="468" font-family="Arial" font-size="22" fill="white" text-anchor="middle">Mulai Gratis Sekarang</text>
+<svg width="1200" height="630" viewBox="0 0 1200 630" xmlns="http://www.w3.org/2000/svg">
+  <rect width="1200" height="630" fill="#fafaf7"/>
+  <rect x="0" y="0" width="1200" height="8" fill="#141414"/>
+  <g transform="translate(80 86)">
+    <rect width="56" height="56" rx="12" fill="#141414"/>
+    <path d="M17.5 13.1h12.6c6.8 0 11 4 11 10.2s-4.2 10.2-11 10.2h-5.8v10.3h-6.8V13.1Zm6.8 5.8v8.8h5.2c2.8 0 4.6-1.6 4.6-4.4s-1.8-4.4-4.6-4.4h-5.2Z" fill="#fafaf7"/>
+    <rect x="34" y="36.8" width="7" height="7" rx="1.75" fill="#1f45c9"/>
+    <text x="76" y="40" font-family="Helvetica, Arial, sans-serif" font-size="30" font-weight="700" fill="#141414">PortfolioKit</text>
+  </g>
+  <text x="80" y="300" font-family="Helvetica, Arial, sans-serif" font-size="68" font-weight="700" fill="#141414" letter-spacing="-1.5">A portfolio that shows your work,</text>
+  <text x="80" y="384" font-family="Helvetica, Arial, sans-serif" font-size="68" font-weight="700" fill="#1f45c9" letter-spacing="-1.5">not the template.</text>
+  <text x="80" y="470" font-family="Helvetica, Arial, sans-serif" font-size="30" fill="#55555a">17 layouts · your own link · free</text>
+  <line x1="80" y1="540" x2="1120" y2="540" stroke="#dcdcd5" stroke-width="2"/>
+  <text x="80" y="582" font-family="Helvetica, Arial, sans-serif" font-size="24" fill="#55555a">portfolio.west-solutions.web.id</text>
 </svg>
