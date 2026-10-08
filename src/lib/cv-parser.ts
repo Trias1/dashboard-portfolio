@@ -297,7 +297,7 @@ function blockToEducation(b: Block): ParsedCvItem {
   const gpaMatch = all.match(/(?:GPA|IPK)\s*[:=]?\s*([\d.,]+(?:\s*\/\s*[\d.,]+)?)/i);
   const parts = b.head
     .map((h) => stripDates(h.replace(/(?:GPA|IPK)\s*[:=]?\s*[\d.,]+(?:\s*\/\s*[\d.,]+)?/i, '')))
-    .flatMap((h) => h.split(/\s*[|]\s*|,\s+(?=\S)|\s+[–—-]\s+/))
+    .flatMap((h) => h.split(/\s*[|·•]\s*|,\s+(?=\S)|\s+[–—-]\s+/))
     .map((s) => s.trim())
     .filter(Boolean);
   let institution = parts.find((p) => SCHOOL_RX.test(p)) || '';

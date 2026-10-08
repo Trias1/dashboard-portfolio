@@ -1,4 +1,5 @@
 import { NextRequest } from 'next/server';
+import { AI_ENABLED } from '@/lib/features';
 import { getSupabaseAdmin } from '@/lib/supabase/admin';
 import { checkRateLimit, getClientId } from '@/lib/rate-limit';
 import type { Experience, Project } from '@/types';
@@ -23,6 +24,7 @@ const sanitizeHistory = (history: unknown) => {
 };
 
 export async function POST(request: NextRequest, { params }: { params: Promise<{ slug: string }> }) {
+  if (!AI_ENABLED) return new Response("Not found", { status: 404 });
   try {
     const { slug } = await params;
     const { message, history = [] } = await request.json();

@@ -12,11 +12,11 @@ PortfolioKit is free and open-source software under the [MIT License](LICENSE).
 - **Section builder** — drag to reorder, hide or add sections (hero, about, experience, projects, skills, education, certifications, languages, awards, organizations, services, gallery, testimonials, contact, custom).
 - **17 templates** and two colour themes (dark / light). Switching template keeps your content.
 - **Publish and share** — your own `/portfolio/<slug>` link.
-- **CV tools** — import a PDF CV into your sections (works without AI via a keyword parser), and generate a CV in four layouts. The default **ATS** layout is plain and single-column; "Unduh PDF" uses the browser's Save as PDF so the file keeps real text that applicant tracking systems can read. Published portfolios add their link to the CV header.
+- **CV tools** — import a PDF CV into your sections (works without AI via a keyword parser), and generate a CV in four layouts. The default **ATS** layout is plain and single-column; "Download PDF" uses the browser's Save as PDF so the file keeps real text that applicant tracking systems can read. Published portfolios add their link to the CV header.
 - **GitHub import** — pull your profile and selected repositories into projects and skills.
 - **Statistics** — daily visits per portfolio.
 - **Contact form** — messages are emailed to the account owner.
-- **Advisor (optional)** — AI suggestions for your content when an AI provider is configured.
+- **Advisor and visitor chat (hidden by default)** — AI suggestions in the dashboard and an AI chat on public portfolios. Both stay hidden until `NEXT_PUBLIC_AI_ENABLED=true` and an AI provider is configured.
 - **Admin** — user management, platform stats and Vercel runtime logs for the superadmin.
 
 ## Tech stack
@@ -58,7 +58,8 @@ Put these in `.env.local` locally and in the Vercel project settings for deploym
 | `GMAIL_USER`, `GMAIL_APP_PASSWORD`, `MAIL_FROM_NAME` | yes | Outgoing mail: verification, login codes, password reset, contact messages. |
 | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `GOOGLE_REDIRECT_URI` | for Google login | Redirect URI is `<base url>/api/auth/google/callback`; add it in Google Cloud Console for every domain. |
 | `GITHUB_TOKEN` | no | Raises GitHub API limits for the import. Use a token with no scopes. |
-| `NINE_ROUTER_API_KEY`, `NINE_ROUTER_BASE_URL`, `NINE_ROUTER_MODEL` | no | AI provider for the Advisor, visitor chat and AI CV parsing. Without them those features degrade gracefully. |
+| `NINE_ROUTER_API_KEY`, `NINE_ROUTER_BASE_URL`, `NINE_ROUTER_MODEL` | no | AI provider for the Advisor, visitor chat and AI CV parsing. Without them CV import falls back to the keyword parser. |
+| `NEXT_PUBLIC_AI_ENABLED` | no | `true` shows the Advisor and the visitor chat. Leave unset to keep them hidden. |
 | `VERCEL_TOKEN`, `VERCEL_TOKEN_PROD`, `VERCEL_PROJECT_ID`, `VERCEL_TEAM_ID` | no | Superadmin "Server" panel (Vercel runtime logs). Team ID only for team projects. |
 
 ## Authentication and security

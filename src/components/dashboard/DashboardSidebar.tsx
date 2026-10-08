@@ -1,4 +1,5 @@
 "use client";
+import { AI_ENABLED } from "@/lib/features";
 
 interface DashboardSidebarProps {
   role?: string;
@@ -57,7 +58,7 @@ export default function DashboardSidebar({
         ]
       : [
           { key: "builder", label: "Builder", icon: "builder" },
-          { key: "advisor", label: "Advisor", icon: "advisor" },
+          ...(AI_ENABLED ? [{ key: "advisor", label: "Advisor", icon: "advisor" }] : []),
           {
             key: "analytics",
             label: "Analytics",

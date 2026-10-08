@@ -25,6 +25,7 @@ import AgencyTemplate from "@/templates/agency";
 import BoldPersonaTemplate from "@/templates/boldpersona";
 import ChatWidget from "@/components/ChatWidget";
 import AdvisorFloating from "@/components/AdvisorFloating";
+import { AI_ENABLED } from "@/lib/features";
 import OrderSections from "@/components/OrderSections";
 import PortfolioShare from "@/components/PortfolioShare";
 
@@ -104,11 +105,11 @@ export default function PublicPortfolioPage() {
   const templateName = urlTemplate || data.portfolio?.template || "modern";
   const accentColor = theme.accent;
   const widget = isPreview ? (
-    <AdvisorFloating accentColor={accentColor} />
+    AI_ENABLED ? <AdvisorFloating accentColor={accentColor} /> : null
   ) : (
     <>
       <PortfolioShare title={data.about?.name || data.portfolio.title || data.portfolio.slug} accentColor={accentColor} />
-      <ChatWidget slug={data.portfolio.slug} accentColor={accentColor} ownerName={data.about?.name} />
+      {AI_ENABLED && <ChatWidget slug={data.portfolio.slug} accentColor={accentColor} ownerName={data.about?.name} />}
     </>
   );
 

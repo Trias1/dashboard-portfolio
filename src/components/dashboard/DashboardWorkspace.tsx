@@ -26,6 +26,7 @@ import AdminOverviewPanel from "@/components/dashboard/AdminOverviewPanel";
 import UsersPanel from "@/components/dashboard/UsersPanel";
 import CVPanel from "@/components/dashboard/CVPanel";
 import AdvisorWidget from "@/components/AdvisorWidget";
+import { AI_ENABLED } from "@/lib/features";
 import DashboardSidebar from "@/components/dashboard/DashboardSidebar";
 import { useDashboardAdmin } from "@/hooks/useDashboardAdmin";
 import { useDashboardPortfolio } from "@/hooks/useDashboardPortfolio";
@@ -838,7 +839,7 @@ export default function DashboardPage() {
             preview={renderPreview()}
           />
         )}
-        {activeMenu === "advisor" && (
+        {AI_ENABLED && activeMenu === "advisor" && (
           <div className="flex-1 flex flex-col overflow-hidden">
             <AdvisorWidget />
           </div>
