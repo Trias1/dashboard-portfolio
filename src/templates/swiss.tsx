@@ -6,6 +6,7 @@ import ContactForm from '@/components/ContactForm';
 import CertificationSection from '@/components/CertificationSection';
 import SafeImg from '@/components/SafeImg';
 import DescText from '@/components/DescText';
+import Pager, { usePager } from '@/components/Pager';
 
 /* ------------------------------------------------------------------ */
 /* Colour helpers — text/rules derived from the user's theme.bg        */
@@ -83,6 +84,7 @@ function Frame({ id, label, p, children }: { id: string; label: string; p: Palet
 
 export default function SwissTemplate({ data, theme, isPreview }: { data: TemplateData; theme: ThemeConfig; isPreview?: boolean }) {
   const { portfolio, hero, about, experience = [], projects = [], services = [], skills = [], testimonials = [], contact, gallery = [], custom = [] } = data;
+  const projPager = usePager(projects, 5, 'projects');
   const p = makePalette(theme);
   const ac = p.accent;
   const name = about?.name || portfolio.title || portfolio.slug;
@@ -174,11 +176,11 @@ export default function SwissTemplate({ data, theme, isPreview }: { data: Templa
 
         {/* Projects — numbered index */}
         {projects.length > 0 && (
-          <Frame id="projects" label="Selected work" p={p}>
+          <Frame id="projects" label="Projects" p={p}>
             <ol>
-              {projects.map((proj: TemplateItem, i: number) => (
+              {projPager.items.map((proj: TemplateItem, i: number) => (
                 <li key={proj.id ?? i} className={`grid grid-cols-[3.25rem_minmax(0,1fr)] sm:grid-cols-9 gap-x-6 py-8 ${i > 0 ? 'border-t' : 'pt-0'}`} style={{ borderColor: p.rule }}>
-                  <span className="sm:col-span-1 text-4xl sm:text-5xl font-bold tracking-[-0.04em] leading-none tabular-nums" style={{ color: ac }} aria-hidden="true">{pad(i + 1)}</span>
+                  <span className="sm:col-span-1 text-4xl sm:text-5xl font-bold tracking-[-0.04em] leading-none tabular-nums" style={{ color: ac }} aria-hidden="true">{pad(projPager.start + i + 1)}</span>
                   <div className={`${proj.image_url ? 'sm:col-span-4' : 'sm:col-span-8'} min-w-0`}>
                     <h3 className="text-2xl font-bold tracking-[-0.02em] leading-tight">{proj.title}</h3>
                     <DescText text={proj.description} className="mt-3 text-base leading-[1.55] max-w-[52ch]" style={{ color: p.sub }} />
@@ -200,12 +202,13 @@ export default function SwissTemplate({ data, theme, isPreview }: { data: Templa
                 </li>
               ))}
             </ol>
+            <Pager pager={projPager} />
           </Frame>
         )}
 
         {/* Experience — years as display numerals */}
         {experience.length > 0 && (
-          <Frame id="experience" label="Experience" p={p}>
+          <Frame id="experience" label="Work Experience" p={p}>
             <ol>
               {experience.map((exp: TemplateItem, i: number) => (
                 <li key={exp.id ?? i} className={`grid grid-cols-1 sm:grid-cols-9 gap-x-6 gap-y-3 py-7 ${i > 0 ? 'border-t' : 'pt-0'}`} style={{ borderColor: p.rule }}>

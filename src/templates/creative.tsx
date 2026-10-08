@@ -6,6 +6,7 @@ import ContactForm from '@/components/ContactForm';
 import CertificationSection from '@/components/CertificationSection';
 import SafeImg from '@/components/SafeImg';
 import DescText from '@/components/DescText';
+import Pager, { usePager } from '@/components/Pager';
 
 /* ------------------------------------------------------------------ */
 /* Colour helpers: derive readable text / rule colours from theme.bg   */
@@ -53,7 +54,7 @@ type Palette = ReturnType<typeof makePalette>;
 
 /* ------------------------------------------------------------------ */
 const FOCUS = 'focus-visible:outline-2 focus-visible:outline-offset-2';
-const NAV = [['projects', 'Work'], ['experience', 'Experience'], ['skills', 'Skills'], ['contact', 'Contact']] as const;
+const NAV = [['projects', 'Projects'], ['experience', 'Experience'], ['skills', 'Skills'], ['contact', 'Contact']] as const;
 
 function bullets(text?: string): string[] {
   if (!text) return [];
@@ -159,6 +160,7 @@ const PROJECT_LAYOUT = [
 
 export default function CreativeTemplate({ data, theme, isPreview }: { data: TemplateData; theme: ThemeConfig; isPreview?: boolean }) {
   const { portfolio, hero, about, experience = [], projects = [], services = [], skills = [], testimonials = [], contact, gallery = [], custom = [] } = data;
+  const projPager = usePager(projects, 5, 'projects');
   const p = makePalette(theme);
   const name = about?.name || portfolio.title || 'Portfolio';
   const email = contact?.email || about?.email;
@@ -268,7 +270,7 @@ export default function CreativeTemplate({ data, theme, isPreview }: { data: Tem
           {/* Experience */}
           {experience.length > 0 && (
             <section id="experience" className="scroll-mt-8">
-              <Plate title="Experience" p={p} />
+              <Plate title="Work Experience" p={p} />
               <ol className="space-y-10">
                 {experience.map((exp, i) => (
                   <li key={exp.id ?? i} className="grid gap-2 sm:grid-cols-[9rem_1fr] sm:gap-6">
@@ -290,9 +292,9 @@ export default function CreativeTemplate({ data, theme, isPreview }: { data: Tem
           {/* Projects — image-led, asymmetric */}
           {projects.length > 0 && (
             <section id="projects" className="scroll-mt-8">
-              <Plate title="Selected work" note={`${projects.length} ${projects.length === 1 ? 'project' : 'projects'}`} p={p} />
+              <Plate title="Projects" note={`${projects.length} ${projects.length === 1 ? 'project' : 'projects'}`} p={p} />
               <div className="grid gap-x-6 gap-y-14 md:grid-cols-6">
-                {projects.map((proj, i) => {
+                {projPager.items.map((proj, i) => {
                   const L = PROJECT_LAYOUT[i % PROJECT_LAYOUT.length];
                   return (
                     <figure key={proj.id ?? i} className={`min-w-0 ${L.span} ${L.offset}`}>
@@ -304,7 +306,7 @@ export default function CreativeTemplate({ data, theme, isPreview }: { data: Tem
                         </div>
                       )}
                       <figcaption className="mt-4">
-                        <p className="font-mono text-[11px] uppercase tracking-[0.14em]" style={{ color: p.accent }}>Fig. {String(i + 1).padStart(2, '0')}</p>
+                        <p className="font-mono text-[11px] uppercase tracking-[0.14em]" style={{ color: p.accent }}>Fig. {String(projPager.start + i + 1).padStart(2, '0')}</p>
                         <h3 className="mt-1 text-xl font-semibold tracking-tight">{proj.title}</h3>
                         <DescText text={proj.description} className="mt-2 max-w-[56ch] text-sm leading-relaxed" style={{ color: p.muted }} />
                         {proj.tech_stack && (
@@ -325,6 +327,7 @@ export default function CreativeTemplate({ data, theme, isPreview }: { data: Tem
                   );
                 })}
               </div>
+              <Pager pager={projPager} />
             </section>
           )}
 
@@ -398,7 +401,7 @@ export default function CreativeTemplate({ data, theme, isPreview }: { data: Tem
           {/* Contact */}
           {contactEnabled && (
             <section id="contact" className="scroll-mt-8">
-              <Plate title="Let's work together" p={p} />
+              <Plate title="Contact" p={p} />
               <div className="grid gap-10 md:grid-cols-[1fr_1.4fr]">
                 <div className="space-y-3 text-sm">
                   <p className="max-w-[36ch] text-base leading-relaxed" style={{ color: p.muted }}>Have a project? I&apos;d love to hear about it.</p>

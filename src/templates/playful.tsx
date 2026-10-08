@@ -6,6 +6,7 @@ import ContactForm from '@/components/ContactForm';
 import CertificationSection from '@/components/CertificationSection';
 import SafeImg from '@/components/SafeImg';
 import DescText, { DescItems } from '@/components/DescText';
+import Pager, { usePager } from '@/components/Pager';
 
 // Playful: a sticker book. Friendly rounded display type, outlined cards with
 // a flat offset shadow, little tilted sticker labels and a hand-drawn squiggle
@@ -204,6 +205,7 @@ function CustomBody({ sec, p }: { sec: TemplateItem; p: Palette }) {
 
 export default function PlayfulTemplate({ data, theme, isPreview }: { data: TemplateData; theme: ThemeConfig; isPreview?: boolean }) {
   const { portfolio, hero, about, experience = [], projects = [], services = [], skills = [], testimonials = [], contact, gallery = [], custom = [] } = data;
+  const projPager = usePager(projects, 5, 'projects');
   void isPreview;
 
   const base = toHex(parseHex(theme.bg || '#0a0a1a'));
@@ -229,9 +231,9 @@ export default function PlayfulTemplate({ data, theme, isPreview }: { data: Temp
   const contactEnabled = data.portfolio?.sections_order?.find((section: TemplateSectionOrder) => section.type === 'contact')?.enabled !== false;
   const nav = [
     about?.name && ['about', 'About'],
-    projects.length > 0 && ['projects', 'Work'],
+    projects.length > 0 && ['projects', 'Projects'],
     skills.length > 0 && ['skills', 'Skills'],
-    contactEnabled && ['contact', 'Say hi'],
+    contactEnabled && ['contact', 'Contact'],
   ].filter(Boolean) as [string, string][];
 
   return (
@@ -260,7 +262,7 @@ export default function PlayfulTemplate({ data, theme, isPreview }: { data: Temp
               <Squiggle color={squiggle} className="mt-4 w-40" />
               {hero?.subheadline && <p className="mt-6 max-w-[44ch] text-lg leading-relaxed md:text-xl" style={{ color: legible(mix(bg, ink, 0.7), bg) }}>{hero.subheadline}</p>}
               <div className="mt-9 flex flex-wrap gap-4">
-                <PushButton href={hero?.cta_url || '#projects'} s={S0} p={p}>{hero?.cta_text || 'See my stuff'}</PushButton>
+                <PushButton href={hero?.cta_url || '#projects'} s={S0} p={p}>{hero?.cta_text || 'View Projects'}</PushButton>
                 {about?.cv_url && <PushButton href={about.cv_url} s={{ fill: card, text: ink }} p={p} external>Grab my CV</PushButton>}
                 {hero?.cta_secondary_text && hero?.cta_secondary_url && (
                   <PushButton href={hero.cta_secondary_url} s={{ fill: card, text: ink }} p={p} external>{hero.cta_secondary_text}</PushButton>
@@ -294,7 +296,7 @@ export default function PlayfulTemplate({ data, theme, isPreview }: { data: Temp
 
         {/* Skills */}
         {skills.length > 0 && (
-          <Page id="skills" title="Things I'm good at" p={p} color={squiggle}>
+          <Page id="skills" title="Skills" p={p} color={squiggle}>
             <div className="grid gap-8 md:grid-cols-2">
               {skills.map((skill: TemplateItem, i: number) => (
                 <Card key={skill.id ?? i} p={p} className="p-6 pt-8">
@@ -310,7 +312,7 @@ export default function PlayfulTemplate({ data, theme, isPreview }: { data: Temp
 
         {/* Experience */}
         {experience.length > 0 && (
-          <Page id="experience" title="Where I've been" p={p} color={squiggle}>
+          <Page id="experience" title="Work Experience" p={p} color={squiggle}>
             <div className="space-y-8">
               {experience.map((exp: TemplateItem, i: number) => (
                 <Card key={exp.id ?? i} p={p} className="p-6 sm:p-8">
@@ -336,9 +338,9 @@ export default function PlayfulTemplate({ data, theme, isPreview }: { data: Temp
 
         {/* Projects */}
         {projects.length > 0 && (
-          <Page id="projects" title="Stuff I've made" p={p} color={squiggle}>
+          <Page id="projects" title="Projects" p={p} color={squiggle}>
             <div className="grid gap-10 md:grid-cols-2">
-              {projects.map((proj: TemplateItem, i: number) => (
+              {projPager.items.map((proj: TemplateItem, i: number) => (
                 <Card key={proj.id ?? i} p={p} className={`flex flex-col overflow-hidden ${i % 2 === 0 ? 'md:rotate-[-0.6deg]' : 'md:rotate-[0.6deg]'}`}>
                   <div className="relative aspect-[16/10] border-b-2" style={{ borderColor: p.edge, backgroundColor: p.stickers[i % 4].fill }}>
                     {proj.image_url ? (
@@ -367,12 +369,13 @@ export default function PlayfulTemplate({ data, theme, isPreview }: { data: Temp
                 </Card>
               ))}
             </div>
+            <Pager pager={projPager} />
           </Page>
         )}
 
         {/* Services */}
         {services.length > 0 && (
-          <Page id="services" title="How I can help" p={p} color={squiggle}>
+          <Page id="services" title="Services" p={p} color={squiggle}>
             <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
               {services.map((svc: TemplateItem, i: number) => (
                 <Card key={svc.id ?? i} p={p} className="p-6">
@@ -390,7 +393,7 @@ export default function PlayfulTemplate({ data, theme, isPreview }: { data: Temp
 
         {/* Testimonials: speech bubbles */}
         {testimonials.length > 0 && (
-          <Page id="testimonials" title="Nice things people said" p={p} color={squiggle}>
+          <Page id="testimonials" title="Testimonials" p={p} color={squiggle}>
             <div className="grid gap-12 md:grid-cols-2">
               {testimonials.map((t: TemplateItem, i: number) => (
                 <figure key={t.id ?? i}>
@@ -443,12 +446,12 @@ export default function PlayfulTemplate({ data, theme, isPreview }: { data: Temp
 
         {/* Contact */}
         {contactEnabled && (
-          <Page id="contact" title="Say hello" p={p} color={squiggle}>
+          <Page id="contact" title="Contact" p={p} color={squiggle}>
             <Card p={p} className="p-6 sm:p-10">
               <div className="grid gap-10 lg:grid-cols-[1fr_1.3fr]">
                 <div>
                   <p className="max-w-[32ch] text-lg leading-relaxed" style={{ color: ink }}>
-                    Got a project, a question or just want to chat? My inbox is open.
+                    Open to new roles and collaborations. Send a message and I&apos;ll get back to you soon.
                   </p>
                   <div className="mt-6 flex flex-wrap gap-3">
                     {email && <PushButton href={`mailto:${email}`} s={S0} p={p}>Email me</PushButton>}
@@ -458,7 +461,7 @@ export default function PlayfulTemplate({ data, theme, isPreview }: { data: Temp
                   </div>
                 </div>
                 <div className="min-w-0">
-                  <ContactForm slug={portfolio.slug} accentColor={ac} textColor={ink} subColor={p.muted} />
+                  <ContactForm slug={portfolio.slug} accentColor={ac} textColor={ink} subColor={p.muted} align="start" />
                 </div>
               </div>
             </Card>

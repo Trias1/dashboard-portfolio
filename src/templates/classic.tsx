@@ -6,6 +6,7 @@ import ContactForm from '@/components/ContactForm';
 import CertificationSection from '@/components/CertificationSection';
 import SafeImg from '@/components/SafeImg';
 import DescText from '@/components/DescText';
+import Pager, { usePager } from '@/components/Pager';
 
 /* ------------------------------------------------------------------ */
 /* Colour helpers: derive readable text / rule colours from theme.bg   */
@@ -156,6 +157,7 @@ function CustomBody({ sec, p }: { sec: TemplateItem; p: Palette }) {
 
 export default function ClassicTemplate({ data, theme, isPreview }: { data: TemplateData; theme: ThemeConfig; isPreview?: boolean }) {
   const { portfolio, hero, about, experience = [], projects = [], services = [], skills = [], testimonials = [], contact, gallery = [], custom = [] } = data;
+  const projPager = usePager(projects, 5, 'projects');
   const p = makePalette(theme);
   const name = about?.name || hero?.headline || portfolio.title || 'Portfolio';
   const email = contact?.email || about?.email;
@@ -236,7 +238,7 @@ export default function ClassicTemplate({ data, theme, isPreview }: { data: Temp
 
         {/* Experience */}
         {experience.length > 0 && (
-          <CvSection id="experience" title="Professional experience" p={p}>
+          <CvSection id="experience" title="Work Experience" p={p}>
             {experience.map((exp, i) => (
               <Row key={exp.id ?? i} p={p} meta={<>{monthYear(exp.start_date)} –<br className="hidden sm:block" /> {exp.end_date ? monthYear(exp.end_date) : 'Present'}</>}>
                 <h3 className="font-semibold">{exp.position}</h3>
@@ -253,11 +255,11 @@ export default function ClassicTemplate({ data, theme, isPreview }: { data: Temp
 
         {/* Projects */}
         {projects.length > 0 && (
-          <CvSection id="projects" title="Selected projects" p={p}>
-            {projects.map((proj, i) => (
+          <CvSection id="projects" title="Projects" p={p}>
+            {projPager.items.map((proj, i) => (
               <Row key={proj.id ?? i} p={p} meta={proj.image_url
                 ? <SafeImg src={proj.image_url} alt={proj.title || ''} className="aspect-[4/3] w-full max-w-[12rem] rounded-[2px] border object-cover" style={{ borderColor: p.rule }} />
-                : <span className="tabular-nums">No. {i + 1}</span>}>
+                : <span className="tabular-nums">No. {projPager.start + i + 1}</span>}>
                 <h3 className="font-semibold">{proj.title}</h3>
                 <DescText text={proj.description} className="mt-1 max-w-[68ch] leading-relaxed" />
                 {proj.tech_stack && (
@@ -275,6 +277,7 @@ export default function ClassicTemplate({ data, theme, isPreview }: { data: Temp
                 )}
               </Row>
             ))}
+            <Pager pager={projPager} />
           </CvSection>
         )}
 

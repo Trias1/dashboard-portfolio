@@ -6,6 +6,7 @@ import ContactForm from '@/components/ContactForm';
 import CertificationSection from '@/components/CertificationSection';
 import SafeImg from '@/components/SafeImg';
 import DescText, { DescItems } from '@/components/DescText';
+import Pager, { usePager } from '@/components/Pager';
 
 /* ------------------------------------------------------------------ */
 /* Colour helpers — text/rules derived from the user's theme.bg        */
@@ -83,6 +84,7 @@ const sectionPad = 'py-20 sm:py-28';
 
 export default function AgencyTemplate({ data, theme, isPreview }: { data: TemplateData; theme: ThemeConfig; isPreview?: boolean }) {
   const { portfolio, hero, about, experience = [], projects = [], services = [], skills = [], testimonials = [], contact, gallery = [], custom = [] } = data;
+  const projPager = usePager(projects, 5, 'projects');
   const p = makePalette(theme);
   const ac = p.accent;
   const name = about?.name || portfolio.title || portfolio.slug;
@@ -188,9 +190,9 @@ export default function AgencyTemplate({ data, theme, isPreview }: { data: Templ
         {/* Projects — case-study rows */}
         {projects.length > 0 && (
           <section id="projects" className={`${wrap} ${sectionPad}`}>
-            <SectionHead label={`Selected cases, ${pad(projects.length)}`} title="Work" p={p} />
+            <SectionHead label={`Selected cases, ${pad(projects.length)}`} title="Projects" p={p} />
             <div className="border-t" style={{ borderColor: p.text }}>
-              {projects.map((proj: TemplateItem, i: number) => {
+              {projPager.items.map((proj: TemplateItem, i: number) => {
                 const flip = i % 2 === 1;
                 return (
                   <article key={proj.id ?? i} className="grid grid-cols-1 md:grid-cols-12 gap-8 py-10 sm:py-14 border-b" style={{ borderColor: p.rule }}>
@@ -201,7 +203,7 @@ export default function AgencyTemplate({ data, theme, isPreview }: { data: Templ
                     )}
                     <div className={`${proj.image_url ? 'md:col-span-5' : 'md:col-span-12 md:grid md:grid-cols-12 md:gap-8'} flex flex-col`}>
                       <div className={proj.image_url ? '' : 'md:col-span-7'}>
-                        <p className="text-sm tabular-nums" style={{ color: p.sub }}>Case {pad(i + 1)}</p>
+                        <p className="text-sm tabular-nums" style={{ color: p.sub }}>Case {pad(projPager.start + i + 1)}</p>
                         <h3 className="mt-3 text-3xl sm:text-5xl font-semibold tracking-[-0.04em] leading-[0.98] break-words">{proj.title}</h3>
                       </div>
                       <div className={proj.image_url ? 'mt-6' : 'mt-6 md:mt-0 md:col-span-5'}>
@@ -223,13 +225,14 @@ export default function AgencyTemplate({ data, theme, isPreview }: { data: Templ
                 );
               })}
             </div>
+            <Pager pager={projPager} />
           </section>
         )}
 
         {/* Experience — track record table */}
         {experience.length > 0 && (
           <section id="experience" className={`${wrap} ${sectionPad}`}>
-            <SectionHead label="Track record" title="Experience" p={p} />
+            <SectionHead label="Track record" title="Work Experience" p={p} />
             <ol className="border-t" style={{ borderColor: p.text }}>
               {experience.map((exp: TemplateItem, i: number) => (
                 <li key={exp.id ?? i} className="grid grid-cols-1 md:grid-cols-12 gap-x-8 gap-y-2 py-7 border-b" style={{ borderColor: p.rule }}>
@@ -252,7 +255,7 @@ export default function AgencyTemplate({ data, theme, isPreview }: { data: Templ
         {/* Skills — capabilities columns */}
         {skills.length > 0 && (
           <section id="skills" className={`${wrap} ${sectionPad}`}>
-            <SectionHead label="What we work with" title="Capabilities" p={p} />
+            <SectionHead label="Tools & technologies" title="Skills" p={p} />
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-8 gap-y-12">
               {skills.map((skill: TemplateItem, i: number) => (
                 <div key={skill.id ?? i} className="border-t pt-5" style={{ borderColor: p.text }}>
@@ -294,7 +297,7 @@ export default function AgencyTemplate({ data, theme, isPreview }: { data: Templ
         {/* Gallery */}
         {gallery.length > 0 && (
           <section id="gallery" className={`${wrap} ${sectionPad}`}>
-            <SectionHead label="Certificates & awards" title="Recognition" p={p} />
+            <SectionHead label="Certificates & awards" title="Certificates" p={p} />
             <ul className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-8 gap-y-12">
               {gallery.map((cert: TemplateItem, i: number) => (
                 <li key={cert.id ?? i} className="min-w-0">

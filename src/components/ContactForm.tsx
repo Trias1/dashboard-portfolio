@@ -12,11 +12,13 @@ function readableOn(hex: string): string {
   return (1.05) / (L + 0.05) >= (L + 0.05) / 0.05 ? '#ffffff' : '#111111';
 }
 
-export default function ContactForm({ slug, accentColor, textColor = '#f1f5f9', subColor = '#94a3b8' }: {
+export default function ContactForm({ slug, accentColor, textColor = '#f1f5f9', subColor = '#94a3b8', align = 'center' }: {
   slug: string;
   accentColor: string;
   textColor?: string;
   subColor?: string;
+  /** 'start' lines the form up with left-aligned text above it. */
+  align?: 'center' | 'start';
 }) {
   const [form, setForm] = useState({ name: '', email: '', message: '' });
   const [status, setStatus] = useState<'idle' | 'sending' | 'sent' | 'error'>('idle');
@@ -45,7 +47,7 @@ export default function ContactForm({ slug, accentColor, textColor = '#f1f5f9', 
   const labelClass = 'mb-1.5 block text-sm font-medium';
 
   return (
-    <form onSubmit={handleSubmit} className="mx-auto max-w-lg space-y-4 text-left" style={{ color: textColor }}>
+    <form onSubmit={handleSubmit} className={`${align === 'start' ? '' : 'mx-auto '}max-w-lg space-y-4 text-left`} style={{ color: textColor }}>
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <div>
           <label htmlFor={`${uid}-name`} className={labelClass}>Name</label>

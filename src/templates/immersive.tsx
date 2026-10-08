@@ -7,6 +7,7 @@ import ContactForm from '@/components/ContactForm';
 import CertificationSection from '@/components/CertificationSection';
 import SafeImg from '@/components/SafeImg';
 import DescText, { DescItems } from '@/components/DescText';
+import Pager, { usePager } from '@/components/Pager';
 
 // Immersive: full-bleed bands, edge-to-edge imagery and very large type.
 // The only motion is a slow parallax on the hero photograph (off when the
@@ -165,6 +166,7 @@ function CustomBody({ sec, p }: { sec: TemplateItem; p: Palette }) {
 
 export default function ImmersiveTemplate({ data, theme, isPreview }: { data: TemplateData; theme: ThemeConfig; isPreview?: boolean }) {
   const { portfolio, hero, about, experience = [], projects = [], services = [], skills = [], testimonials = [], contact, gallery = [], custom = [] } = data;
+  const projPager = usePager(projects, 5, 'projects');
   void isPreview;
 
   const reduceMotion = useReducedMotion();
@@ -205,7 +207,7 @@ export default function ImmersiveTemplate({ data, theme, isPreview }: { data: Te
 
   const nav = [
     about?.name && ['about', 'About'],
-    projects.length > 0 && ['projects', 'Work'],
+    projects.length > 0 && ['projects', 'Projects'],
     ['contact', 'Contact'],
   ].filter(Boolean) as [string, string][];
 
@@ -284,7 +286,7 @@ export default function ImmersiveTemplate({ data, theme, isPreview }: { data: Te
 
         {/* Experience */}
         {experience.length > 0 && (
-          <Band id="experience" kicker="Timeline" title="Experience" p={p}>
+          <Band id="experience" kicker="Timeline" title="Work Experience" p={p}>
             <ol>
               {experience.map((exp: TemplateItem, i: number) => (
                 <li key={exp.id ?? i} className="grid gap-4 border-t py-10 md:grid-cols-[14rem_1fr] md:gap-12" style={{ borderColor: p.rule }}>
@@ -315,13 +317,13 @@ export default function ImmersiveTemplate({ data, theme, isPreview }: { data: Te
               <h2 className="font-display text-5xl font-bold leading-[0.95] tracking-[-0.035em] md:text-7xl lg:text-8xl" style={{ color: ink }}>Projects</h2>
             </div>
             <div className="mt-14 md:mt-20">
-              {projects.map((proj: TemplateItem, i: number) => (
+              {projPager.items.map((proj: TemplateItem, i: number) => (
                 <article key={proj.id ?? i} className="border-t" style={{ borderColor: p.rule }}>
                   {proj.image_url && (
                     <SafeImg src={proj.image_url} alt={proj.title} className="aspect-[4/3] max-h-[82svh] w-full object-cover sm:aspect-video" />
                   )}
                   <div className="mx-auto grid max-w-7xl gap-6 px-5 py-12 md:grid-cols-[5rem_1fr_1fr] md:gap-10 md:px-10 md:py-16">
-                    <p className="font-mono text-sm tabular-nums" style={{ color: p.muted }}>{String(i + 1).padStart(2, '0')}</p>
+                    <p className="font-mono text-sm tabular-nums" style={{ color: p.muted }}>{String(projPager.start + i + 1).padStart(2, '0')}</p>
                     <h3 className="font-display text-4xl font-bold leading-[0.95] tracking-[-0.03em] md:text-6xl" style={{ color: ink }}>{proj.title}</h3>
                     <div className="min-w-0">
                       <DescText text={proj.description} className="text-lg leading-relaxed" style={{ color: p.muted }} />
@@ -341,6 +343,7 @@ export default function ImmersiveTemplate({ data, theme, isPreview }: { data: Te
                 </article>
               ))}
             </div>
+            <Pager pager={projPager} />
           </section>
         )}
 

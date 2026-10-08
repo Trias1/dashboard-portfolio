@@ -6,6 +6,7 @@ import ContactForm from '@/components/ContactForm';
 import CertificationSection from '@/components/CertificationSection';
 import SafeImg from '@/components/SafeImg';
 import DescText from '@/components/DescText';
+import Pager, { usePager } from '@/components/Pager';
 
 /* ------------------------------------------------------------------ */
 /* Colour helpers: derive readable ink/rules from whatever bg the      */
@@ -89,6 +90,7 @@ function H2({ children, p }: { children: React.ReactNode; p: Palette }) {
 
 export default function DeveloperTemplate({ data, theme, isPreview }: { data: TemplateData; theme: ThemeConfig; isPreview?: boolean }) {
   const { portfolio, hero, about, experience = [], projects = [], services = [], skills = [], testimonials = [], contact, gallery = [], custom = [] } = data;
+  const projPager = usePager(projects, 5, 'projects');
   const p = makePalette(theme);
   const ac = p.accent;
   const name = about?.name || portfolio.title || portfolio.slug;
@@ -207,7 +209,7 @@ export default function DeveloperTemplate({ data, theme, isPreview }: { data: Te
           {experience.length > 0 && (
             <section id="experience" className={sectionCls} style={{ borderColor: p.rule }}>
               <Prompt p={p} cmd="git log --career" />
-              <H2 p={p}>Experience</H2>
+              <H2 p={p}>Work Experience</H2>
               <ol className="border-l" style={{ borderColor: p.rule }}>
                 {experience.map((exp: TemplateItem, i: number) => (
                   <li key={exp.id ?? i} className="relative pl-6 pb-10 last:pb-0">
@@ -242,7 +244,7 @@ export default function DeveloperTemplate({ data, theme, isPreview }: { data: Te
               <H2 p={p}>Projects</H2>
               <p className="font-mono text-[13px] mb-2" style={{ color: p.text }}>projects/</p>
               <ul>
-                {projects.map((proj: TemplateItem, i: number) => {
+                {projPager.items.map((proj: TemplateItem, i: number) => {
                   const last = i === projects.length - 1;
                   return (
                     <li key={proj.id ?? i} className="grid grid-cols-[2.25rem_minmax(0,1fr)] font-mono text-[13px]">
@@ -275,6 +277,7 @@ export default function DeveloperTemplate({ data, theme, isPreview }: { data: Te
                   );
                 })}
               </ul>
+              <Pager pager={projPager} />
             </section>
           )}
 
@@ -282,7 +285,7 @@ export default function DeveloperTemplate({ data, theme, isPreview }: { data: Te
           {skills.length > 0 && (
             <section id="skills" className={sectionCls} style={{ borderColor: p.rule }}>
               <Prompt p={p} cmd="cat stack.json" />
-              <H2 p={p}>Stack</H2>
+              <H2 p={p}>Skills</H2>
               <dl className="divide-y border-y" style={{ borderColor: p.rule }}>
                 {skills.map((skill: TemplateItem, i: number) => (
                   <div key={skill.id ?? i} className="py-4 grid grid-cols-1 sm:grid-cols-[160px_minmax(0,1fr)] gap-3" style={{ borderColor: p.rule }}>
@@ -319,7 +322,7 @@ export default function DeveloperTemplate({ data, theme, isPreview }: { data: Te
           {testimonials.length > 0 && (
             <section id="testimonials" className={sectionCls} style={{ borderColor: p.rule }}>
               <Prompt p={p} cmd="cat reviews.md" />
-              <H2 p={p}>What people said</H2>
+              <H2 p={p}>Testimonials</H2>
               <div className="space-y-10">
                 {testimonials.map((t: TemplateItem, i: number) => (
                   <figure key={t.id ?? i} className="border-l-2 pl-5" style={{ borderColor: ac }}>

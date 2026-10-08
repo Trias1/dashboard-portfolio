@@ -6,6 +6,7 @@ import ContactForm from '@/components/ContactForm';
 import CertificationSection from '@/components/CertificationSection';
 import SafeImg from '@/components/SafeImg';
 import DescText from '@/components/DescText';
+import Pager, { usePager } from '@/components/Pager';
 
 /* ------------------------------------------------------------------ */
 /* Colour helpers: derive readable text / rule colours from theme.bg   */
@@ -161,6 +162,7 @@ function CustomBody({ sec, p }: { sec: TemplateItem; p: Palette }) {
 
 export default function BoldTemplate({ data, theme, isPreview }: { data: TemplateData; theme: ThemeConfig; isPreview?: boolean }) {
   const { portfolio, hero, about, experience = [], projects = [], services = [], skills = [], testimonials = [], contact, gallery = [], custom = [] } = data;
+  const projPager = usePager(projects, 5, 'projects');
   const p = makePalette(theme);
   const name = about?.name || portfolio.title || 'Portfolio';
   const email = contact?.email || about?.email;
@@ -203,7 +205,7 @@ export default function BoldTemplate({ data, theme, isPreview }: { data: Templat
       {/* About */}
       {about?.name && (
         <section id="about" className={`${PAD} py-20 md:py-28`}>
-          <Big>Who I am</Big>
+          <Big>About Me</Big>
           <div className="mt-12 grid gap-10 md:grid-cols-[minmax(0,20rem)_1fr]">
             {about.photo_url && (
               <div className="w-full max-w-[20rem] p-3" style={{ backgroundColor: p.block }}>
@@ -222,7 +224,7 @@ export default function BoldTemplate({ data, theme, isPreview }: { data: Templat
       {/* Skills — inverted block */}
       {skills.length > 0 && (
         <section id="skills" className={`${PAD} py-20 md:py-28`} style={{ backgroundColor: p.text, color: p.bg }}>
-          <Big>Skills &amp; tools</Big>
+          <Big>Skills</Big>
           <div className="mt-12 grid gap-10 md:grid-cols-2">
             {skills.map((skill, i) => (
               <div key={skill.id ?? i}>
@@ -241,7 +243,7 @@ export default function BoldTemplate({ data, theme, isPreview }: { data: Templat
       {/* Experience */}
       {experience.length > 0 && (
         <section id="experience" className={`${PAD} py-20 md:py-28`}>
-          <Big>Experience</Big>
+          <Big>Work Experience</Big>
           <ol className="mt-12 border-t-2" style={{ borderColor: p.text }}>
             {experience.map((exp, i) => (
               <li key={exp.id ?? i} className="grid gap-4 border-b-2 py-8 md:grid-cols-[16rem_1fr] md:gap-10" style={{ borderColor: p.text }}>
@@ -266,12 +268,12 @@ export default function BoldTemplate({ data, theme, isPreview }: { data: Templat
       {/* Projects */}
       {projects.length > 0 && (
         <section id="projects" className={`${PAD} py-20 md:py-28`}>
-          <Big>Work</Big>
+          <Big>Projects</Big>
           <ol className="mt-12 space-y-20">
-            {projects.map((proj, i) => (
+            {projPager.items.map((proj, i) => (
               <li key={proj.id ?? i} className="grid gap-6 md:grid-cols-[9rem_1fr]">
                 <span aria-hidden="true" className="font-display text-[5rem] leading-[0.8] font-extrabold tracking-tighter md:text-[7rem]" style={{ color: p.accent }}>
-                  {String(i + 1).padStart(2, '0')}
+                  {String(projPager.start + i + 1).padStart(2, '0')}
                 </span>
                 <div className="min-w-0">
                   <h3 className="font-display text-4xl leading-[0.95] font-extrabold uppercase tracking-tight break-words md:text-5xl">{proj.title}</h3>
@@ -294,13 +296,14 @@ export default function BoldTemplate({ data, theme, isPreview }: { data: Templat
               </li>
             ))}
           </ol>
+          <Pager pager={projPager} />
         </section>
       )}
 
       {/* Services — accent block */}
       {services.length > 0 && (
         <section id="services" className={`${PAD} py-20 md:py-28`} style={{ backgroundColor: p.block, color: p.onBlock }}>
-          <Big>What I do</Big>
+          <Big>Services</Big>
           <ol className="mt-12 border-t-2" style={{ borderColor: p.onBlock }}>
             {services.map((svc, i) => (
               <li key={svc.id ?? i} className="grid gap-3 border-b-2 py-7 md:grid-cols-[5rem_1fr_1fr] md:gap-8" style={{ borderColor: p.onBlock }}>
@@ -316,7 +319,7 @@ export default function BoldTemplate({ data, theme, isPreview }: { data: Templat
       {/* Testimonials */}
       {testimonials.length > 0 && (
         <section id="testimonials" className={`${PAD} py-20 md:py-28`}>
-          <Big>Kind words</Big>
+          <Big>Testimonials</Big>
           <div className="mt-12 space-y-16">
             {testimonials.map((t, i) => (
               <figure key={t.id ?? i} className="max-w-5xl">
@@ -371,7 +374,7 @@ export default function BoldTemplate({ data, theme, isPreview }: { data: Templat
       {/* Contact — accent block */}
       {contactEnabled && (
         <section id="contact" className={`${PAD} py-20 md:py-28`} style={{ backgroundColor: p.block, color: p.onBlock }}>
-          <Big>Let&apos;s make something</Big>
+          <Big>Contact</Big>
           {email && (
             <a href={`mailto:${email}`} className={`mt-10 inline-block font-display text-2xl font-extrabold break-all underline decoration-4 underline-offset-[6px] md:text-4xl ${FOCUS}`} style={{ outlineColor: p.onBlock }}>
               {email}

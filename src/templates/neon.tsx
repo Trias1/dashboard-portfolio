@@ -6,6 +6,7 @@ import ContactForm from '@/components/ContactForm';
 import CertificationSection from '@/components/CertificationSection';
 import SafeImg from '@/components/SafeImg';
 import DescText from '@/components/DescText';
+import Pager, { usePager } from '@/components/Pager';
 
 /* ------------------------------------------------------------------ */
 /* Colour helpers: derive readable text / rule colours from theme.bg   */
@@ -155,6 +156,7 @@ function CustomItem({ item, type, p }: { item: TemplateItem; type?: string; p: P
 
 export default function NeonTemplate({ data, theme, isPreview }: { data: TemplateData; theme: ThemeConfig; isPreview?: boolean }) {
   const { portfolio, hero, about, experience = [], projects = [], services = [], skills = [], testimonials = [], contact, gallery = [], custom = [] } = data;
+  const projPager = usePager(projects, 5, 'projects');
   const p = makePalette(theme);
   const name = about?.name || portfolio.title || 'Portfolio';
   const email = contact?.email || about?.email;
@@ -280,7 +282,7 @@ export default function NeonTemplate({ data, theme, isPreview }: { data: Templat
         {/* Experience — the line-up */}
         {experience.length > 0 && (
           <NeonSection id="experience">
-            <SignTitle p={p} kicker="Line-up">Experience</SignTitle>
+            <SignTitle p={p} kicker="Line-up">Work Experience</SignTitle>
             <ol className="border-t" style={{ borderColor: p.neon }}>
               {experience.map((exp, i) => (
                 <li key={exp.id ?? i} className="grid gap-3 border-b border-dashed py-7 md:grid-cols-[11rem_1fr] md:gap-8" style={{ borderColor: p.rule }}>
@@ -307,9 +309,9 @@ export default function NeonTemplate({ data, theme, isPreview }: { data: Templat
           <NeonSection id="projects">
             <SignTitle p={p} kicker="Featuring">Projects</SignTitle>
             <ol className="space-y-16">
-              {projects.map((proj, i) => (
+              {projPager.items.map((proj, i) => (
                 <li key={proj.id ?? i} className="grid gap-6 md:grid-cols-[7rem_1fr_18rem] md:gap-8">
-                  <span aria-hidden="true" className="text-6xl leading-none md:text-7xl" style={outline(p)}>{String(i + 1).padStart(2, '0')}</span>
+                  <span aria-hidden="true" className="text-6xl leading-none md:text-7xl" style={outline(p)}>{String(projPager.start + i + 1).padStart(2, '0')}</span>
                   <div className="min-w-0">
                     <h3 className="text-2xl font-extrabold uppercase tracking-wide md:text-3xl">{proj.title}</h3>
                     <DescText text={proj.description} className="mt-3 max-w-[56ch] leading-relaxed" style={{ color: p.muted }} />
@@ -331,6 +333,7 @@ export default function NeonTemplate({ data, theme, isPreview }: { data: Templat
                 </li>
               ))}
             </ol>
+            <Pager pager={projPager} />
           </NeonSection>
         )}
 
@@ -353,7 +356,7 @@ export default function NeonTemplate({ data, theme, isPreview }: { data: Templat
         {/* Testimonials */}
         {testimonials.length > 0 && (
           <NeonSection id="testimonials">
-            <SignTitle p={p} kicker="Reviews">Word of mouth</SignTitle>
+            <SignTitle p={p} kicker="Reviews">Testimonials</SignTitle>
             <div className="grid gap-12 md:grid-cols-2">
               {testimonials.map((t, i) => (
                 <figure key={t.id ?? i}>
@@ -421,7 +424,7 @@ export default function NeonTemplate({ data, theme, isPreview }: { data: Templat
         {/* Contact */}
         {contactEnabled && (
           <NeonSection id="contact">
-            <SignTitle p={p} kicker="Doors open">Get in touch</SignTitle>
+            <SignTitle p={p} kicker="Doors open">Contact</SignTitle>
             <div className="grid gap-12 md:grid-cols-[1fr_1.2fr]">
               <div className="space-y-4">
                 <p className="max-w-[36ch] text-lg leading-relaxed" style={{ color: p.muted }}>Have a project? Let&apos;s build something together.</p>

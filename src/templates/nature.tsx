@@ -6,6 +6,7 @@ import ContactForm from '@/components/ContactForm';
 import CertificationSection from '@/components/CertificationSection';
 import SafeImg from '@/components/SafeImg';
 import DescText, { DescItems } from '@/components/DescText';
+import Pager, { usePager } from '@/components/Pager';
 
 // Nature: a field notebook. Sage-tinted paper, serif entries, a margin column
 // for dates and figure numbers, and hand-drawn vine rules between chapters.
@@ -197,6 +198,7 @@ function CustomBody({ sec, p }: { sec: TemplateItem; p: Palette }) {
 
 export default function NatureTemplate({ data, theme, isPreview }: { data: TemplateData; theme: ThemeConfig; isPreview?: boolean }) {
   const { portfolio, hero, about, experience = [], projects = [], services = [], skills = [], testimonials = [], contact, gallery = [], custom = [] } = data;
+  const projPager = usePager(projects, 5, 'projects');
   void isPreview;
 
   const bg = toHex(parseHex(theme.bg || '#0a0a1a'));
@@ -279,7 +281,7 @@ export default function NatureTemplate({ data, theme, isPreview }: { data: Templ
 
         {/* Skills */}
         {skills.length > 0 && (
-          <Chapter id="skills" title="Toolkit" p={p}>
+          <Chapter id="skills" title="Skills" p={p}>
             <div className="space-y-8">
               {skills.map((skill: TemplateItem, i: number) => (
                 <Entry key={skill.id ?? i} p={p} margin={<span className="font-serif text-sm italic" style={{ color: p.moss }}>{skill.title}</span>}>
@@ -294,7 +296,7 @@ export default function NatureTemplate({ data, theme, isPreview }: { data: Templ
 
         {/* Experience */}
         {experience.length > 0 && (
-          <Chapter id="experience" title="Experience" p={p}>
+          <Chapter id="experience" title="Work Experience" p={p}>
             <div className="space-y-12">
               {experience.map((exp: TemplateItem, i: number) => (
                 <Entry key={exp.id ?? i} p={p} margin={<>{fmtMonth(exp.start_date)}<br />{exp.end_date ? fmtMonth(exp.end_date) : 'present'}</>}>
@@ -315,7 +317,7 @@ export default function NatureTemplate({ data, theme, isPreview }: { data: Templ
         {projects.length > 0 && (
           <Chapter id="projects" title="Projects" p={p}>
             <div className="space-y-16">
-              {projects.map((proj: TemplateItem, i: number) => (
+              {projPager.items.map((proj: TemplateItem, i: number) => (
                 <Entry key={proj.id ?? i} p={p} margin={`Fig. ${i + 2}`}>
                   <div className={proj.image_url ? 'grid gap-6 lg:grid-cols-[1.1fr_1fr]' : ''}>
                     {proj.image_url && (
@@ -340,12 +342,13 @@ export default function NatureTemplate({ data, theme, isPreview }: { data: Templ
                 </Entry>
               ))}
             </div>
+            <Pager pager={projPager} />
           </Chapter>
         )}
 
         {/* Services */}
         {services.length > 0 && (
-          <Chapter id="services" title="What I can help with" p={p}>
+          <Chapter id="services" title="Services" p={p}>
             <div className="space-y-8">
               {services.map((svc: TemplateItem, i: number) => (
                 <Entry key={svc.id ?? i} p={p} margin={`${ROMAN[i] || i + 1}.`}>
@@ -359,7 +362,7 @@ export default function NatureTemplate({ data, theme, isPreview }: { data: Templ
 
         {/* Testimonials */}
         {testimonials.length > 0 && (
-          <Chapter id="testimonials" title="Notes from others" p={p}>
+          <Chapter id="testimonials" title="Testimonials" p={p}>
             <div className="space-y-12">
               {testimonials.map((t: TemplateItem, i: number) => (
                 <Entry key={t.id ?? i} p={p} margin={t.photo_url ? <SafeImg src={t.photo_url} alt={t.name} className="h-12 w-12 rounded-full object-cover" /> : undefined}>
@@ -410,7 +413,7 @@ export default function NatureTemplate({ data, theme, isPreview }: { data: Templ
 
         {/* Contact */}
         {contactEnabled && (
-          <Chapter id="contact" title="Get in touch" p={p}>
+          <Chapter id="contact" title="Contact" p={p}>
             <Entry p={p} margin={contact?.location}>
               <div className="grid gap-10 lg:grid-cols-[1fr_1.3fr]">
                 <div>

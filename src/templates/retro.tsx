@@ -6,6 +6,7 @@ import ContactForm from '@/components/ContactForm';
 import CertificationSection from '@/components/CertificationSection';
 import SafeImg from '@/components/SafeImg';
 import DescText from '@/components/DescText';
+import Pager, { usePager } from '@/components/Pager';
 
 // Retro: a photocopied zine / early-web page. Monospace throughout, a boxed
 // page with a double rule, reverse-video section labels, dotted leaders,
@@ -165,6 +166,7 @@ function CustomBody({ sec, p }: { sec: TemplateItem; p: Palette }) {
 
 export default function RetroTemplate({ data, theme, isPreview }: { data: TemplateData; theme: ThemeConfig; isPreview?: boolean }) {
   const { portfolio, hero, about, experience = [], projects = [], services = [], skills = [], testimonials = [], contact, gallery = [], custom = [] } = data;
+  const projPager = usePager(projects, 5, 'projects');
   void isPreview;
 
   const bg = toHex(parseHex(theme.bg || '#0a0a1a'));
@@ -263,7 +265,7 @@ export default function RetroTemplate({ data, theme, isPreview }: { data: Templa
 
           {/* Experience */}
           {experience.length > 0 && (
-            <Part id="experience" title="Experience" p={p}>
+            <Part id="experience" title="Work Experience" p={p}>
               <ol className="text-sm">
                 {experience.map((exp: TemplateItem, i: number) => (
                   <li key={exp.id ?? i} className="grid gap-1 border-b border-dashed py-5 first:pt-0 last:border-b-0 sm:grid-cols-[9.5rem_1fr] sm:gap-6" style={{ borderColor: p.rule }}>
@@ -287,11 +289,11 @@ export default function RetroTemplate({ data, theme, isPreview }: { data: Templa
           {projects.length > 0 && (
             <Part id="projects" title="Projects" p={p}>
               <div className="space-y-6">
-                {projects.map((proj: TemplateItem, i: number) => (
+                {projPager.items.map((proj: TemplateItem, i: number) => (
                   <article key={proj.id ?? i} className="border" style={{ borderColor: ink }}>
                     <div className="flex items-baseline justify-between gap-3 border-b border-dotted px-4 py-2" style={{ borderColor: p.rule }}>
                       <h3 className="min-w-0 text-sm font-bold uppercase tracking-wide" style={{ color: ink }}>{proj.title}</h3>
-                      <span className="shrink-0 text-[11px] tabular-nums" style={{ color: p.muted }}>no.{String(i + 1).padStart(2, '0')}</span>
+                      <span className="shrink-0 text-[11px] tabular-nums" style={{ color: p.muted }}>no.{String(projPager.start + i + 1).padStart(2, '0')}</span>
                     </div>
                     <div className={proj.image_url ? 'grid gap-4 p-4 sm:grid-cols-[12rem_1fr]' : 'p-4'}>
                       {proj.image_url && <SafeImg src={proj.image_url} alt={proj.title} className="aspect-[4/3] w-full border object-cover" style={{ ...PHOTOCOPY, borderColor: p.rule }} />}
@@ -313,6 +315,7 @@ export default function RetroTemplate({ data, theme, isPreview }: { data: Templa
                   </article>
                 ))}
               </div>
+              <Pager pager={projPager} />
             </Part>
           )}
 
@@ -336,7 +339,7 @@ export default function RetroTemplate({ data, theme, isPreview }: { data: Templa
 
           {/* Testimonials */}
           {testimonials.length > 0 && (
-            <Part id="testimonials" title="Letters" p={p}>
+            <Part id="testimonials" title="Testimonials" p={p}>
               <div className="space-y-8">
                 {testimonials.map((t: TemplateItem, i: number) => (
                   <figure key={t.id ?? i} className="border-l-4 border-double pl-4" style={{ borderColor: ink }}>

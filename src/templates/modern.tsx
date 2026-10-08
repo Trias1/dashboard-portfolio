@@ -8,6 +8,7 @@ import ContactForm from '@/components/ContactForm';
 import CertificationSection from '@/components/CertificationSection';
 import SafeImg from '@/components/SafeImg';
 import DescText from '@/components/DescText';
+import Pager, { usePager } from '@/components/Pager';
 
 /* ------------------------------------------------------------------ */
 /* Colour helpers: derive readable text / rule colours from theme.bg   */
@@ -159,6 +160,7 @@ export default function ModernTemplate({ data, theme, isPreview }: { data: Templ
   const isVisible = (type: string) => !hiddenSections.includes(type);
 
   const { portfolio, hero, about, experience = [], projects = [], services = [], skills = [], testimonials = [], contact, gallery = [], custom = [] } = data;
+  const projPager = usePager(projects, 5, 'projects');
   const p = makePalette(theme);
   const displayName = about?.name || portfolio.title || 'Portfolio';
   const email = contact?.email || about?.email;
@@ -273,7 +275,7 @@ export default function ModernTemplate({ data, theme, isPreview }: { data: Templ
 
         {/* Experience */}
         {isVisible('experience') && experience.length > 0 && (
-          <Block id="experience" label="Experience" p={p}>
+          <Block id="experience" label="Work Experience" p={p}>
             <ol>
               {experience.map((exp, i) => (
                 <li key={exp.id ?? i} className="grid grid-cols-[5.5rem_1fr] gap-4 border-t py-6 first:border-t-0 first:pt-0 sm:grid-cols-[8rem_1fr] sm:gap-6" style={{ borderColor: p.rule }}>
@@ -297,9 +299,9 @@ export default function ModernTemplate({ data, theme, isPreview }: { data: Templ
 
         {/* Projects */}
         {isVisible('projects') && projects.length > 0 && (
-          <Block id="projects" label="Selected work" p={p}>
+          <Block id="projects" label="Projects" p={p}>
             <ol>
-              {projects.map((proj, i) => (
+              {projPager.items.map((proj, i) => (
                 <li key={proj.id ?? i} className="grid gap-6 border-t py-8 first:border-t-0 first:pt-0 md:grid-cols-[1fr_15rem]" style={{ borderColor: p.rule }}>
                   <div className="min-w-0">
                     <h3 className="font-display text-2xl font-semibold tracking-tight md:text-3xl">{proj.title}</h3>
@@ -324,6 +326,7 @@ export default function ModernTemplate({ data, theme, isPreview }: { data: Templ
                 </li>
               ))}
             </ol>
+            <Pager pager={projPager} />
           </Block>
         )}
 
@@ -346,7 +349,7 @@ export default function ModernTemplate({ data, theme, isPreview }: { data: Templ
 
         {/* Testimonials */}
         {isVisible('testimonials') && testimonials.length > 0 && (
-          <Block id="testimonials" label="What people say" p={p}>
+          <Block id="testimonials" label="Testimonials" p={p}>
             <div className="space-y-12">
               {testimonials.map((t, i) => (
                 <figure key={t.id ?? i}>

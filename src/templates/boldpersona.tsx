@@ -6,6 +6,7 @@ import ContactForm from '@/components/ContactForm';
 import CertificationSection from '@/components/CertificationSection';
 import SafeImg from '@/components/SafeImg';
 import DescText, { DescItems } from '@/components/DescText';
+import Pager, { usePager } from '@/components/Pager';
 
 /* ------------------------------------------------------------------ */
 /* Colour helpers — text/rules derived from the user's theme.bg        */
@@ -80,6 +81,7 @@ function Title({ children, p }: { children: React.ReactNode; p: Palette }) {
 
 export default function BoldPersonaTemplate({ data, theme, isPreview }: { data: TemplateData; theme: ThemeConfig; isPreview?: boolean }) {
   const { portfolio, hero, about, experience = [], projects = [], services = [], skills = [], testimonials = [], contact, gallery = [], custom = [] } = data;
+  const projPager = usePager(projects, 5, 'work');
   const p = makePalette(theme);
   const ac = p.accent;
   const name = about?.name || portfolio.title || portfolio.slug;
@@ -161,15 +163,15 @@ export default function BoldPersonaTemplate({ data, theme, isPreview }: { data: 
         {/* Work */}
         {projects.length > 0 && (
           <section id="work" className={`${wrap} ${sectionPad} border-t-4`} style={{ borderColor: p.text }}>
-            <Title p={p}>Work</Title>
+            <Title p={p}>Projects</Title>
             <ol className="space-y-16 sm:space-y-20">
-              {projects.map((proj: TemplateItem, i: number) => (
+              {projPager.items.map((proj: TemplateItem, i: number) => (
                 <li key={proj.id ?? i} className="grid grid-cols-1 md:grid-cols-12 gap-6 md:gap-8">
                   <div className={proj.image_url ? 'md:col-span-6 md:order-2' : 'hidden'}>
                     {proj.image_url && <SafeImg src={proj.image_url} alt={proj.title} className="w-full aspect-[4/3] object-cover" />}
                   </div>
                   <div className={proj.image_url ? 'md:col-span-6' : 'md:col-span-9'}>
-                    <p className="font-display text-sm font-bold tabular-nums" style={{ color: p.accentText }}>{String(i + 1).padStart(2, '0')}</p>
+                    <p className="font-display text-sm font-bold tabular-nums" style={{ color: p.accentText }}>{String(projPager.start + i + 1).padStart(2, '0')}</p>
                     <h3 className="mt-2 font-display text-3xl sm:text-5xl font-extrabold tracking-[-0.04em] leading-[0.95] break-words">{proj.title}</h3>
                     <DescText text={proj.description} className="mt-5 text-lg leading-relaxed max-w-[44ch]" style={{ color: p.sub }} />
                     {proj.tech_stack && (
@@ -187,6 +189,7 @@ export default function BoldPersonaTemplate({ data, theme, isPreview }: { data: 
                 </li>
               ))}
             </ol>
+            <Pager pager={projPager} />
           </section>
         )}
 
@@ -207,7 +210,7 @@ export default function BoldPersonaTemplate({ data, theme, isPreview }: { data: 
         {/* Experience */}
         {experience.length > 0 && (
           <section id="experience" className={`${wrap} ${sectionPad} border-t-4`} style={{ borderColor: p.text }}>
-            <Title p={p}>Track record</Title>
+            <Title p={p}>Work Experience</Title>
             <ol>
               {experience.map((exp: TemplateItem, i: number) => (
                 <li key={exp.id ?? i} className="grid grid-cols-1 sm:grid-cols-[9rem_minmax(0,1fr)] gap-x-8 gap-y-2 py-7 border-t" style={{ borderColor: p.rule }}>
@@ -231,7 +234,7 @@ export default function BoldPersonaTemplate({ data, theme, isPreview }: { data: 
         {/* Skills */}
         {skills.length > 0 && (
           <section id="skills" className={`${wrap} ${sectionPad} border-t-4`} style={{ borderColor: p.text }}>
-            <Title p={p}>Toolkit</Title>
+            <Title p={p}>Skills</Title>
             <dl className="space-y-10">
               {skills.map((skill: TemplateItem, i: number) => (
                 <div key={skill.id ?? i} className="grid grid-cols-1 md:grid-cols-12 gap-4 md:gap-8">
@@ -248,7 +251,7 @@ export default function BoldPersonaTemplate({ data, theme, isPreview }: { data: 
         {/* Services */}
         {services.length > 0 && (
           <section id="services" className={`${wrap} ${sectionPad} border-t-4`} style={{ borderColor: p.text }}>
-            <Title p={p}>Hire me for</Title>
+            <Title p={p}>Services</Title>
             <ul className="grid grid-cols-1 md:grid-cols-2 gap-x-10 gap-y-10">
               {services.map((svc: TemplateItem, i: number) => (
                 <li key={svc.id ?? i} className="border-l-4 pl-5" style={{ borderColor: ac }}>
@@ -263,7 +266,7 @@ export default function BoldPersonaTemplate({ data, theme, isPreview }: { data: 
         {/* Testimonials */}
         {testimonials.length > 0 && (
           <section id="testimonials" className={`${wrap} ${sectionPad} border-t-4`} style={{ borderColor: p.text }}>
-            <Title p={p}>Word on the street</Title>
+            <Title p={p}>Testimonials</Title>
             <div className="space-y-14">
               {testimonials.map((t: TemplateItem, i: number) => (
                 <figure key={t.id ?? i}>
@@ -283,7 +286,7 @@ export default function BoldPersonaTemplate({ data, theme, isPreview }: { data: 
         {/* Gallery */}
         {gallery.length > 0 && (
           <section id="gallery" className={`${wrap} ${sectionPad} border-t-4`} style={{ borderColor: p.text }}>
-            <Title p={p}>Proof</Title>
+            <Title p={p}>Certificates</Title>
             <ul className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-8 gap-y-12">
               {gallery.map((cert: TemplateItem, i: number) => (
                 <li key={cert.id ?? i} className="min-w-0">

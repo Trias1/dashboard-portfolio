@@ -6,6 +6,7 @@ import ContactForm from '@/components/ContactForm';
 import CertificationSection from '@/components/CertificationSection';
 import SafeImg from '@/components/SafeImg';
 import DescText, { DescItems } from '@/components/DescText';
+import Pager, { usePager } from '@/components/Pager';
 
 // Glass: one frosted header floating over a full-bleed photograph (or a solid
 // colour field). Everything below is flat, light-weight type on hairline rules.
@@ -176,6 +177,7 @@ function CustomBody({ sec, p }: { sec: TemplateItem; p: Palette }) {
 
 export default function GlassTemplate({ data, theme, isPreview }: { data: TemplateData; theme: ThemeConfig; isPreview?: boolean }) {
   const { portfolio, hero, about, experience = [], projects = [], services = [], skills = [], testimonials = [], contact, gallery = [], custom = [] } = data;
+  const projPager = usePager(projects, 5, 'projects');
   void isPreview;
 
   const bg = toHex(parseHex(theme.bg || '#0a0a1a'));
@@ -201,7 +203,7 @@ export default function GlassTemplate({ data, theme, isPreview }: { data: Templa
   const nav = [
     about?.name && ['about', 'About'],
     experience.length > 0 && ['experience', 'Experience'],
-    projects.length > 0 && ['projects', 'Work'],
+    projects.length > 0 && ['projects', 'Projects'],
     contactEnabled && ['contact', 'Contact'],
   ].filter(Boolean) as [string, string][];
 
@@ -275,7 +277,7 @@ export default function GlassTemplate({ data, theme, isPreview }: { data: Templa
 
         {/* Skills */}
         {skills.length > 0 && (
-          <Block id="skills" label="Skills & tools" p={p}>
+          <Block id="skills" label="Skills" p={p}>
             <dl>
               {skills.map((skill: TemplateItem, i: number) => (
                 <div key={skill.id ?? i} className="grid gap-3 border-t py-5 first:border-t-0 first:pt-0 sm:grid-cols-[10rem_1fr]" style={{ borderColor: p.rule }}>
@@ -291,7 +293,7 @@ export default function GlassTemplate({ data, theme, isPreview }: { data: Templa
 
         {/* Experience */}
         {experience.length > 0 && (
-          <Block id="experience" label="Experience" p={p}>
+          <Block id="experience" label="Work Experience" p={p}>
             <ol>
               {experience.map((exp: TemplateItem, i: number) => (
                 <li key={exp.id ?? i} className="grid gap-2 border-t py-6 first:border-t-0 first:pt-0 sm:grid-cols-[10rem_1fr] sm:gap-6" style={{ borderColor: p.rule }}>
@@ -315,9 +317,9 @@ export default function GlassTemplate({ data, theme, isPreview }: { data: Templa
 
         {/* Projects */}
         {projects.length > 0 && (
-          <Block id="projects" label="Selected work" p={p}>
+          <Block id="projects" label="Projects" p={p}>
             <div className="grid gap-x-10 gap-y-14 sm:grid-cols-2">
-              {projects.map((proj: TemplateItem, i: number) => (
+              {projPager.items.map((proj: TemplateItem, i: number) => (
                 <article key={proj.id ?? i} className="min-w-0">
                   {proj.image_url ? (
                     <SafeImg src={proj.image_url} alt={proj.title} className="mb-5 aspect-[4/3] w-full rounded-md object-cover" style={{ border: `1px solid ${p.rule}` }} />
@@ -340,6 +342,7 @@ export default function GlassTemplate({ data, theme, isPreview }: { data: Templa
                 </article>
               ))}
             </div>
+            <Pager pager={projPager} />
           </Block>
         )}
 
@@ -359,7 +362,7 @@ export default function GlassTemplate({ data, theme, isPreview }: { data: Templa
 
         {/* Testimonials */}
         {testimonials.length > 0 && (
-          <Block id="testimonials" label="Kind words" p={p}>
+          <Block id="testimonials" label="Testimonials" p={p}>
             <div className="space-y-14">
               {testimonials.map((t: TemplateItem, i: number) => (
                 <figure key={t.id ?? i}>

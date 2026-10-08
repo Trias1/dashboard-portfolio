@@ -6,6 +6,7 @@ import ContactForm from '@/components/ContactForm';
 import CertificationSection from '@/components/CertificationSection';
 import SafeImg from '@/components/SafeImg';
 import DescText, { DescItems } from '@/components/DescText';
+import Pager, { usePager } from '@/components/Pager';
 
 /* ------------------------------------------------------------------ */
 /* Colour helpers — text/rules derived from the user's theme.bg        */
@@ -83,6 +84,7 @@ function Department({ id, kicker, title, p, children, wide }: { id: string; kick
 
 export default function WhiteTemplate({ data, theme, isPreview }: { data: TemplateData; theme: ThemeConfig; isPreview?: boolean }) {
   const { portfolio, hero, about, experience = [], projects = [], services = [], skills = [], testimonials = [], contact, gallery = [], custom = [] } = data;
+  const projPager = usePager(projects, 5, 'projects');
   const p = makePalette(theme);
   const ac = p.accent;
   const name = about?.name || portfolio.title || portfolio.slug;
@@ -159,14 +161,14 @@ export default function WhiteTemplate({ data, theme, isPreview }: { data: Templa
 
         {/* Projects — features with captions */}
         {projects.length > 0 && (
-          <Department id="projects" kicker="Portfolio" title="Selected work" p={p} wide>
+          <Department id="projects" kicker="Portfolio" title="Projects" p={p} wide>
             <div className="space-y-20 sm:space-y-24">
-              {projects.map((proj: TemplateItem, i: number) => (
+              {projPager.items.map((proj: TemplateItem, i: number) => (
                 <article key={proj.id ?? i}>
                   {proj.image_url && <SafeImg src={proj.image_url} alt={proj.title} className="w-full aspect-[16/9] object-cover mb-8" />}
                   <div className="grid grid-cols-1 md:grid-cols-[minmax(0,1fr)_minmax(0,2fr)] gap-4 md:gap-16">
                     <div>
-                      <p className="text-[11px] uppercase tracking-[0.22em] tabular-nums" style={{ color: p.sub }}>No. {String(i + 1).padStart(2, '0')}</p>
+                      <p className="text-[11px] uppercase tracking-[0.22em] tabular-nums" style={{ color: p.sub }}>No. {String(projPager.start + i + 1).padStart(2, '0')}</p>
                       <h3 className="mt-2 text-2xl font-light tracking-[-0.01em] leading-snug">{proj.title}</h3>
                     </div>
                     <div>
@@ -187,12 +189,13 @@ export default function WhiteTemplate({ data, theme, isPreview }: { data: Templa
                 </article>
               ))}
             </div>
+            <Pager pager={projPager} />
           </Department>
         )}
 
         {/* Experience */}
         {experience.length > 0 && (
-          <Department id="experience" kicker="Career" title="Experience" p={p}>
+          <Department id="experience" kicker="Career" title="Work Experience" p={p}>
             <ol>
               {experience.map((exp: TemplateItem, i: number) => (
                 <li key={exp.id ?? i} className="py-8 border-b first:pt-0" style={{ borderColor: p.rule }}>
@@ -232,7 +235,7 @@ export default function WhiteTemplate({ data, theme, isPreview }: { data: Templa
 
         {/* Services */}
         {services.length > 0 && (
-          <Department id="services" kicker="Services" title="What I can help with" p={p}>
+          <Department id="services" kicker="Services" title="Services" p={p}>
             <dl>
               {services.map((svc: TemplateItem, i: number) => (
                 <div key={svc.id ?? i} className="py-6 border-b first:pt-0" style={{ borderColor: p.rule }}>
@@ -353,7 +356,7 @@ export default function WhiteTemplate({ data, theme, isPreview }: { data: Templa
         ))}
 
         {/* Contact */}
-        <Department id="contact" kicker="Contact" title="Let’s talk" p={p}>
+        <Department id="contact" kicker="Contact" title="Contact" p={p}>
           {email && (
             <p className="text-lg font-light leading-[1.7]" style={{ color: p.sub }}>
               Write to <a href={`mailto:${email}`} className={`break-all ${quiet}`} style={{ color: p.text, textDecorationColor: ac }}>{email}</a>

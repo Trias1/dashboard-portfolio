@@ -6,6 +6,7 @@ import ContactForm from '@/components/ContactForm';
 import CertificationSection from '@/components/CertificationSection';
 import SafeImg from '@/components/SafeImg';
 import DescText from '@/components/DescText';
+import Pager, { usePager } from '@/components/Pager';
 
 /* ------------------------------------------------------------------ */
 /* Colour helpers: derive readable text / rule colours from theme.bg   */
@@ -142,6 +143,7 @@ function CustomBody({ sec, p }: { sec: TemplateItem; p: Palette }) {
 
 export default function MinimalTemplate({ data, theme, isPreview }: { data: TemplateData; theme: ThemeConfig; isPreview?: boolean }) {
   const { portfolio, hero, about, experience = [], projects = [], services = [], skills = [], testimonials = [], contact, gallery = [], custom = [] } = data;
+  const projPager = usePager(projects, 5, 'projects');
   const p = makePalette(theme);
   const name = about?.name || portfolio.title || 'Portfolio';
   const email = contact?.email || about?.email;
@@ -152,7 +154,7 @@ export default function MinimalTemplate({ data, theme, isPreview }: { data: Temp
         <header className="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-2 text-sm">
           <a href="#about" className={`font-medium ${FOCUS}`} style={{ outlineColor: p.accent }}>{name}</a>
           <nav aria-label="Sections" className="flex gap-5" style={{ color: p.muted }}>
-            {[['about', 'About'], ['projects', 'Work'], ['contact', 'Contact']].map(([id, label]) => (
+            {[['about', 'About'], ['projects', 'Projects'], ['contact', 'Contact']].map(([id, label]) => (
               <a key={id} href={`#${id}`} className={`underline-offset-[3px] hover:underline ${FOCUS}`} style={{ outlineColor: p.accent }}>{label}</a>
             ))}
           </nav>
@@ -201,7 +203,7 @@ export default function MinimalTemplate({ data, theme, isPreview }: { data: Temp
           {/* Experience */}
           {experience.length > 0 && (
             <section id="experience">
-              <H2 p={p}>Experience</H2>
+              <H2 p={p}>Work Experience</H2>
               <ol className="space-y-8">
                 {experience.map((exp, i) => (
                   <li key={exp.id ?? i}>
@@ -223,9 +225,9 @@ export default function MinimalTemplate({ data, theme, isPreview }: { data: Temp
           {/* Projects */}
           {projects.length > 0 && (
             <section id="projects">
-              <H2 p={p}>Work</H2>
+              <H2 p={p}>Projects</H2>
               <ul className="space-y-10">
-                {projects.map((proj, i) => (
+                {projPager.items.map((proj, i) => (
                   <li key={proj.id ?? i}>
                     {proj.image_url && <SafeImg src={proj.image_url} alt={proj.title || ''} className="mb-4 aspect-[16/9] w-full rounded-[3px] object-cover" />}
                     <h3 className="font-medium">
@@ -248,6 +250,7 @@ export default function MinimalTemplate({ data, theme, isPreview }: { data: Temp
                   </li>
                 ))}
               </ul>
+              <Pager pager={projPager} />
             </section>
           )}
 
@@ -269,7 +272,7 @@ export default function MinimalTemplate({ data, theme, isPreview }: { data: Temp
           {/* Testimonials */}
           {testimonials.length > 0 && (
             <section id="testimonials">
-              <H2 p={p}>Kind words</H2>
+              <H2 p={p}>Testimonials</H2>
               <div className="space-y-8">
                 {testimonials.map((tm, i) => (
                   <figure key={tm.id ?? i}>

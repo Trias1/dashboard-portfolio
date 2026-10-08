@@ -6,6 +6,7 @@ import ContactForm from '@/components/ContactForm';
 import CertificationSection from '@/components/CertificationSection';
 import SafeImg from '@/components/SafeImg';
 import DescText, { DescItems } from '@/components/DescText';
+import Pager, { usePager } from '@/components/Pager';
 
 // Vibrant: a colour-block layout built from exactly three flat colours
 // (the theme accent, lemon and mint) plus ink. Square corners, heavy display
@@ -185,6 +186,7 @@ function CustomBody({ sec, p }: { sec: TemplateItem; p: Palette }) {
 
 export default function VibrantTemplate({ data, theme, isPreview }: { data: TemplateData; theme: ThemeConfig; isPreview?: boolean }) {
   const { portfolio, hero, about, experience = [], projects = [], services = [], skills = [], testimonials = [], contact, gallery = [], custom = [] } = data;
+  const projPager = usePager(projects, 5, 'projects');
   void isPreview;
 
   const bg = toHex(parseHex(theme.bg || '#0a0a1a'));
@@ -207,7 +209,7 @@ export default function VibrantTemplate({ data, theme, isPreview }: { data: Temp
   const contactEnabled = data.portfolio?.sections_order?.find((section: TemplateSectionOrder) => section.type === 'contact')?.enabled !== false;
   const nav = [
     about?.name && ['about', 'About'],
-    projects.length > 0 && ['projects', 'Work'],
+    projects.length > 0 && ['projects', 'Projects'],
     skills.length > 0 && ['skills', 'Skills'],
     contactEnabled && ['contact', 'Contact'],
   ].filter(Boolean) as [string, string][];
@@ -301,7 +303,7 @@ export default function VibrantTemplate({ data, theme, isPreview }: { data: Temp
 
         {/* Experience */}
         {experience.length > 0 && (
-          <Band id="experience" title="Experience" sw={A} p={p}>
+          <Band id="experience" title="Work Experience" sw={A} p={p}>
             <ol className="border-t-2" style={{ borderColor: ink }}>
               {experience.map((exp: TemplateItem, i: number) => {
                 const sw = p.swatches[i % 3];
@@ -328,9 +330,9 @@ export default function VibrantTemplate({ data, theme, isPreview }: { data: Temp
 
         {/* Projects */}
         {projects.length > 0 && (
-          <Band id="projects" title="Work" sw={L} p={p}>
+          <Band id="projects" title="Projects" sw={L} p={p}>
             <div className="grid gap-6 md:grid-cols-2">
-              {projects.map((proj: TemplateItem, i: number) => {
+              {projPager.items.map((proj: TemplateItem, i: number) => {
                 const sw = p.swatches[i % 3];
                 return (
                   <article key={proj.id ?? i} className="flex min-w-0 flex-col border-2" style={{ borderColor: ink }}>
@@ -339,7 +341,7 @@ export default function VibrantTemplate({ data, theme, isPreview }: { data: Temp
                         <SafeImg src={proj.image_url} alt={proj.title} className="h-full w-full object-cover" />
                       ) : (
                         <span className="absolute bottom-3 left-5 font-display text-6xl font-extrabold leading-none tracking-tight sm:text-7xl" style={{ color: sw.text }} aria-hidden="true">
-                          {String(i + 1).padStart(2, '0')}
+                          {String(projPager.start + i + 1).padStart(2, '0')}
                         </span>
                       )}
                     </div>
@@ -362,6 +364,7 @@ export default function VibrantTemplate({ data, theme, isPreview }: { data: Temp
                 );
               })}
             </div>
+            <Pager pager={projPager} />
           </Band>
         )}
 
@@ -387,7 +390,7 @@ export default function VibrantTemplate({ data, theme, isPreview }: { data: Temp
 
         {/* Testimonials */}
         {testimonials.length > 0 && (
-          <Band id="testimonials" title="Kind words" sw={A} p={p}>
+          <Band id="testimonials" title="Testimonials" sw={A} p={p}>
             <div className="grid gap-3 md:grid-cols-2">
               {testimonials.map((t: TemplateItem, i: number) => {
                 const sw = p.swatches[(i + 1) % 3];
