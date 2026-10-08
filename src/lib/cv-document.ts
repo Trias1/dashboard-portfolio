@@ -41,21 +41,32 @@ export function esc(value: unknown) {
 }
 
 const s = (v: unknown) => (v === null || v === undefined ? '' : String(v).trim());
-const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+export type CvLang = 'en' | 'id';
+export const resolveLang = (l: string | null | undefined): CvLang => (l === 'id' ? 'id' : 'en');
+
+// Headings and fixed words only — the user's own content is printed as written.
+const LABELS: Record<CvLang, Record<string, string>> = {
+  en: { summary: 'Summary', experience: 'Experience', education: 'Education', skills: 'Skills', projects: 'Projects', certifications: 'Certifications', organizations: 'Organizations', awards: 'Awards', languages: 'Languages', specialization: 'Specialization', additional: 'Additional Information', present: 'Present', gpa: 'GPA' },
+  id: { summary: 'Ringkasan', experience: 'Pengalaman Kerja', education: 'Pendidikan', skills: 'Keahlian', projects: 'Proyek', certifications: 'Sertifikasi', organizations: 'Organisasi', awards: 'Penghargaan', languages: 'Bahasa', specialization: 'Spesialisasi', additional: 'Informasi Tambahan', present: 'Sekarang', gpa: 'IPK' },
+};
+const MONTH_NAMES: Record<CvLang, string[]> = {
+  en: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
+  id: ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'],
+};
 
 /** "2021-03-01" → "Mar 2021"; "2021" → "2021"; anything else is shown as written. (Old version printed "undefined 2021".) */
-export function fmtDate(value: unknown) {
+export function fmtDate(value: unknown, lang: CvLang = 'en') {
   const d = s(value);
   if (!d) return '';
   const m = d.match(/^(\d{4})(?:-(\d{2}))?(?:-\d{2})?(?:T.*)?$/);
   if (!m) return d;
   const month = m[2] ? parseInt(m[2], 10) : 0;
-  return month >= 1 && month <= 12 ? `${MONTHS[month - 1]} ${m[1]}` : m[1];
+  return month >= 1 && month <= 12 ? `${MONTH_NAMES[lang][month - 1]} ${m[1]}` : m[1];
 }
 
-function range(start: unknown, end: unknown, ongoingIfNoEnd: boolean) {
-  const a = fmtDate(start);
-  const b = fmtDate(end) || (a && ongoingIfNoEnd ? 'Present' : '');
+function range(start: unknown, end: unknown, ongoingIfNoEnd: boolean, lang: CvLang = 'en') {
+  const a = fmtDate(start, lang);
+  const b = fmtDate(end, lang) || (a && ongoingIfNoEnd ? LABELS[lang].present : '');
   if (a && b) return `${a} – ${b}`;
   return a || b;
 }
@@ -149,8 +160,11 @@ html.cv-standalone .cv-doc{max-width:210mm;min-height:297mm;padding:16mm 14mm;bo
 `;
 }
 
-export function buildCvHtml(data: CvSourceData, template: string): { html: string; name: string } {
+export function buildCvHtml(data: CvSourceData, template: string, language?: string): { html: string; name: string } {
   const t = resolveTemplate(template);
+  const lang = resolveLang(language);
+  const L = LABELS[lang];
+  const MONTHS = MONTH_NAMES[lang];
   const a = data.about || {};
   const h = data.hero || {};
   const c = data.contact || {};
@@ -173,21 +187,21 @@ export function buildCvHtml(data: CvSourceData, template: string): { html: strin
   const sections: string[] = [];
 
   // Experience
-  sections.push(renderSection('Experience', (data.experience || []).map((e) => renderEntry({
+  sections.push(renderSection(L.experience, (data.experience || []).map((e) => renderEntry({
     title: `${esc(s(e.position) || 'Role')}${s(e.company) && t !== 'modern' ? `<span class="cv-at">${t === 'ats' ? ' — ' : ', '}${esc(e.company)}</span>` : ''}`,
     sub: t === 'modern' && s(e.company) ? esc(e.company) : undefined,
-    date: range(e.start_date, e.end_date, true),
+    date: range(e.start_date, e.end_date, true, lang),
     body: bullets(e.description),
   }, t))));
 
   // Education (custom rows of type "education")
-  sections.push(renderSection('Education', ofType('education').map(({ content: ed }) => {
+  sections.push(renderSection(L.education, ofType('education').map(({ content: ed }) => {
     const study = [s(ed.institution) ? s(ed.degree) : '', s(ed.field)].filter(Boolean).join(', ');
-    const sub = [study, s(ed.gpa) ? `GPA ${s(ed.gpa)}` : ''].filter(Boolean).join(' · ');
+    const sub = [study, s(ed.gpa) ? `${L.gpa} ${s(ed.gpa)}` : ''].filter(Boolean).join(' · ');
     return renderEntry({
       title: esc(s(ed.institution) || s(ed.degree)),
       sub: sub ? esc(sub) : undefined,
-      date: range(ed.start_date, ed.end_date, false),
+      date: range(ed.start_date, ed.end_date, false, lang),
     }, t);
   })));
 
@@ -200,12 +214,12 @@ export function buildCvHtml(data: CvSourceData, template: string): { html: strin
   }).filter(Boolean);
   if (skillLines.length) {
     sections.push(t === 'modern'
-      ? renderSection('Skills', [`<div class="cv-entry cv-row"><div class="cv-side"></div><div class="cv-main">${skillLines.join('')}</div></div>`])
-      : renderSection('Skills', [`<div class="cv-entry">${skillLines.join('')}</div>`]));
+      ? renderSection(L.skills, [`<div class="cv-entry cv-row"><div class="cv-side"></div><div class="cv-main">${skillLines.join('')}</div></div>`])
+      : renderSection(L.skills, [`<div class="cv-entry">${skillLines.join('')}</div>`]));
   }
 
   // Projects
-  sections.push(renderSection('Projects', (data.projects || []).map((p) => {
+  sections.push(renderSection(L.projects, (data.projects || []).map((p) => {
     const tech = s(p.tech_stack).split(',').map((x) => x.trim()).filter(Boolean).join(' · ');
     const links = [cleanUrl(p.demo_url), cleanUrl(p.github_url)].filter(Boolean).join('  |  ');
     return renderEntry({
@@ -220,7 +234,7 @@ export function buildCvHtml(data: CvSourceData, template: string): { html: strin
     ...(data.certificates || []).filter((g) => s(g.title)).map((g) => renderEntry({
       title: esc(s(g.title)),
       sub: s(g.description) && s(g.description).length <= 120 ? esc(g.description) : undefined,
-      date: fmtDate(g.issued_date),
+      date: fmtDate(g.issued_date, lang),
     }, t)),
     ...ofType('certification').flatMap(({ content: ct }) => {
       // Older rows store a list under items; newer rows are one certificate each.
@@ -234,27 +248,27 @@ export function buildCvHtml(data: CvSourceData, template: string): { html: strin
       });
     }),
   ];
-  sections.push(renderSection('Certifications', certEntries));
+  sections.push(renderSection(L.certifications, certEntries));
 
-  sections.push(renderSection('Organizations', ofType('organization').map(({ content: o }) => renderEntry({
-    title: esc(s(o.name)), sub: esc(s(o.role)) || undefined, date: range(o.start_date, o.end_date, false), body: bullets(o.description),
+  sections.push(renderSection(L.organizations, ofType('organization').map(({ content: o }) => renderEntry({
+    title: esc(s(o.name)), sub: esc(s(o.role)) || undefined, date: range(o.start_date, o.end_date, false, lang), body: bullets(o.description),
   }, t))));
 
-  sections.push(renderSection('Awards', ofType('award').map(({ content: aw }) => renderEntry({
-    title: esc(s(aw.title)), sub: esc(s(aw.issuer)) || undefined, date: fmtDate(aw.date), body: bullets(aw.description),
+  sections.push(renderSection(L.awards, ofType('award').map(({ content: aw }) => renderEntry({
+    title: esc(s(aw.title)), sub: esc(s(aw.issuer)) || undefined, date: fmtDate(aw.date, lang), body: bullets(aw.description),
   }, t))));
 
   const langs = ofType('language').map(({ content: l }) => `${esc(s(l.language))}${s(l.proficiency) ? ` (${esc(l.proficiency)})` : ''}`).filter(Boolean);
-  if (langs.length) sections.push(renderSection('Languages', [renderEntry({ title: '', body: `<p class="cv-text">${langs.join(', ')}</p>` }, t)]));
+  if (langs.length) sections.push(renderSection(L.languages, [renderEntry({ title: '', body: `<p class="cv-text">${langs.join(', ')}</p>` }, t)]));
 
   const specs = ofType('specialization').map(({ content: sp }) => s(sp.body) || [s(sp.area), s(sp.description)].filter(Boolean).join(': ')).filter(Boolean);
-  if (specs.length) sections.push(renderSection('Specialization', [renderEntry({ title: '', body: bullets(specs.join('\n')) }, t)]));
+  if (specs.length) sections.push(renderSection(L.specialization, [renderEntry({ title: '', body: bullets(specs.join('\n')) }, t)]));
 
   // Remaining custom sections (text / list / cards / links), one CV section per title.
   const typed = new Set(['education', 'certification', 'organization', 'award', 'language', 'specialization']);
-  const otherTitles = [...new Set(custom.filter((r) => !typed.has(r.type)).map((r) => r.title || 'Additional Information'))];
+  const otherTitles = [...new Set(custom.filter((r) => !typed.has(r.type)).map((r) => r.title || L.additional))];
   for (const title of otherTitles) {
-    const rows = custom.filter((r) => !typed.has(r.type) && (r.title || 'Additional Information') === title);
+    const rows = custom.filter((r) => !typed.has(r.type) && (r.title || L.additional) === title);
     const parts = rows.map(({ content: cc }) => {
       const lines: string[] = [];
       if (s(cc.body)) lines.push(s(cc.body));
@@ -272,13 +286,13 @@ export function buildCvHtml(data: CvSourceData, template: string): { html: strin
     ${role ? `<div class="cv-role">${esc(role)}</div>` : ''}
     ${contactParts.length ? `<div class="cv-contact">${contactParts.map((p) => `<span>${p}</span>`).join('')}</div>` : ''}
   </header>
-  ${s(a.bio) ? (t === 'ats' ? `<section class="cv-section"><h2 class="cv-h2">Summary</h2><p class="cv-text">${esc(a.bio)}</p></section>` : `<p class="cv-summary">${esc(a.bio)}</p>`) : ''}`;
+  ${s(a.bio) ? (t === 'ats' ? `<section class="cv-section"><h2 class="cv-h2">${L.summary}</h2><p class="cv-text">${esc(a.bio)}</p></section>` : `<p class="cv-summary">${esc(a.bio)}</p>`) : ''}`;
 
   // Empty-title entries (languages, skills…) shouldn't print an empty bold line.
   const body = sections.filter(Boolean).join('\n').replace(/<div class="cv-title"><\/div>/g, '');
 
   const html = `<!DOCTYPE html>
-<html lang="en" class="cv-standalone">
+<html lang="${lang}" class="cv-standalone">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
