@@ -421,6 +421,20 @@ export function extractByKeyword(rawText: string): KeywordCvResult {
     const header = matchHeader(line);
     // Inside a section, a line naming that same section is content (e.g. a project called "Portfolio").
     if (header && header !== current) { current = header; sections[current] = sections[current] || []; continue; }
+    // Headings we don't know ("CONFERENCES", "Side Projects:") start their own custom section
+    // instead of being glued onto the previous one. Only after the first known section, so the
+    // name line at the top (often in capitals) isn't mistaken for a heading.
+    if (!header && current) {
+      const words = line.replace(/:$/, '').trim();
+      const allCaps = /^[A-Z][A-Z &/-]{3,39}$/.test(words) && /[A-Z]{4,}/.test(words);
+      const colonTitle = /:$/.test(line) && /^[A-Z][\p{L} &/-]{2,38}$/u.test(words) && words.split(/\s+/).length <= 4;
+      if (allCaps || colonTitle) {
+        const title = words.toLowerCase().replace(/(^|[\s/&-])\p{L}/gu, (m) => m.toUpperCase());
+        current = `custom:${title}`;
+        sections[current] = sections[current] || [];
+        continue;
+      }
+    }
     if (current) sections[current].push(line);
   }
 
@@ -574,6 +588,11 @@ export function extractByKeyword(rawText: string): KeywordCvResult {
   for (const [key, label] of Object.entries(textSections)) {
     const body = sectionText(key).trim();
     if (body) result.customSections.push({ title: label, type: 'text', content: { body } });
+  }
+  // Sections under headings we didn't recognise keep their own title.
+  for (const key of Object.keys(sections).filter((k) => k.startsWith('custom:'))) {
+    const body = sectionText(key).trim();
+    if (body) result.customSections.push({ title: key.slice('custom:'.length), type: 'text', content: { body } });
   }
 
   result._sections = Object.fromEntries(Object.entries(sections).map(([k, v]) => [k, v.join('\n')]));
