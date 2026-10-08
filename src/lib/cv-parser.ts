@@ -400,7 +400,9 @@ export function extractByKeyword(rawText: string): KeywordCvResult {
     if (firstSeg.length >= 3 && firstSeg.length <= 60 && firstSeg.split(/\s+/).length <= 6) {
       nameIdx = i;
       const segs = l.split(/\s*[|•·]\s*/).map((s) => s.trim()).filter(Boolean);
-      result.about = { name: segs[0], title: segs[1] || '', bio: '' };
+      // "JOHN DOE" (a name set in capitals) → "John Doe".
+      const name = /\p{Ll}/u.test(segs[0]) ? segs[0] : segs[0].toLowerCase().replace(/(^|[\s'-])\p{L}/gu, (m) => m.toUpperCase());
+      result.about = { name, title: segs[1] || '', bio: '' };
       break;
     }
   }
@@ -417,8 +419,19 @@ export function extractByKeyword(rawText: string): KeywordCvResult {
   // Split into sections
   const sections: Record<string, string[]> = {};
   let current: string | null = null;
-  for (const line of lines) {
-    const header = matchHeader(line);
+  // Capitals only read as a heading when the CV's known headings are in capitals too.
+  const knownHeadings = lines.filter((l) => matchHeader(l));
+  const capsHeadings = knownHeadings.length > 0 && knownHeadings.filter((l) => l === l.toUpperCase()).length * 3 >= knownHeadings.length * 2;
+  const dateOnly = (l: string | undefined) => {
+    if (!l) return false;
+    const m = l.match(DATE_RANGE_RX) || l.match(SINGLE_DATE_RX);
+    return !!m && l.replace(m[0], '').replace(/[\s|,()·•–—-]/g, '').length === 0;
+  };
+  // Entry dates: a range anywhere, or a line that is only a date (a year inside a sentence doesn't count).
+  const hasDate = (l: string | undefined) => !!l && (DATE_RANGE_RX.test(l) || dateOnly(l));
+  for (const [i, line] of lines.entries()) {
+    // A heading word followed straight by a date line is an entry's role ("Volunteer" / "2019 - 2020").
+    const header: string | null = current && dateOnly(lines[i + 1]) ? null : matchHeader(line);
     // Inside a section, a line naming that same section is content (e.g. a project called "Portfolio").
     if (header && header !== current) { current = header; sections[current] = sections[current] || []; continue; }
     // Headings we don't know ("CONFERENCES", "Side Projects:") start their own custom section
@@ -426,7 +439,12 @@ export function extractByKeyword(rawText: string): KeywordCvResult {
     // name line at the top (often in capitals) isn't mistaken for a heading.
     if (!header && current) {
       const words = line.replace(/:$/, '').trim();
-      const allCaps = /^[A-Z][A-Z &/-]{3,39}$/.test(words) && /[A-Z]{4,}/.test(words);
+      // Not an organisation/company name in capitals ("HMIF ITB", "PT TELKOM"): heading words are
+      // real words (4+ letters), and an entry title is usually followed by its dates.
+      const realWords = words.split(/\s+/).filter((w) => !/^(?:&|\/|-|and|of|dan)$/i.test(w));
+      const allCaps = capsHeadings && /^[A-Z][A-Z &/-]{3,39}$/.test(words) && realWords.length <= 3
+        && realWords.every((w) => w.replace(/[^A-Z]/g, '').length >= 4)
+        && !hasDate(lines[i + 1]) && !hasDate(lines[i + 2]);
       const colonTitle = /:$/.test(line) && /^[A-Z][\p{L} &/-]{2,38}$/u.test(words) && words.split(/\s+/).length <= 4;
       if (allCaps || colonTitle) {
         const title = words.toLowerCase().replace(/(^|[\s/&-])\p{L}/gu, (m) => m.toUpperCase());
@@ -516,18 +534,56 @@ export function extractByKeyword(rawText: string): KeywordCvResult {
     const m = l.match(DATE_RANGE_RX) || l.match(SINGLE_DATE_RX);
     return !!m && l.replace(m[0], '').replace(/[\s|,()·•–—-]/g, '').length === 0;
   };
-  if (sections.certification?.length && lineItems(sectionText('certification')).some(isDateOnlyLine)) {
-    // "Name" / "Issuer" / "Jan 2022" — the layout PortfolioKit's own CV uses.
-    const certs: ParsedCvItem[] = [];
-    let cur: ParsedCvItem | null = null;
-    for (const l of lineItems(sectionText('certification'))) {
-      if (isDateOnlyLine(l)) { if (cur) { cur.date = l.trim(); certs.push(cur); cur = null; } continue; }
-      if (!cur) cur = { name: l.trim(), issuer: '', date: '', credential_url: '' };
-      else if (!cur.issuer && l.length <= 60) cur.issuer = l.trim();
-      else { certs.push(cur); cur = { name: l.trim(), issuer: '', date: '', credential_url: '' }; }
+  // Name / issuer / date entries laid out over several lines, as PortfolioKit's own CV layouts print them:
+  //   ATS:                    "Name" / "Issuer" / "Jan 2022"
+  //   Professional/Executive: "Name Jan 2022" / "Issuer"
+  //   Modern:                 "Jan 2022 Name" / "Issuer"
+  // A line with a date at its start or end opens an entry; a date-only line closes one;
+  // a short undated line right after the name is the issuer.
+  const isEdgeDated = (l: string) => {
+    const d = datedLine(l);
+    if (!d.date || !d.rest) return false;
+    const m = l.match(DATE_RANGE_RX) || l.match(SINGLE_DATE_RX);
+    const at = m?.index ?? -1;
+    return at <= 1 || at + (m?.[0].length ?? 0) >= l.trimEnd().length - 1;
+  };
+  const datedEntries = (items: string[]) => {
+    const out: { name: string; issuer: string; date: string }[] = [];
+    let cur: { name: string; issuer: string; date: string } | null = null;
+    let open = false; // still waiting for an issuer line
+    const push = () => { if (cur?.name) out.push(cur); cur = null; open = false; };
+    for (const l of items) {
+      if (isDateOnlyLine(l)) { if (cur) { cur.date = l.trim(); push(); } continue; }
+      if (isEdgeDated(l)) {
+        push();
+        const d = datedLine(l);
+        const [name, issuer] = splitTitleIssuer(d.rest);
+        cur = { name, issuer, date: d.start || d.date };
+        open = !issuer;
+        continue;
+      }
+      // "Top Performer, Acme Corp" carries its own issuer, so it is an entry, not the previous one's issuer.
+      const plain = l.length <= 60 && !splitTitleIssuer(l)[1];
+      if (cur && open && plain) { cur.issuer = l.trim(); open = false; continue; }
+      if (cur && !cur.date && !cur.issuer && plain) { cur.issuer = l.trim(); continue; }
+      if (!datedLine(l).date && splitTitleIssuer(l)[1]) {
+        push();
+        const [name, issuer] = splitTitleIssuer(l);
+        cur = { name, issuer, date: '' };
+        push();
+        continue;
+      }
+      push();
+      cur = { name: l.trim(), issuer: '', date: '' };
     }
-    if (cur) certs.push(cur);
-    result.certifications = certs.filter((c) => c.name);
+    push();
+    return out;
+  };
+  const hasDatedEntries = (items: string[]) => items.some(isDateOnlyLine) || (items.some(isEdgeDated) && items.some((l) => !datedLine(l).date));
+
+  const certItems = lineItems(sectionText('certification'));
+  if (sections.certification?.length && hasDatedEntries(certItems)) {
+    result.certifications = datedEntries(certItems).map((c) => ({ ...c, credential_url: '' }));
   } else if (sections.certification?.length) {
     result.certifications = lineItems(sectionText('certification')).map((l) => {
       const d = datedLine(l);
@@ -550,8 +606,11 @@ export function extractByKeyword(rawText: string): KeywordCvResult {
     }
   }
 
-  if (sections.awards?.length) {
-    result.awards = lineItems(sectionText('awards')).map((l) => {
+  const awardItems = lineItems(sectionText('awards'));
+  if (sections.awards?.length && hasDatedEntries(awardItems)) {
+    result.awards = datedEntries(awardItems).map((a) => ({ title: a.name, issuer: a.issuer, date: a.date, description: '' }));
+  } else if (sections.awards?.length) {
+    result.awards = awardItems.map((l) => {
       const d = datedLine(l);
       const [title, issuer] = splitTitleIssuer(d.rest);
       return { title, issuer, date: d.date, description: '' };
@@ -564,9 +623,12 @@ export function extractByKeyword(rawText: string): KeywordCvResult {
       const first = head[0] || b.desc[0] || '';
       const asMatch = first.match(/^(.*?)\s+(?:as|sebagai)\s+(.+)$/i);
       let [name, role] = asMatch ? [asMatch[1], asMatch[2]] : splitPair(first);
-      if (!role && head[1]) role = head[1];
+      const roleFromNextLine = !role && !!head[1];
+      if (roleFromNextLine) role = head[1];
       if (COMPANY_RX.test(role) && !COMPANY_RX.test(name)) [name, role] = [role, name];
-      return { name: name.trim(), role: role.trim(), start_date: b.start, end_date: b.end, description: b.desc.join('\n') };
+      // Header lines past the name/role are description ("Name  2019 – 2022" / "Role" / "What I did").
+      const extra = head.slice(roleFromNextLine ? 2 : 1);
+      return { name: name.trim(), role: role.trim(), start_date: b.start, end_date: b.end, description: [...extra, ...b.desc].join('\n') };
     }).filter((o) => o.name);
   }
 
@@ -580,6 +642,16 @@ export function extractByKeyword(rawText: string): KeywordCvResult {
   if (sections.summary?.length) {
     const bio = sections.summary.map((l) => l.replace(BULLET_RX, '').trim()).join(' ').replace(/\s{2,}/g, ' ').trim();
     result.about = { name: result.about?.name || '', title: result.about?.title || '', bio };
+  } else if (nameIdx >= 0) {
+    // No "Summary" heading: a paragraph between the contact lines and the first section is the summary.
+    const firstSection = lines.findIndex((l) => matchHeader(l));
+    const intro = lines.slice(nameIdx + 1, firstSection < 0 ? Math.min(lines.length, nameIdx + 8) : firstSection)
+      .filter((l) => l !== result.about?.title && !/@|https?:|www\.|linkedin\.com|github\.com|\+?\d[\d\s().-]{7,}\d/i.test(l) && !/^(?:[a-z0-9-]+\.)+[a-z]{2,}\//i.test(l));
+    const start = intro.findIndex((l) => l.length >= 40);
+    if (start >= 0) {
+      const bio = intro.slice(start).join(' ').replace(/\s{2,}/g, ' ').trim();
+      result.about = { name: result.about?.name || '', title: result.about?.title || '', bio };
+    }
   }
   const textSections: Record<string, string> = {
     publications: 'Publications', training: 'Training & Courses', volunteer: 'Volunteer Experience',
