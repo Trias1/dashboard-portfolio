@@ -1,5 +1,6 @@
 import { NextRequest } from 'next/server';
 import { getSupabaseAdmin } from '@/lib/supabase/admin';
+import { hashToken } from '@/lib/auth';
 
 export async function GET(_request: NextRequest, { params }: { params: Promise<{ token: string }> }) {
   try {
@@ -8,7 +9,7 @@ export async function GET(_request: NextRequest, { params }: { params: Promise<{
     const { data: user } = await getSupabaseAdmin()
       .from('users')
       .select('id')
-      .eq('verification_token', token)
+      .eq('verification_token', hashToken(token))
       .gte('verification_expires', new Date().toISOString())
       .maybeSingle();
 

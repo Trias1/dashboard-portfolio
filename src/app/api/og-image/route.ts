@@ -85,6 +85,24 @@ async function readLimitedText(res: Response): Promise<string> {
   return new TextDecoder().decode(Buffer.concat(chunks));
 }
 
+/**
+ * og:image from the page's <meta> tags, in either attribute order. Linear-time on purpose: the old single
+ * regex backtracked quadratically on hostile HTML (thousands of "<meta " with no ">").
+ */
+function findOgImage(html: string): string | null {
+  const headEnd = html.search(/<\/head\s*>/i);
+  const head = html.slice(0, headEnd > 0 ? headEnd : 256 * 1024);
+  const tagRe = /<meta\b([^<>]{0,2000})>/gi;
+  for (let m = tagRe.exec(head); m; m = tagRe.exec(head)) {
+    const attrs: Record<string, string> = {};
+    const attrRe = /([a-z:-]{1,40})\s*=\s*(?:"([^"]{0,2000})"|'([^']{0,2000})')/gi;
+    for (let a = attrRe.exec(m[1]); a; a = attrRe.exec(m[1])) attrs[a[1].toLowerCase()] = a[2] ?? a[3] ?? '';
+    const key = (attrs.property || attrs.name || '').toLowerCase();
+    if ((key === 'og:image' || key === 'og:image:url' || key === 'og:image:secure_url') && attrs.content) return attrs.content.trim();
+  }
+  return null;
+}
+
 export async function POST(request: NextRequest) {
   try {
     const auth = await requireAuth(request);
@@ -113,11 +131,11 @@ export async function POST(request: NextRequest) {
     }
     const html = await readLimitedText(res);
 
-    const match = html.match(/<meta[^>]+property=["']og:image["'][^>]+content=["']([^"']+)["']/i);
+    const ogImage = findOgImage(html);
     let image: string | null = null;
-    if (match) {
+    if (ogImage) {
       try {
-        const resolved = new URL(match[1], target);
+        const resolved = new URL(ogImage, target);
         if (resolved.protocol === 'https:' || resolved.protocol === 'http:') image = resolved.toString();
       } catch {}
     }

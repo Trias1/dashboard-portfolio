@@ -2,7 +2,9 @@
 import { cookies } from 'next/headers';
 import crypto from 'crypto';
 import { getSupabaseAdmin } from '@/lib/supabase/admin';
-import { signAccessToken, signRefreshToken, setAuthCookies, GOOGLE_STATE_COOKIE, safeRedirectPath } from '@/lib/auth';
+import { signAccessToken, setAuthCookies, GOOGLE_STATE_COOKIE, safeRedirectPath } from '@/lib/auth';
+import { startSession, revokeAllSessions } from '@/lib/sessions';
+import { checkRateLimit, getClientId } from '@/lib/rate-limit';
 import { generateSlug } from '@/lib/utils';
 
 const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
@@ -17,6 +19,9 @@ function redirectToLogin(error: string) {
 
 export async function GET(request: NextRequest) {
   try {
+    const rl = await checkRateLimit(`google-callback:${getClientId(request)}`, 'auth');
+    if (!rl.allowed) return redirectToLogin('rate_limited');
+
     const code = request.nextUrl.searchParams.get('code');
     const returnedState = request.nextUrl.searchParams.get('state') || '';
 
@@ -123,8 +128,18 @@ export async function GET(request: NextRequest) {
     if (!user) return redirectToLogin('user_creation_failed');
     if (user.is_active === false) return redirectToLogin('account_inactive');
 
+    // An existing account whose email was never confirmed: Google has now proven the address belongs to this person.
+    // Its password was set by whoever registered it — possibly not them — so it is dropped (they can set one later).
+    if (!user.is_verified) {
+      const { error: verifyError } = await supabase.from('users')
+        .update({ is_verified: true, verification_token: null, verification_expires: null, password: GOOGLE_OAUTH_PASSWORD })
+        .eq('id', user.id);
+      if (verifyError) return redirectToLogin('user_lookup_failed');
+      await revokeAllSessions(user.id);
+    }
+
     const accessToken = await signAccessToken({ id: user.id, email: user.email, role: user.role });
-    const refreshToken = await signRefreshToken({ id: user.id });
+    const refreshToken = await startSession(user.id, request.headers.get('user-agent'));
     await setAuthCookies(accessToken, refreshToken);
 
     const fallback = new URL(user.role === 'admin' || user.role === 'superadmin' ? '/dashboard' : '/', BASE_URL);

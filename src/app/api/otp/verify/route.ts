@@ -1,8 +1,9 @@
 import { NextRequest } from 'next/server';
 import { getSupabaseAdmin } from '@/lib/supabase/admin';
 import {
-  signAccessToken, signRefreshToken, setAuthCookies, clearChallengeCookies, hasOtpChallenge, normalizeEmail, verifyOtpChallenge,
+  signAccessToken, setAuthCookies, clearChallengeCookies, hasOtpChallenge, normalizeEmail, verifyOtpChallenge,
 } from '@/lib/auth';
+import { startSession } from '@/lib/sessions';
 import { checkRateLimit, getClientId } from '@/lib/rate-limit';
 import { errorResponse, successResponse } from '@/lib/utils';
 
@@ -34,7 +35,7 @@ export async function POST(request: NextRequest) {
 
     await clearChallengeCookies();
     const accessToken = await signAccessToken({ id: user.id, email: user.email, role: user.role });
-    const refreshToken = await signRefreshToken({ id: user.id });
+    const refreshToken = await startSession(user.id, request.headers.get('user-agent'));
     await setAuthCookies(accessToken, refreshToken);
 
     return successResponse({

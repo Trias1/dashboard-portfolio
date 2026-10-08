@@ -3,6 +3,7 @@ import { requireAuth } from '@/lib/auth';
 import { getSupabaseAdmin } from '@/lib/supabase/admin';
 import { errorResponse, successResponse, getErrorMessage } from '@/lib/utils';
 import type { CvApplyBody } from '@/types/api';
+import { safeLinkUrl } from '@/lib/upload-validation';
 
 interface CustomSectionDraft {
   title: string;
@@ -125,8 +126,10 @@ export async function POST(request: NextRequest) {
     if (contact.email) contactData.email = contact.email;
     if (contact.phone) contactData.phone = contact.phone;
     if (contact.location) contactData.location = contact.location;
-    if (contact.linkedin) contactData.linkedin_url = /^https?:\/\//i.test(contact.linkedin) ? contact.linkedin : `https://${contact.linkedin}`;
-    if (/github\.com/i.test(website)) contactData.github_url = /^https?:\/\//i.test(website) ? website : `https://${website}`;
+    const linkedinUrl = contact.linkedin ? safeLinkUrl(contact.linkedin) : '';
+    if (linkedinUrl) contactData.linkedin_url = linkedinUrl;
+    const githubUrl = /github\.com/i.test(website) ? safeLinkUrl(website) : '';
+    if (githubUrl) contactData.github_url = githubUrl;
     if (Object.keys(contactData).length) {
       const { data: cx } = await db.from('contact_info').select('id').eq('owner_id', userId).maybeSingle();
       await run('contact', cx
@@ -197,8 +200,8 @@ export async function POST(request: NextRequest) {
         if (meta.length) desc = desc ? `${desc}\n\n${meta.join(' | ')}` : meta.join(' | ');
         rows.push({
           title: clean(proj.title), description: desc,
-          tech_stack: clean(proj.tech_stack), demo_url: clean(proj.demo_url),
-          github_url: clean(proj.github_url), owner_id: userId,
+          tech_stack: clean(proj.tech_stack), demo_url: safeLinkUrl(clean(proj.demo_url)) || '',
+          github_url: safeLinkUrl(clean(proj.github_url)) || '', owner_id: userId,
         });
         existingTitles.add(norm(proj.title));
       }
@@ -226,7 +229,8 @@ export async function POST(request: NextRequest) {
           if (!/^\s*\d{4}\s*$/.test(String(cert.date))) content.issueMonth = iso.slice(5, 7);
         }
       }
-      if (cert.credential_url) content.credentialUrl = cert.credential_url;
+      const credentialUrl = safeLinkUrl(cert.credential_url);
+      if (credentialUrl) content.credentialUrl = credentialUrl;
       allCustom.push({ title: 'Certifications', type: 'certification', content });
     }
     for (const lang of languages || []) {

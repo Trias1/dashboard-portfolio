@@ -2,6 +2,7 @@ import { NextRequest } from 'next/server';
 import { requireAuth } from '@/lib/auth';
 import { errorResponse, successResponse, getErrorMessage } from '@/lib/utils';
 import type { GitHubRepo, GitHubUser } from '@/types/api';
+import { checkRateLimit } from '@/lib/rate-limit';
 
 const GITHUB_TOKEN = process.env.GITHUB_TOKEN || '';
 const ghFetch = async <T>(url: string): Promise<T> => {
@@ -23,7 +24,9 @@ const extractUsername = (input: unknown): string | null => {
 
 export async function GET(request: NextRequest) {
   try {
-    await requireAuth(request);
+    const auth = await requireAuth(request);
+    const rl = await checkRateLimit(`github-preview:${auth.id}`, 'auth');
+    if (!rl.allowed) return errorResponse('Too many requests. Please try again later.', 429);
     const rawUsername = request.nextUrl.searchParams.get('username');
     if (!rawUsername) return errorResponse('Username required', 400);
     const username = extractUsername(rawUsername);

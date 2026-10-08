@@ -2,6 +2,7 @@ import { NextRequest } from 'next/server';
 import { requireAuth } from '@/lib/auth';
 import { getSupabaseAdmin } from '@/lib/supabase/admin';
 import { errorResponse, successResponse, getErrorMessage } from '@/lib/utils';
+import { checkSectionBody } from '@/lib/validate';
 
 export async function GET(request: NextRequest) {
   try {
@@ -14,7 +15,10 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const auth = await requireAuth(request);
-    const { name, position, message, photo_url } = await request.json();
+    const body = await request.json();
+    const invalid = checkSectionBody(body, { links: ['photo_url'] });
+    if (invalid) return errorResponse(invalid, 400);
+    const { name, position, message, photo_url } = body;
     const { data } = await getSupabaseAdmin().from('testimonials').insert({ name, position, message, photo_url, owner_id: auth.id }).select().single();
     return successResponse(data, 201);
   } catch (err) { return errorResponse(getErrorMessage(err)); }

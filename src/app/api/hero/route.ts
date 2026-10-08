@@ -2,6 +2,7 @@ import { NextRequest } from 'next/server';
 import { requireAuth, getAuthUser } from '@/lib/auth';
 import { getSupabaseAdmin } from '@/lib/supabase/admin';
 import { errorResponse, successResponse, getErrorMessage } from '@/lib/utils';
+import { checkSectionBody } from '@/lib/validate';
 
 export async function GET(request: NextRequest) {
   try {
@@ -20,7 +21,10 @@ export async function GET(request: NextRequest) {
 export async function PUT(request: NextRequest) {
   try {
     const auth = await requireAuth(request);
-    const { greeting, headline, subheadline, cta_text, cta_url, cta_secondary_text, cta_secondary_url, background_url } = await request.json();
+    const body = await request.json();
+    const invalid = checkSectionBody(body, { links: ['cta_url', 'cta_secondary_url', 'background_url'], relativeLinks: ['cta_url', 'cta_secondary_url'] });
+    if (invalid) return errorResponse(invalid, 400);
+    const { greeting, headline, subheadline, cta_text, cta_url, cta_secondary_text, cta_secondary_url, background_url } = body;
     const payload = { greeting, headline, subheadline, cta_text, cta_url, cta_secondary_text, cta_secondary_url, background_url };
     const { data: existing } = await getSupabaseAdmin().from('hero').select('id').eq('owner_id', auth.id).maybeSingle();
     let result;
@@ -30,5 +34,5 @@ export async function PUT(request: NextRequest) {
       result = await getSupabaseAdmin().from('hero').insert({ ...payload, owner_id: auth.id }).select().single();
     }
     return successResponse(result.data);
-  } catch (err) { return errorResponse(getErrorMessage(err), 401); }
+  } catch (err) { return errorResponse(getErrorMessage(err)); }
 }

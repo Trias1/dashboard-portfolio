@@ -1,6 +1,7 @@
 import { NextRequest } from 'next/server';
 import bcrypt from 'bcryptjs';
-import { requireAuth, isBcryptHash, normalizeEmail, MIN_PASSWORD_LENGTH } from '@/lib/auth';
+import { requireAuth, isBcryptHash, normalizeEmail, MIN_PASSWORD_LENGTH, BCRYPT_COST, signAccessToken, setAuthCookies } from '@/lib/auth';
+import { revokeAllSessions, startSession } from '@/lib/sessions';
 import { getSupabaseAdmin } from '@/lib/supabase/admin';
 import { checkRateLimit } from '@/lib/rate-limit';
 import { errorResponse, successResponse, getErrorMessage } from '@/lib/utils';
@@ -15,8 +16,14 @@ export async function PUT(request: NextRequest) {
     if (!current) return errorResponse('User not found', 404);
 
     const updates: Record<string, unknown> = {};
-    if (name !== undefined) updates.name = name;
-    if (photo_url !== undefined) updates.photo_url = photo_url;
+    if (name !== undefined) {
+      if (typeof name !== 'string' || !name.trim() || name.length > 100) return errorResponse('Name must be 1-100 characters', 400);
+      updates.name = name.trim();
+    }
+    if (photo_url !== undefined) {
+      if (photo_url !== null && photo_url !== '' && (typeof photo_url !== 'string' || photo_url.length > 1000 || !photo_url.toLowerCase().startsWith('https://'))) return errorResponse('Invalid photo URL', 400);
+      updates.photo_url = photo_url || null;
+    }
 
     const newEmail = email !== undefined ? normalizeEmail(email) : '';
     const emailChanged = email !== undefined && newEmail !== normalizeEmail(current.email);
@@ -31,7 +38,7 @@ export async function PUT(request: NextRequest) {
       if (typeof password !== 'string' || password.length < MIN_PASSWORD_LENGTH) {
         return errorResponse(`Password must be at least ${MIN_PASSWORD_LENGTH} characters`, 400);
       }
-      updates.password = await bcrypt.hash(password, 10);
+      updates.password = await bcrypt.hash(password, BCRYPT_COST);
     }
 
     // Sensitive changes require re-authentication with the current password.
@@ -56,6 +63,13 @@ export async function PUT(request: NextRequest) {
       .single();
 
     if (error) return errorResponse('Unable to update profile', 500);
+
+    // New password: sign out every other device, keep this one logged in with a fresh session.
+    if (updates.password) {
+      await revokeAllSessions(auth.id);
+      const accessToken = await signAccessToken({ id: data.id, email: data.email, role: data.role });
+      await setAuthCookies(accessToken, await startSession(data.id, request.headers.get('user-agent')));
+    }
     return successResponse(data);
   } catch (err) {
     return getErrorMessage(err) === 'Unauthorized' ? errorResponse('Unauthorized', 401) : errorResponse('Unable to update profile', 500);

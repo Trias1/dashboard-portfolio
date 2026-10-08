@@ -4,6 +4,7 @@ import { getSupabaseAdmin } from '@/lib/supabase/admin';
 import { uploadFile } from '@/lib/supabase/storage';
 import { sanitizeExternalUrl, validateUpload } from '@/lib/upload-validation';
 import { errorResponse, successResponse, getErrorMessage } from '@/lib/utils';
+import { checkRateLimit } from '@/lib/rate-limit';
 
 export async function GET(request: NextRequest) {
   try {
@@ -21,6 +22,8 @@ export async function POST(request: NextRequest) {
   try {
     const auth = await requireAuth(request);
     if (auth.role !== 'admin' && auth.role !== 'superadmin') return errorResponse('Forbidden', 403);
+    const rl = await checkRateLimit(`upload:${auth.id}`, 'upload');
+    if (!rl.allowed) return errorResponse('Too many uploads. Please try again later.', 429);
     const formData = await request.formData();
     const file = formData.get('file') as File | null;
     const title = formData.get('title') as string;

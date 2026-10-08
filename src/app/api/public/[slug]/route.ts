@@ -1,6 +1,7 @@
 ﻿import { NextRequest } from 'next/server';
 import { getSupabaseAdmin } from '@/lib/supabase/admin';
 import { getAuthUser } from '@/lib/auth';
+import { checkRateLimit, getClientId } from '@/lib/rate-limit';
 import { errorResponse, successResponse, getErrorMessage } from '@/lib/utils';
 import type { CustomSectionContent, CustomSectionOutput, CustomSectionRow, SectionOrderEntry } from '@/types/api';
 
@@ -87,10 +88,13 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
 
     // Track visit
     if (!isPreview) {
-      const ip = request.headers.get('x-forwarded-for')?.split(',')[0] || 'unknown';
-      const ua = request.headers.get('user-agent') || '';
-      // Track visit quietly
-      try { await getSupabaseAdmin().from('portfolio_visits').insert({ portfolio_id: portfolio.id, ip_address: ip, user_agent: ua }) } catch {};
+      const ip = getClientId(request);
+      const ua = (request.headers.get('user-agent') || '').slice(0, 300);
+      // Count at most a few visits per visitor and portfolio per 15 minutes, so refreshing or scripting can't inflate stats.
+      try {
+        const rl = await checkRateLimit(`visit:${portfolio.id}:${ip}`, 'visit');
+        if (rl.allowed) await getSupabaseAdmin().from('portfolio_visits').insert({ portfolio_id: portfolio.id, ip_address: ip, user_agent: ua });
+      } catch { /* stats are best-effort */ }
     }
 
     const parseSectionsOrder = (value: unknown): SectionOrderEntry[] => {

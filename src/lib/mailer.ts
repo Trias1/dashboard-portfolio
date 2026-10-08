@@ -67,6 +67,19 @@ export async function sendResetPassword(email: string, name: string, token: stri
   });
 }
 
+/** Someone tried to register with an address that already has an account. */
+export async function sendAccountExistsNotice(email: string, name: string) {
+  const sender = getSender();
+  const loginUrl = `${BASE_URL}/login`;
+  const resetUrl = `${BASE_URL}/forgot-password`;
+  await transporter.sendMail({
+    from: sender.from,
+    to: headerSafe(email, 320),
+    subject: 'You already have a PortfolioKit account',
+    html: `<div style="font-family:-apple-system,Segoe UI,Helvetica,Arial,sans-serif;max-width:480px;margin:0 auto;padding:32px 24px;background:#ffffff;color:#141414;line-height:1.55"><p style="margin:0 0 24px;font-weight:600;font-size:16px">PortfolioKit</p><h1 style="margin:0 0 8px;font-size:22px">Hi ${escapeHtml(name)},</h1><p style="margin:0 0 20px">Someone tried to sign up with this email, but it already has an account. If that was you, just log in — or reset your password if you forgot it.</p><a href="${escapeHtml(loginUrl)}" style="display:inline-block;background:#1f45c9;color:#ffffff;padding:11px 18px;border-radius:6px;text-decoration:none;font-weight:600;margin:8px 8px 4px 0">Log in</a><a href="${escapeHtml(resetUrl)}" style="display:inline-block;color:#1f45c9;padding:11px 4px;text-decoration:underline;font-weight:600">Reset password</a><p style="margin:32px 0 0;padding-top:16px;border-top:1px solid #dcdcd5;color:#55555a;font-size:12px">If it wasn't you, you can ignore this email. Your account hasn't changed.</p></div>`,
+  });
+}
+
 export async function sendNotifyEmailVerification(email: string, token: string) {
   const sender = getSender();
   const verifyUrl = `${BASE_URL}/api/contact/notify-email/verify?token=${encodeURIComponent(token)}`;

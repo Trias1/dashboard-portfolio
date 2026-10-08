@@ -58,6 +58,36 @@ export async function validateUpload(file: unknown, allowedKinds: DetectedFileTy
 }
 
 /** Accept only absolute http(s) URLs (blocks javascript:, data:, etc.). */
+/**
+ * A link a user typed (demo, GitHub, LinkedIn, CTA…). Returns:
+ *  - '' for empty,
+ *  - an http(s) URL (a bare "github.com/me" gets https:// added),
+ *  - a same-page "#section" or site-relative "/path" when `allowRelative`,
+ *  - null for anything else (javascript:, data:, vbscript:…), which callers treat as invalid.
+ */
+export function safeLinkUrl(value: unknown, allowRelative = false): string | null {
+  if (value === null || value === undefined) return '';
+  if (typeof value !== 'string') return null;
+  const v = value.trim();
+  if (!v) return '';
+  if (v.length > 2048) return null;
+  if (allowRelative && /^(#[\w-]*|\/(?![/\\])[^\s]*)$/.test(v)) return v;
+  if (/^[a-z][a-z0-9+.-]*:/i.test(v)) return sanitizeExternalUrl(v);
+  // No scheme: accept only things that look like a host name.
+  return /^[\w-]+(\.[\w-]+)+([/?#]\S*)?$/.test(v) ? sanitizeExternalUrl(`https://${v}`) : null;
+}
+
+/** Clean the link fields present in `body` in place. Returns the first invalid field name, if any. */
+export function cleanLinkFields(body: Record<string, unknown>, fields: string[], relativeOk: string[] = []): string | null {
+  for (const f of fields) {
+    if (!(f in body)) continue;
+    const cleaned = safeLinkUrl(body[f], relativeOk.includes(f));
+    if (cleaned === null) return f;
+    body[f] = cleaned;
+  }
+  return null;
+}
+
 export function sanitizeExternalUrl(value: unknown): string | null {
   if (typeof value !== 'string' || !value.trim() || value.length > 2048) return null;
   try {

@@ -2,12 +2,14 @@ import { NextRequest } from 'next/server';
 import { requireAuth } from '@/lib/auth';
 import { getSupabaseAdmin } from '@/lib/supabase/admin';
 import { checkRateLimit } from '@/lib/rate-limit';
+import { AI_ENABLED } from '@/lib/features';
 
 const NINE_ROUTER_API_KEY = process.env.NINE_ROUTER_API_KEY!;
 const NINE_ROUTER_BASE_URL = process.env.NINE_ROUTER_BASE_URL || "https://router.zeen.my.id/v1";
 
 export async function POST(request: NextRequest, { params }: { params: Promise<{ section: string }> }) {
   try {
+    if (!AI_ENABLED) return new Response('Not found', { status: 404 });
     const auth = await requireAuth(request);
     const { section } = await params;
     const userId = auth.id;

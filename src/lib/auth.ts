@@ -14,6 +14,9 @@ const getSecret = () => new TextEncoder().encode(readSecret('JWT_SECRET'));
 const getRefreshSecret = () => new TextEncoder().encode(readSecret('JWT_REFRESH_SECRET'));
 
 export const MIN_PASSWORD_LENGTH = 8;
+export const BCRYPT_COST = 12;
+/** One-time tokens (email verification, password reset) are stored hashed, so a leaked table can't be used to reset accounts. */
+export const hashToken = (token: string) => crypto.createHash('sha256').update(token).digest('hex');
 export const normalizeEmail = (email: unknown) => (typeof email === 'string' ? email.trim().toLowerCase() : '');
 export const isBcryptHash = (hash: unknown): hash is string => typeof hash === 'string' && /^\$2[aby]\$\d{2}\$/.test(hash);
 
@@ -25,8 +28,11 @@ export async function signAccessToken(payload: JWTPayload): Promise<string> {
     .sign(getSecret());
 }
 
-export async function signRefreshToken(payload: { id: number }): Promise<string> {
-  return new SignJWT({ id: payload.id })
+/** Refresh token claims: user id, plus the session id (jti) and session family (fam) once sessions exist. */
+export interface RefreshClaims { id: number; jti?: string; fam?: string }
+
+export async function signRefreshToken(payload: RefreshClaims): Promise<string> {
+  return new SignJWT({ id: payload.id, ...(payload.jti ? { jti: payload.jti, fam: payload.fam } : {}) })
     .setProtectedHeader({ alg: 'HS256' })
     .setAudience('refresh')
     .setExpirationTime(process.env.JWT_REFRESH_EXPIRES_IN || '7d')
@@ -42,11 +48,16 @@ export async function verifyAccessToken(token: string): Promise<JWTPayload | nul
   } catch { return null; }
 }
 
-export async function verifyRefreshToken(token: string): Promise<{ id: number } | null> {
+export async function verifyRefreshToken(token: string): Promise<RefreshClaims | null> {
   const key = getRefreshSecret();
   try {
     const { payload } = await jwtVerify(token, key, { audience: 'refresh', algorithms: ['HS256'] });
-    return payload as unknown as { id: number };
+    if (typeof payload.id !== 'number') return null;
+    return {
+      id: payload.id,
+      jti: typeof payload.jti === 'string' ? payload.jti : undefined,
+      fam: typeof payload.fam === 'string' ? payload.fam : undefined,
+    };
   } catch { return null; }
 }
 
@@ -190,5 +201,9 @@ export async function requireAdmin(request?: Request): Promise<JWTPayload> {
 export async function requireSuperAdmin(request?: Request): Promise<JWTPayload> {
   const user = await requireAuth(request);
   if (user.role !== 'superadmin') throw new Error('Forbidden');
+  // The role in the access token can be up to 15 minutes old: confirm against the database for admin powers.
+  const { getSupabaseAdmin } = await import('./supabase/admin');
+  const { data } = await getSupabaseAdmin().from('users').select('role, is_active').eq('id', user.id).maybeSingle();
+  if (!data || data.role !== 'superadmin' || data.is_active === false) throw new Error('Forbidden');
   return user;
 }

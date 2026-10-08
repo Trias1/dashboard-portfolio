@@ -34,6 +34,10 @@ export function errorResponse(message: string, status: number = 500) {
   if (status === 500) {
     if (message === 'Unauthorized') return Response.json({ message }, { status: 401 });
     if (message === 'Forbidden') return Response.json({ message }, { status: 403 });
+    // request.json() on a malformed body: the client's fault, not ours.
+    if (/^(?:Unexpected (?:token|end of JSON)|Expected property name|.*is not valid JSON|Unterminated string in JSON)/i.test(message)) {
+      return Response.json({ message: 'Invalid request body' }, { status: 400 });
+    }
     console.error('[API 500]', message);
     return Response.json({ message: 'Internal server error' }, { status });
   }

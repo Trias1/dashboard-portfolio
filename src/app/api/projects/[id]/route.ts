@@ -2,6 +2,7 @@ import { NextRequest } from 'next/server';
 import { requireAuth } from '@/lib/auth';
 import { getSupabaseAdmin } from '@/lib/supabase/admin';
 import { errorResponse, successResponse, getErrorMessage } from '@/lib/utils';
+import { checkSectionBody } from '@/lib/validate';
 
 const authStatus = (err: unknown) => {
   const message = err instanceof Error ? err.message : '';
@@ -12,7 +13,10 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
   try {
     const auth = await requireAuth(request);
     const { id } = await params;
-    const { title, description, image_url, tech_stack, demo_url, github_url } = await request.json();
+    const body = await request.json();
+    const invalid = checkSectionBody(body, { links: ['image_url', 'demo_url', 'github_url'] });
+    if (invalid) return errorResponse(invalid, 400);
+    const { title, description, image_url, tech_stack, demo_url, github_url } = body;
     const updates = { title, description, image_url, tech_stack, demo_url, github_url };
     const { data, error } = await getSupabaseAdmin().from('projects').update(updates).eq('id', id).eq('owner_id', auth.id).select().maybeSingle();
     if (error) return errorResponse(error.message, 500);

@@ -2,6 +2,7 @@ import { NextRequest } from 'next/server';
 import { requireAuth } from '@/lib/auth';
 import { getSupabaseAdmin } from '@/lib/supabase/admin';
 import { errorResponse, successResponse, getErrorMessage } from '@/lib/utils';
+import { checkSectionBody } from '@/lib/validate';
 
 export async function GET(request: NextRequest) {
   try {
@@ -17,7 +18,10 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const auth = await requireAuth(request);
-    const { title, description, image_url, tech_stack, demo_url, github_url } = await request.json();
+    const body = await request.json();
+    const invalid = checkSectionBody(body, { links: ['image_url', 'demo_url', 'github_url'] });
+    if (invalid) return errorResponse(invalid, 400);
+    const { title, description, image_url, tech_stack, demo_url, github_url } = body;
     const { data } = await getSupabaseAdmin().from('projects').insert({ title, description, image_url, tech_stack, demo_url, github_url, owner_id: auth.id }).select().single();
     return successResponse(data, 201);
   } catch (err) { return errorResponse(getErrorMessage(err)); }

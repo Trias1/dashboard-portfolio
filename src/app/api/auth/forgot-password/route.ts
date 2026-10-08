@@ -4,9 +4,9 @@ import { getSupabaseAdmin } from '@/lib/supabase/admin';
 import { sendResetPassword } from '@/lib/mailer';
 import { errorResponse, successResponse } from '@/lib/utils';
 import { checkRateLimit, getClientId } from '@/lib/rate-limit';
-import { normalizeEmail } from '@/lib/auth';
+import { hashToken, normalizeEmail } from '@/lib/auth';
 
-const GENERIC_MESSAGE = 'Jika email terdaftar, link reset akan dikirim.';
+const GENERIC_MESSAGE = 'If that email has an account, a reset link is on its way.';
 
 export async function POST(request: NextRequest) {
   try {
@@ -38,7 +38,7 @@ export async function POST(request: NextRequest) {
     const expires = new Date(Date.now() + 60 * 60 * 1000).toISOString();
     const { error: updateError } = await supabase
       .from('users')
-      .update({ reset_token: token, reset_token_expires: expires })
+      .update({ reset_token: hashToken(token), reset_token_expires: expires })
       .eq('id', user.id);
 
     if (updateError) {

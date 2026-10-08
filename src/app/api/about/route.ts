@@ -3,6 +3,7 @@ import { requireAuth, getAuthUser } from '@/lib/auth';
 import { getSupabaseAdmin } from '@/lib/supabase/admin';
 import { errorResponse, successResponse, getErrorMessage } from '@/lib/utils';
 import { uploadFile } from '@/lib/supabase/storage';
+import { checkSectionBody } from '@/lib/validate';
 
 export async function GET(request: NextRequest) {
   try {
@@ -21,7 +22,10 @@ export async function GET(request: NextRequest) {
 export async function PUT(request: NextRequest) {
   try {
     const auth = await requireAuth(request);
-    const { name, title, bio, photo_url, cv_url } = await request.json();
+    const body = await request.json();
+    const invalid = checkSectionBody(body, { links: ['photo_url', 'cv_url'] });
+    if (invalid) return errorResponse(invalid, 400);
+    const { name, title, bio, photo_url, cv_url } = body;
     const { data: existing } = await getSupabaseAdmin().from('about').select('id').eq('owner_id', auth.id).maybeSingle();
     let result;
     if (existing) {
@@ -30,5 +34,5 @@ export async function PUT(request: NextRequest) {
       result = await getSupabaseAdmin().from('about').insert({ name, title, bio, photo_url, cv_url, owner_id: auth.id }).select().single();
     }
     return successResponse(result.data);
-  } catch (err) { return errorResponse(getErrorMessage(err), 401); }
+  } catch (err) { return errorResponse(getErrorMessage(err)); }
 }

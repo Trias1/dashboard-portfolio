@@ -8,7 +8,9 @@ export async function POST(request: NextRequest) {
     const auth = await requireAuth(request);
     if (auth.role !== 'admin' && auth.role !== 'superadmin') return errorResponse('Forbidden', 403);
     const { title, slug } = await request.json();
-    const cleanSlug = slug.toLowerCase().replace(/[^a-z0-9-]/g, '-');
+    if (typeof slug !== 'string' || (title !== undefined && (typeof title !== 'string' || title.length > 200))) return errorResponse('Invalid title or slug', 400);
+    const cleanSlug = slug.toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
+    if (cleanSlug.length < 3 || cleanSlug.length > 60) return errorResponse('Slug must be 3-60 letters, numbers or dashes', 400);
     const { data, error } = await getSupabaseAdmin().from('portfolios').insert({ owner_id: auth.id, title, slug: cleanSlug }).select().single();
     if (error?.code === '23505') return errorResponse('Slug already taken', 400);
     return successResponse(data, 201);

@@ -2,6 +2,7 @@ import { NextRequest } from 'next/server';
 import { requireAuth } from '@/lib/auth';
 import { getSupabaseAdmin } from '@/lib/supabase/admin';
 import { errorResponse, successResponse, getErrorMessage } from '@/lib/utils';
+import { checkSectionBody } from '@/lib/validate';
 
 const authStatus = (err: unknown) => {
   const message = err instanceof Error ? err.message : '';
@@ -12,7 +13,10 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
   try {
     const auth = await requireAuth(request);
     const { id } = await params;
-    const { company, position, start_date, end_date, description } = await request.json();
+    const body = await request.json();
+    const invalid = checkSectionBody(body, { maxText: 50000 });
+    if (invalid) return errorResponse(invalid, 400);
+    const { company, position, start_date, end_date, description } = body;
     const updates = { company, position, start_date: start_date || null, end_date: end_date || null, description };
     const { data, error } = await getSupabaseAdmin().from('experience').update(updates).eq('id', id).eq('owner_id', auth.id).select().maybeSingle();
     if (error) return errorResponse(error.message, 500);
@@ -27,5 +31,5 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
     const { id } = await params;
     await getSupabaseAdmin().from('experience').delete().eq('id', id).eq('owner_id', auth.id);
     return successResponse({ message: 'Deleted' });
-  } catch (err) { return errorResponse(getErrorMessage(err), 401); }
+  } catch (err) { return errorResponse(getErrorMessage(err)); }
 }
