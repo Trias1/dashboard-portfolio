@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import TemplateShowcase from '@/components/TemplateShowcase';
+import TemplatePreviewModal from '@/components/TemplatePreviewModal';
 
 const t = {
   login: 'Log in',
@@ -31,6 +32,7 @@ const t = {
   tplTitle: '17 layouts.',
   tplTitle2: 'Same content.',
   tplLink: 'Try them all in the demo →',
+  tplHint: 'Click a layout to preview it with sample content.',
   closing: 'Start now, polish it later.',
   closingSub: 'Saving a half-finished page is fine. Nothing is public until you publish it.',
   closingCta: 'Sign up free',
@@ -60,6 +62,7 @@ const templates = [
 
 export default function LandingPage() {
   const [count, setCount] = useState(0);
+  const [preview, setPreview] = useState<number | null>(null);
 
   useEffect(() => {
     fetch('/api/public/stats')
@@ -134,12 +137,17 @@ export default function LandingPage() {
               <h2 className="font-display font-semibold text-3xl tracking-tight sm:text-4xl">{t.tplTitle}<br /><span className="text-ink-soft">{t.tplTitle2}</span></h2>
               <Link href="/demo" target="_blank" rel="noopener noreferrer" className="text-sm font-medium text-accent underline-offset-4 hover:underline">{t.tplLink}</Link>
             </div>
-            <ol className="mt-10 grid gap-x-10 sm:grid-cols-2 lg:grid-cols-3">
+            <p className="mt-3 text-sm text-ink-soft">{t.tplHint}</p>
+            <ol className="mt-8 grid gap-x-10 sm:grid-cols-2 lg:grid-cols-3">
               {templates.map(({ name, desc }, i) => (
-                <li key={name} className="flex items-baseline gap-4 border-t border-rule py-3.5">
-                  <span className="w-6 shrink-0 font-mono text-xs text-ink-soft">{String(i + 1).padStart(2, '0')}</span>
-                  <span className="font-medium">{name}</span>
-                  <span className="ml-auto text-right text-sm text-ink-soft">{desc}</span>
+                <li key={name} className="border-t border-rule">
+                  <button type="button" onClick={() => setPreview(i)} aria-haspopup="dialog"
+                    className="group flex w-full items-baseline gap-4 py-3.5 text-left transition-colors hover:bg-paper-deep focus-visible:bg-paper-deep focus-visible:outline-none">
+                    <span className="w-6 shrink-0 font-mono text-xs text-ink-soft">{String(i + 1).padStart(2, '0')}</span>
+                    <span className="font-medium underline-offset-4 group-hover:underline">{name}</span>
+                    <span className="ml-auto text-right text-sm text-ink-soft">{desc}</span>
+                    <span aria-hidden="true" className="w-4 shrink-0 text-ink-soft opacity-0 transition-opacity group-hover:opacity-100">→</span>
+                  </button>
                 </li>
               ))}
             </ol>
@@ -154,6 +162,8 @@ export default function LandingPage() {
           </div>
         </section>
       </main>
+
+      <TemplatePreviewModal templates={templates} index={preview} onIndexChange={setPreview} onClose={() => setPreview(null)} />
 
       <footer className="border-t border-rule">
         <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 px-5 py-6 text-sm text-ink-soft sm:px-8">

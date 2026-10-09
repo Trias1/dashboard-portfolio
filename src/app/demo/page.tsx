@@ -1,6 +1,7 @@
 'use client';
-import { useState } from 'react';
+import { Suspense, useState } from 'react';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 
 const demoTemplates = [
   { id: 'modern', label: 'Modern', desc: 'Big name, two-column work list' },
@@ -28,7 +29,13 @@ const demoThemes = [
 ];
 
 export default function DemoPage() {
-  const [template, setTemplate] = useState('modern');
+  return <Suspense fallback={null}><Demo /></Suspense>;
+}
+
+function Demo() {
+  // /demo?template=playful opens straight on that template (links from the landing page preview).
+  const requested = useSearchParams().get('template');
+  const [template, setTemplate] = useState(demoTemplates.some((t) => t.id === requested) ? requested! : 'modern');
   const [theme, setTheme] = useState(demoThemes[0]);
   const current = demoTemplates.find(t => t.id === template);
 
