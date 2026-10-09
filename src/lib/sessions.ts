@@ -93,12 +93,16 @@ export async function rotateSession(token: string, userAgent?: string | null): P
   const { id: nextId, error: insertError } = await insertSession(db, decoded.id, row.family_id, userAgent);
   if (insertError) return null;
   // Only one concurrent request may retire the row; the other one is handed the winner's successor.
-  const { data: retired } = await db.from('auth_sessions')
+  const { data: retired, error: retireError } = await db.from('auth_sessions')
     .update({ revoked_at: new Date().toISOString(), replaced_by: nextId })
     .eq('id', row.id).is('revoked_at', null).select('id');
   if (!retired?.length) {
-    await db.from('auth_sessions').delete().eq('id', nextId);
+    // Either another request won, or the update's outcome is unknown (e.g. a slow or dropped connection).
+    // Read the row back so the token we hand out always points at the successor that was actually recorded.
+    if (retireError) console.error('[sessions] retire failed', retireError.code, retireError.message);
     const { data: now } = await db.from('auth_sessions').select('replaced_by').eq('id', row.id).maybeSingle();
+    if (now?.replaced_by === nextId) return { userId: decoded.id, refreshToken: await signRefreshToken({ id: decoded.id, jti: nextId, fam: row.family_id }) };
+    await db.from('auth_sessions').delete().eq('id', nextId);
     if (!now?.replaced_by) return null;
     return { userId: decoded.id, refreshToken: await signRefreshToken({ id: decoded.id, jti: now.replaced_by, fam: row.family_id }) };
   }

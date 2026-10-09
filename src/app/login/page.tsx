@@ -80,7 +80,11 @@ export default function LoginPage() {
     }
   };
 
-  if (loading) return <div className="min-h-screen bg-paper" aria-busy="true" />;
+  if (loading) return (
+    <div className="flex min-h-screen items-center justify-center bg-paper font-sans" aria-busy="true">
+      <p className="text-sm text-ink-soft">Checking your session…</p>
+    </div>
+  );
 
   if (otpSent) return (
     <AuthShell

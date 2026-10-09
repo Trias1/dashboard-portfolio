@@ -165,6 +165,9 @@ export default function CreativeTemplate({ data, theme, isPreview }: { data: Tem
   const name = about?.name || portfolio.title || 'Portfolio';
   const email = contact?.email || about?.email;
   const contactEnabled = data.portfolio?.sections_order?.find((section: TemplateSectionOrder) => section.type === 'contact')?.enabled !== false;
+  // Only link to sections that actually render.
+  const shown: Record<string, boolean> = { projects: projects.length > 0, experience: experience.length > 0, skills: skills.length > 0, contact: contactEnabled };
+  const nav = NAV.filter(([id]) => shown[id]);
 
   return (
     <div className="min-h-screen overflow-x-clip font-sans antialiased" style={{ backgroundColor: p.paper, color: p.text }} data-preview={isPreview ? 'true' : undefined}>
@@ -177,7 +180,7 @@ export default function CreativeTemplate({ data, theme, isPreview }: { data: Tem
         <nav aria-label="Index" className="mt-12">
           <p className="mb-3 font-mono text-[11px] uppercase tracking-[0.16em]" style={{ color: p.muted }}>Index</p>
           <ol className="border-t" style={{ borderColor: p.rule }}>
-            {NAV.map(([id, label], i) => (
+            {nav.map(([id, label], i) => (
               <li key={id} className="border-b" style={{ borderColor: p.rule }}>
                 <a href={`#${id}`} className={`flex items-baseline gap-4 py-2.5 text-sm hover:underline underline-offset-4 ${FOCUS}`} style={{ outlineColor: p.accent }}>
                   <span className="font-mono text-xs tabular-nums" style={{ color: p.muted }}>{String(i + 1).padStart(2, '0')}</span>{label}
@@ -210,7 +213,7 @@ export default function CreativeTemplate({ data, theme, isPreview }: { data: Tem
             </div>
           </div>
           <nav aria-label="Index" className="mt-4 flex flex-wrap gap-x-5 gap-y-1 text-sm">
-            {NAV.map(([id, label]) => <a key={id} href={`#${id}`} className={`underline-offset-4 hover:underline ${FOCUS}`} style={{ outlineColor: p.accent }}>{label}</a>)}
+            {nav.map(([id, label]) => <a key={id} href={`#${id}`} className={`underline-offset-4 hover:underline ${FOCUS}`} style={{ outlineColor: p.accent }}>{label}</a>)}
             {about?.cv_url && <A href={about.cv_url} p={p} external>CV</A>}
           </nav>
         </div>

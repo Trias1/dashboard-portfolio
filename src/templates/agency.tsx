@@ -109,9 +109,9 @@ export default function AgencyTemplate({ data, theme, isPreview }: { data: Templ
             {name}<span style={{ color: p.accentText }}>.</span>
           </a>
           <nav aria-label="Sections" className="flex items-center gap-6 lg:gap-8 text-sm">
-            <a href="#projects" className={`hidden md:inline hover:underline underline-offset-4 ${focusRing}`}>Work</a>
-            <a href="#services" className={`hidden md:inline hover:underline underline-offset-4 ${focusRing}`}>Services</a>
-            <a href="#about" className={`hidden md:inline hover:underline underline-offset-4 ${focusRing}`}>About</a>
+            {projects.length > 0 && <a href="#projects" className={`hidden md:inline hover:underline underline-offset-4 ${focusRing}`}>Work</a>}
+            {services.length > 0 && <a href="#services" className={`hidden md:inline hover:underline underline-offset-4 ${focusRing}`}>Services</a>}
+            {about?.name && <a href="#about" className={`hidden md:inline hover:underline underline-offset-4 ${focusRing}`}>About</a>}
             <a href="#contact" className={`px-4 py-2 rounded-[4px] font-medium hover:opacity-90 ${focusRing}`} style={{ backgroundColor: p.text, color: p.bg }}>Start a project</a>
           </nav>
         </div>

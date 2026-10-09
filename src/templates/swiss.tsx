@@ -109,8 +109,8 @@ export default function SwissTemplate({ data, theme, isPreview }: { data: Templa
           <a href="#hero" className={`md:col-span-3 font-bold truncate ${focusRing}`}>{name}</a>
           <p className="hidden md:block md:col-span-4" style={{ color: p.sub }}>{about?.title}</p>
           <nav aria-label="Sections" className="md:col-span-5 flex justify-end md:justify-start gap-5">
-            <a href="#projects" className={`hidden sm:inline hover:underline underline-offset-4 ${focusRing}`}>Work</a>
-            <a href="#about" className={`hidden sm:inline hover:underline underline-offset-4 ${focusRing}`}>About</a>
+            {projects.length > 0 && <a href="#projects" className={`hidden sm:inline hover:underline underline-offset-4 ${focusRing}`}>Work</a>}
+            {about?.name && <a href="#about" className={`hidden sm:inline hover:underline underline-offset-4 ${focusRing}`}>About</a>}
             <a href="#contact" className={`hover:underline underline-offset-4 ${focusRing}`}>Contact</a>
           </nav>
         </div>

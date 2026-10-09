@@ -1,5 +1,5 @@
 'use client';
-import type { TemplateData, TemplateItem, ThemeConfig } from '@/types';
+import type { TemplateData, TemplateItem, TemplateSectionOrder, ThemeConfig } from '@/types';
 import type { ReactNode, SyntheticEvent } from 'react';
 import { useState } from 'react';
 import { useSearchParams } from 'next/navigation';
@@ -168,6 +168,14 @@ export default function ModernTemplate({ data, theme, isPreview }: { data: Templ
   const heroText = hasBgImage ? '#ffffff' : p.text;
   const heroMuted = hasBgImage ? '#e5e5e5' : p.muted;
   const heroRule = hasBgImage ? 'rgba(255,255,255,0.3)' : p.rule;
+  const contactEnabled = portfolio?.sections_order?.find((section: TemplateSectionOrder) => section.type === 'contact')?.enabled !== false;
+  // Only link to sections that actually render.
+  const shown: Record<string, boolean> = {
+    about: isVisible('about') && !!about?.name, experience: isVisible('experience') && experience.length > 0,
+    projects: isVisible('projects') && projects.length > 0, services: isVisible('services') && services.length > 0,
+    contact: isVisible('contact') && contactEnabled,
+  };
+  const nav = NAV.filter((s) => shown[s]);
 
   return (
     <div className="min-h-screen overflow-x-clip font-sans antialiased" style={{ backgroundColor: p.bg, color: p.text }} data-preview={isPreview ? 'true' : undefined}>
@@ -176,7 +184,7 @@ export default function ModernTemplate({ data, theme, isPreview }: { data: Templ
         <div className="mx-auto flex max-w-6xl items-center justify-between px-5 py-3.5 sm:px-8">
           <a href="#hero" className={`font-display text-base font-semibold tracking-tight ${FOCUS}`} style={{ outlineColor: p.accent }}>{displayName}</a>
           <nav aria-label="Sections" className="hidden gap-7 md:flex">
-            {NAV.map((s) => (
+            {nav.map((s) => (
               <a key={s} href={`#${s}`} className={`text-sm capitalize underline-offset-4 hover:underline ${FOCUS}`}
                 style={{ color: p.muted, outlineColor: p.accent }}>{s}</a>
             ))}
@@ -188,7 +196,7 @@ export default function ModernTemplate({ data, theme, isPreview }: { data: Templ
         </div>
         {menuOpen && (
           <nav aria-label="Sections" className="border-t px-5 pb-3 md:hidden" style={{ borderColor: p.rule }}>
-            {NAV.map((s) => (
+            {nav.map((s) => (
               <a key={s} href={`#${s}`} onClick={() => setMenuOpen(false)}
                 className={`block border-b py-3 text-sm capitalize last:border-b-0 ${FOCUS}`} style={{ borderColor: p.rule, outlineColor: p.accent }}>{s}</a>
             ))}

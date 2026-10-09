@@ -50,6 +50,11 @@ export default function OrderSections({ sections_order, children }: { sections_o
       sections.forEach((section) => {
         section.hidden = disabled.has(sectionKey(section.id));
       });
+      // Menu links pointing at a hidden or missing section would lead nowhere.
+      root.querySelectorAll<HTMLAnchorElement>('nav a[href^="#"]').forEach((link) => {
+        const target = document.getElementById(link.getAttribute('href')!.slice(1));
+        link.hidden = !target || target.hidden;
+      });
 
       const sorted = Array.from(sections).sort((a, b) => {
         const aKey = sectionKey(a.id);

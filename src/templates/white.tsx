@@ -105,8 +105,8 @@ export default function WhiteTemplate({ data, theme, isPreview }: { data: Templa
         <div className="max-w-5xl mx-auto h-20 flex items-center justify-between gap-6">
           <a href="#hero" className={`text-[15px] tracking-tight truncate ${focusRing}`}>{name}</a>
           <nav aria-label="Sections" className="flex gap-5 sm:gap-8 text-sm" style={{ color: p.sub }}>
-            <a href="#about" className={`hidden sm:inline hover:opacity-70 ${focusRing}`} style={{ color: p.text }}>About</a>
-            <a href="#projects" className={`hover:opacity-70 ${focusRing}`} style={{ color: p.text }}>Work</a>
+            {about?.name && <a href="#about" className={`hidden sm:inline hover:opacity-70 ${focusRing}`} style={{ color: p.text }}>About</a>}
+            {projects.length > 0 && <a href="#projects" className={`hover:opacity-70 ${focusRing}`} style={{ color: p.text }}>Work</a>}
             <a href="#contact" className={`hover:opacity-70 ${focusRing}`} style={{ color: p.text }}>Contact</a>
           </nav>
         </div>

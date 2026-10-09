@@ -167,6 +167,9 @@ export default function BoldTemplate({ data, theme, isPreview }: { data: Templat
   const name = about?.name || portfolio.title || 'Portfolio';
   const email = contact?.email || about?.email;
   const contactEnabled = data.portfolio?.sections_order?.find((section: TemplateSectionOrder) => section.type === 'contact')?.enabled !== false;
+  // Only link to sections that actually render.
+  const shown: Record<string, boolean> = { about: !!about?.name, experience: experience.length > 0, projects: projects.length > 0, services: services.length > 0, contact: contactEnabled };
+  const nav = NAV.filter((s) => shown[s]);
 
   return (
     <div className="min-h-screen overflow-x-clip font-sans antialiased" style={{ backgroundColor: p.bg, color: p.text }} data-preview={isPreview ? 'true' : undefined}>
@@ -176,7 +179,7 @@ export default function BoldTemplate({ data, theme, isPreview }: { data: Templat
         <header className="flex flex-wrap items-center justify-between gap-x-6 gap-y-2 border-b-2 pb-4" style={{ borderColor: p.onBlock }}>
           <span className="text-sm font-extrabold uppercase tracking-wide">{name}</span>
           <nav aria-label="Sections" className="flex flex-wrap gap-x-5 gap-y-1 text-sm font-bold uppercase tracking-wide">
-            {NAV.map((s) => <a key={s} href={`#${s}`} className={`underline-offset-4 hover:underline ${FOCUS}`} style={{ outlineColor: p.onBlock }}>{s}</a>)}
+            {nav.map((s) => <a key={s} href={`#${s}`} className={`underline-offset-4 hover:underline ${FOCUS}`} style={{ outlineColor: p.onBlock }}>{s}</a>)}
           </nav>
         </header>
 
