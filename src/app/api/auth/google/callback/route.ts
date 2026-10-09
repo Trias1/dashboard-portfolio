@@ -158,7 +158,9 @@ export async function GET(request: NextRequest) {
     return Response.redirect(target.origin === fallback.origin ? target : fallback);
   } catch (error) {
     console.error('[google oauth] unexpected error', step, error instanceof Error ? { name: error.name, message: error.message } : error);
-    return redirectToLogin(`oauth_failed&at=${step}`);
+    // Only a short code goes in the URL (e.g. a Postgres error code), never a message.
+    const code = error instanceof Error ? (error.message.match(/(([A-Za-z0-9_]{1,12}))$/)?.[1] || error.name) : 'unknown';
+    return redirectToLogin(`oauth_failed&at=${step}&code=${encodeURIComponent(code)}`);
   }
 }
 

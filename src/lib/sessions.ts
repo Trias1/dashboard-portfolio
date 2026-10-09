@@ -36,7 +36,8 @@ export async function startSession(userId: number, userAgent?: string | null): P
   const { id, error } = await insertSession(db, userId, familyId, userAgent);
   if (error) {
     if (isMissingTable(error)) return signRefreshToken({ id: userId });
-    throw new Error('Could not start session');
+    console.error('[sessions] start failed', error.code, error.message);
+    throw new Error(`Could not start session (${error.code || 'db'})`);
   }
   return signRefreshToken({ id: userId, jti: id, fam: familyId });
 }
