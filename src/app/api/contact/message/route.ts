@@ -4,6 +4,7 @@ import { errorResponse, successResponse, getErrorMessage } from '@/lib/utils';
 import { checkRateLimit, getClientId } from '@/lib/rate-limit';
 import { sendContactNotification } from '@/lib/mailer';
 import { notifyRecipient } from '@/lib/notify-email';
+import { encryptField } from '@/lib/field-crypto';
 
 const MAX_NAME_LENGTH = 100;
 const MAX_EMAIL_LENGTH = 254;
@@ -35,7 +36,8 @@ export async function POST(request: NextRequest) {
     if (!portfolio) return errorResponse('Portfolio not found', 404);
     const owner_id = portfolio.owner_id;
 
-    await getSupabaseAdmin().from('contact_messages').insert({ name, email, message, owner_id });
+    // Stored encrypted (AES-256-GCM, key in the app env); the notification below uses the plain values.
+    await getSupabaseAdmin().from('contact_messages').insert({ name: encryptField(name), email: encryptField(email), message: encryptField(message), owner_id });
 
     // Notify the owner at their confirmed notification email or their account email — never the free-form
     // public contact_info.email, so the contact form cannot be abused to relay mail to arbitrary addresses.

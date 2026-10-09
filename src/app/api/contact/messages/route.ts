@@ -2,6 +2,7 @@ import { NextRequest } from 'next/server';
 import { requireAuth } from '@/lib/auth';
 import { getSupabaseAdmin } from '@/lib/supabase/admin';
 import { errorResponse, successResponse, getErrorMessage } from '@/lib/utils';
+import { decryptMessage } from '@/lib/field-crypto';
 
 /** The signed-in owner's contact-form messages, newest first. */
 export async function GET(request: NextRequest) {
@@ -14,6 +15,6 @@ export async function GET(request: NextRequest) {
       .eq('owner_id', auth.id)
       .order('created_at', { ascending: false })
       .limit(500);
-    return successResponse(data || []);
+    return successResponse((data || []).map(decryptMessage));
   } catch (err) { return errorResponse(getErrorMessage(err)); }
 }
