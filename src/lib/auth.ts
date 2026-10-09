@@ -61,6 +61,28 @@ export async function verifyRefreshToken(token: string): Promise<RefreshClaims |
   } catch { return null; }
 }
 
+// --- Email change confirmation (stateless, signed, 1 hour) ---
+// The token names the address it changes *from*, so it stops working once the email has changed (used, or
+// replaced by a newer change); no table needed.
+export interface EmailChangeClaims { id: number; from: string; to: string }
+
+export async function signEmailChangeToken(claims: EmailChangeClaims): Promise<string> {
+  return new SignJWT({ id: claims.id, from: claims.from, to: claims.to })
+    .setProtectedHeader({ alg: 'HS256' })
+    .setAudience('email-change')
+    .setExpirationTime('1h')
+    .sign(getSecret());
+}
+
+export async function verifyEmailChangeToken(token: string): Promise<EmailChangeClaims | null> {
+  const key = getSecret();
+  try {
+    const { payload } = await jwtVerify(token, key, { audience: 'email-change', algorithms: ['HS256'] });
+    if (typeof payload.id !== 'number' || typeof payload.from !== 'string' || typeof payload.to !== 'string') return null;
+    return { id: payload.id, from: payload.from, to: payload.to };
+  } catch { return null; }
+}
+
 export const GOOGLE_STATE_COOKIE = 'googleOauthState';
 
 /** Only same-site relative paths ("/x", not "//x" or "/\x") are allowed as post-login redirects. */

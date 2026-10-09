@@ -237,6 +237,8 @@ export interface ProfileUpdateResponse {
   name: string;
   email: string;
   photo_url?: string;
+  /** Set when a new login email is waiting for its confirmation link to be opened. */
+  pendingEmail?: string | null;
 }
 
 export interface ProfileFormData {

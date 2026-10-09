@@ -44,6 +44,18 @@ export function errorResponse(message: string, status: number = 500) {
   return Response.json({ message }, { status });
 }
 
+/** Parsed JSON object body, or null when the body is missing, malformed or not an object (answer 400). */
+export async function readJsonBody(request: Request): Promise<Record<string, unknown> | null> {
+  try {
+    const body: unknown = await request.json();
+    return body && typeof body === 'object' && !Array.isArray(body) ? (body as Record<string, unknown>) : null;
+  } catch {
+    return null;
+  }
+}
+
+export const invalidBodyResponse = () => Response.json({ message: 'Invalid request body' }, { status: 400 });
+
 // Success response helper
 export function successResponse(data: unknown, status: number = 200) {
   return Response.json(data, { status });

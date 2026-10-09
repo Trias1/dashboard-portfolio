@@ -49,7 +49,9 @@ export function useDashboardProfileActions({ user, profileForm, setUser, setProf
       localStorage.setItem('user', JSON.stringify({ role: updatedUser.role, photo_url: updatedUser.photo_url, name: updatedUser.name }));
       setUser(updatedUser);
       setProfileForm((previous) => ({ ...previous, name: response.data.name, email: response.data.email, photo_url: response.data.photo_url || '', password: '', confirmPassword: '', currentPassword: '' }));
-      setProfileMsg('Profile updated!');
+      setProfileMsg(response.data.pendingEmail
+        ? `Saved. We sent a confirmation link to ${response.data.pendingEmail}; your login email changes once you open it (within 1 hour).`
+        : 'Profile updated!');
     } catch (error) { setProfileError(getApiErrorMessage(error, 'Update failed')); }
   };
   return { logout, updateProfile };

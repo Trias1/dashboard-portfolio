@@ -9,12 +9,15 @@ interface DashboardSidebarProps {
   setActiveMenu: (menu: string) => void;
   setSidebarOpen: (open: boolean) => void;
   usersLabel: string;
+  /** Small counters next to menu items, e.g. unread messages: { inbox: 3 }. */
+  badges?: Record<string, number>;
 }
 
 const paths: Record<string, string> = {
   builder: "M4 4h16v16H4z M8 8h8 M8 12h8 M8 16h5",
   advisor: "M12 3a6 6 0 0 0-3 11.2V17h6v-2.8A6 6 0 0 0 12 3z M9 21h6",
   analytics: "M4 19V5 M4 19h16 M8 16v-4 M12 16V8 M16 16v-7",
+  inbox: "M4 13h4l1.5 3h5L16 13h4 M4 13l2.5-8h11L20 13v6H4z",
   github:
     "M12 3a9 9 0 0 0-3 17.5c.5.1.7-.2.7-.5v-1.8c-2.8.6-3.4-1.2-3.4-1.2-.5-1.2-1.1-1.5-1.1-1.5-.9-.6.1-.6.1-.6 1 0 1.5 1 1 1 .9 1.5 2.3 1.1 2.9.8.1-.7.4-1.1.7-1.4-2.2-.3-4.5-1.1-4.5-5A3.9 3.9 0 0 1 7 9.6a3.6 3.6 0 0 1 .1-2.8s.8-.3 2.9 1.1a10 10 0 0 1 5.3 0c2.1-1.4 2.9-1.1 2.9-1.1a3.6 3.6 0 0 1 .1 2.8 3.9 3.9 0 0 1 1 2.7c0 3.9-2.3 4.7 0 5 .4.3.7 1 .7 2v2.7c0 .3.2.6.7.5A9 9 0 0 0 12 3z",
   cv: "M6 3h9l3 3v15H6z M15 3v4h4 M9 12h6 M9 16h6",
@@ -48,6 +51,7 @@ export default function DashboardSidebar({
   setActiveMenu,
   setSidebarOpen,
   usersLabel,
+  badges = {},
 }: DashboardSidebarProps) {
   const items =
     role === "superadmin"
@@ -64,6 +68,7 @@ export default function DashboardSidebar({
             label: "Analytics",
             icon: "analytics",
           },
+          { key: "inbox", label: "Inbox", icon: "inbox" },
           { key: "github", label: "GitHub import", icon: "github" },
           { key: "cv", label: "CV", icon: "cv" },
         ];
@@ -111,10 +116,19 @@ export default function DashboardSidebar({
               aria-current={active ? "page" : undefined}
               className={`flex w-full items-center gap-2.5 rounded-md border px-2.5 py-1.5 text-left text-sm transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink/15 ${active ? "border-rule bg-white font-medium text-ink" : "border-transparent text-ink-soft hover:bg-white/60 hover:text-ink"}`}
             >
-              <span className={active ? "text-accent" : ""}>
+              <span className={`relative ${active ? "text-accent" : ""}`}>
                 <MenuIcon name={item.icon} />
+                {!!badges[item.key] && (
+                  <span aria-hidden="true" className={`absolute -right-1 -top-1 h-2 w-2 rounded-full bg-accent ${sidebarOpen === false ? "" : isAuto ? "md:hidden" : "hidden"}`} />
+                )}
               </span>
               {sidebarOpen !== false && <span className={`truncate ${isAuto ? "hidden md:inline" : ""}`}>{item.label}</span>}
+              {!!badges[item.key] && sidebarOpen !== false && (
+                <span className={`ml-auto rounded-full bg-accent px-1.5 text-[11px] font-semibold leading-[18px] text-white ${isAuto ? "hidden md:inline" : ""}`}>
+                  {badges[item.key] > 99 ? "99+" : badges[item.key]}
+                </span>
+              )}
+              {!!badges[item.key] && <span className="sr-only">, {badges[item.key]} unread</span>}
             </button>
           );
         })}

@@ -3,14 +3,15 @@ import bcrypt from 'bcryptjs';
 import { getSupabaseAdmin } from '@/lib/supabase/admin';
 import { issuePasswordChallenge, isBcryptHash, normalizeEmail } from '@/lib/auth';
 import { checkRateLimit, getClientId, isUnderLimit } from '@/lib/rate-limit';
-import { errorResponse, successResponse } from '@/lib/utils';
+import { errorResponse, successResponse, readJsonBody, invalidBodyResponse } from '@/lib/utils';
 
 // Used to keep response timing similar when the user does not exist.
 const DUMMY_HASH = '$2b$10$35ISAoEVyvlDq89yCb07D.jDTaStzT5GyHTirLdKnpOVRUKuPGjKO';
 
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json();
+    const body = await readJsonBody(request);
+    if (!body) return invalidBodyResponse();
     const email = normalizeEmail(body.email);
     const password = typeof body.password === 'string' ? body.password : '';
     if (!email || !password) return errorResponse('Email and password required', 400);

@@ -2,7 +2,7 @@
 import crypto from 'crypto';
 import { getSupabaseAdmin } from '@/lib/supabase/admin';
 import { sendResetPassword } from '@/lib/mailer';
-import { errorResponse, successResponse } from '@/lib/utils';
+import { errorResponse, successResponse, readJsonBody, invalidBodyResponse } from '@/lib/utils';
 import { checkRateLimit, getClientId } from '@/lib/rate-limit';
 import { hashToken, normalizeEmail } from '@/lib/auth';
 
@@ -13,7 +13,8 @@ export async function POST(request: NextRequest) {
     const rl = await checkRateLimit(getClientId(request), 'auth');
     if (!rl.allowed) return errorResponse('Too many requests', 429);
 
-    const body = await request.json();
+    const body = await readJsonBody(request);
+    if (!body) return invalidBodyResponse();
     const email = normalizeEmail(body.email);
     if (!email) return errorResponse('Email required', 400);
     // Per-email cap to prevent mail-bombing; answer generically either way.

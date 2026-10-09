@@ -1,9 +1,10 @@
 import { NextRequest } from 'next/server';
 import { lookup } from 'node:dns/promises';
 import { isIP } from 'node:net';
+import https from 'node:https';
 import { requireAuth } from '@/lib/auth';
 import { checkRateLimit } from '@/lib/rate-limit';
-import { errorResponse, getErrorMessage } from '@/lib/utils';
+import { errorResponse, getErrorMessage, readJsonBody } from '@/lib/utils';
 
 export const dynamic = 'force-dynamic';
 
@@ -46,7 +47,10 @@ function isPrivateIP(ip: string): boolean {
   );
 }
 
-async function isSafePublicUrl(raw: unknown): Promise<URL | null> {
+interface SafeTarget { url: URL; address: string; family: 4 | 6 }
+
+/** A public https URL plus the one address it resolved to; the fetch below connects to exactly that address. */
+async function isSafePublicUrl(raw: unknown): Promise<SafeTarget | null> {
   if (typeof raw !== 'string' || raw.length > 2048) return null;
   let url: URL;
   try { url = new URL(raw); } catch { return null; }
@@ -56,33 +60,55 @@ async function isSafePublicUrl(raw: unknown): Promise<URL | null> {
 
   const hostname = url.hostname.replace(/^\[|\]$/g, '').toLowerCase();
   if (!hostname || hostname === 'localhost' || hostname.endsWith('.localhost') || hostname.endsWith('.local') || hostname.endsWith('.internal')) return null;
-  if (isIP(hostname)) return isPrivateIP(hostname) ? null : url;
+  const literal = isIP(hostname);
+  if (literal) return isPrivateIP(hostname) ? null : { url, address: hostname, family: literal as 4 | 6 };
 
   try {
     const addresses = await lookup(hostname, { all: true, verbatim: true });
     if (!addresses.length || addresses.some((a) => isPrivateIP(a.address))) return null;
+    return { url, address: addresses[0].address, family: addresses[0].family as 4 | 6 };
   } catch { return null; }
-  return url;
 }
 
-async function readLimitedText(res: Response): Promise<string> {
-  if (!res.body) return '';
-  const reader = res.body.getReader();
-  const chunks: Uint8Array[] = [];
-  let total = 0;
-  while (true) {
-    const { done, value } = await reader.read();
-    if (done) break;
-    total += value.byteLength;
-    if (total > MAX_RESPONSE_BYTES) {
-      // og:image lives in <head>; keep what we have and stop downloading
-      chunks.push(value.subarray(0, value.byteLength - (total - MAX_RESPONSE_BYTES)));
-      await reader.cancel().catch(() => {});
-      break;
-    }
-    chunks.push(value);
-  }
-  return new TextDecoder().decode(Buffer.concat(chunks));
+/**
+ * GET over https pinned to the address that was checked (DNS rebinding: resolving the name a second time at
+ * connect time could return an internal IP). TLS still verifies the certificate for the real host name.
+ * No redirects; at most MAX_RESPONSE_BYTES are read.
+ */
+function fetchPinned(target: SafeTarget): Promise<{ ok: boolean; html: string }> {
+  return new Promise((resolve) => {
+    const req = https.request(target.url, {
+      method: 'GET',
+      headers: { 'User-Agent': 'Mozilla/5.0 (compatible; PortfolioBot/1.0)', Accept: 'text/html' },
+      // Newer Node asks for every address ({ all: true }) and expects an array back.
+      lookup: ((_host: string, opts: { all?: boolean }, cb: (...args: unknown[]) => void) => (opts?.all
+        ? cb(null, [{ address: target.address, family: target.family }])
+        : cb(null, target.address, target.family))) as unknown as https.RequestOptions['lookup'],
+      timeout: FETCH_TIMEOUT_MS,
+    }, (res) => {
+      const status = res.statusCode || 0;
+      const declared = Number(res.headers['content-length'] || 0);
+      if (status < 200 || status >= 300 || declared > MAX_RESPONSE_BYTES * 5) { res.destroy(); resolve({ ok: false, html: '' }); return; }
+      const chunks: Buffer[] = [];
+      let total = 0;
+      res.on('data', (chunk: Buffer) => {
+        total += chunk.length;
+        if (total > MAX_RESPONSE_BYTES) {
+          // og:image lives in <head>; keep what we have and stop downloading
+          chunks.push(chunk.subarray(0, chunk.length - (total - MAX_RESPONSE_BYTES)));
+          res.destroy();
+          resolve({ ok: true, html: Buffer.concat(chunks).toString('utf8') });
+          return;
+        }
+        chunks.push(chunk);
+      });
+      res.on('end', () => resolve({ ok: true, html: Buffer.concat(chunks).toString('utf8') }));
+      res.on('error', () => resolve({ ok: false, html: '' }));
+    });
+    req.on('timeout', () => req.destroy());
+    req.on('error', () => resolve({ ok: false, html: '' }));
+    req.end();
+  });
 }
 
 /**
@@ -109,33 +135,21 @@ export async function POST(request: NextRequest) {
     const rl = await checkRateLimit(`ogimage:${auth.id}`, 'ogimage');
     if (!rl.allowed) return errorResponse('Too many requests. Please try again later.', 429);
 
-    const { url } = await request.json();
+    const body = await readJsonBody(request);
+    const url = body?.url;
     if (!url) return Response.json({ image: null });
 
     const target = await isSafePublicUrl(url);
     if (!target) return errorResponse('Only public https:// URLs are allowed', 400);
 
-    const res = await fetch(target, {
-      redirect: 'manual',
-      signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
-      headers: { 'User-Agent': 'Mozilla/5.0 (compatible; PortfolioBot/1.0)' },
-    });
-    if (!res.ok) {
-      await res.body?.cancel().catch(() => {});
-      return Response.json({ image: null });
-    }
-    const declaredLength = Number(res.headers.get('content-length') || 0);
-    if (declaredLength > MAX_RESPONSE_BYTES * 5) {
-      await res.body?.cancel().catch(() => {});
-      return Response.json({ image: null });
-    }
-    const html = await readLimitedText(res);
+    const { ok, html } = await fetchPinned(target);
+    if (!ok) return Response.json({ image: null });
 
     const ogImage = findOgImage(html);
     let image: string | null = null;
     if (ogImage) {
       try {
-        const resolved = new URL(ogImage, target);
+        const resolved = new URL(ogImage, target.url);
         if (resolved.protocol === 'https:' || resolved.protocol === 'http:') image = resolved.toString();
       } catch {}
     }

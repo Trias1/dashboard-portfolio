@@ -5,11 +5,12 @@ import {
 } from '@/lib/auth';
 import { startSession } from '@/lib/sessions';
 import { checkRateLimit, getClientId } from '@/lib/rate-limit';
-import { errorResponse, successResponse } from '@/lib/utils';
+import { errorResponse, successResponse, readJsonBody, invalidBodyResponse } from '@/lib/utils';
 
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json();
+    const body = await readJsonBody(request);
+    if (!body) return invalidBodyResponse();
     const email = normalizeEmail(body.email);
     const otp = typeof body.otp === 'string' ? body.otp.trim() : String(body.otp ?? '').trim();
     if (!email || !otp) return errorResponse('Email and OTP required', 400);

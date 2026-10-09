@@ -81,6 +81,13 @@ export default function GalleryEditor({
             formData.append("description", value.description || "");
             formData.append("issued_date", value.issued_date || "");
             try {
+              // PDFs get a picture of their first page so the certificate shows on the portfolio, not just a link.
+              if (file.type === "application/pdf" || /\.pdf$/i.test(file.name)) {
+                setMessage("Making a preview of the PDF...");
+                const { pdfFirstPageToImage } = await import("@/lib/pdf-thumbnail");
+                const preview = await pdfFirstPageToImage(file);
+                if (preview) formData.append("preview", preview, preview.type === "image/webp" ? "preview.webp" : "preview.png");
+              }
               setMessage("Uploading...");
               await api.post("/api/gallery", formData, {
                 headers: { "Content-Type": "multipart/form-data" },

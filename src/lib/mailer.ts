@@ -67,6 +67,29 @@ export async function sendResetPassword(email: string, name: string, token: stri
   });
 }
 
+/** Link that confirms a new login email; sent to the new address. */
+export async function sendEmailChangeConfirmation(newEmail: string, name: string, token: string) {
+  const sender = getSender();
+  const url = `${BASE_URL}/api/auth/confirm-email?token=${encodeURIComponent(token)}`;
+  await transporter.sendMail({
+    from: sender.from,
+    to: headerSafe(newEmail, 320),
+    subject: 'Confirm your new email - PortfolioKit',
+    html: `<div style="font-family:-apple-system,Segoe UI,Helvetica,Arial,sans-serif;max-width:480px;margin:0 auto;padding:32px 24px;background:#ffffff;color:#141414;line-height:1.55"><p style="margin:0 0 24px;font-weight:600;font-size:16px">PortfolioKit</p><h1 style="margin:0 0 8px;font-size:22px">Hi ${escapeHtml(name)},</h1><p style="margin:0 0 20px">Confirm this address and it becomes the email you log in with.</p><a href="${escapeHtml(url)}" style="display:inline-block;background:#1f45c9;color:#ffffff;padding:11px 18px;border-radius:6px;text-decoration:none;font-weight:600;margin:8px 0 4px">Confirm new email</a><p style="margin:32px 0 0;padding-top:16px;border-top:1px solid #dcdcd5;color:#55555a;font-size:12px">This link expires in 1 hour. If you didn't ask for this, ignore this email; nothing changes.</p></div>`,
+  });
+}
+
+/** Heads-up to the current address that someone asked to move the account to another email. */
+export async function sendEmailChangeNotice(currentEmail: string, name: string, newEmail: string) {
+  const sender = getSender();
+  await transporter.sendMail({
+    from: sender.from,
+    to: headerSafe(currentEmail, 320),
+    subject: 'Email change requested - PortfolioKit',
+    html: `<div style="font-family:-apple-system,Segoe UI,Helvetica,Arial,sans-serif;max-width:480px;margin:0 auto;padding:32px 24px;background:#ffffff;color:#141414;line-height:1.55"><p style="margin:0 0 24px;font-weight:600;font-size:16px">PortfolioKit</p><h1 style="margin:0 0 8px;font-size:22px">Hi ${escapeHtml(name)},</h1><p style="margin:0 0 12px">Someone asked to change your login email to <b>${escapeHtml(newEmail)}</b>. It only changes once the link sent to that address is opened.</p><p style="margin:0">If this wasn't you, change your password now.</p></div>`,
+  });
+}
+
 /** Someone tried to register with an address that already has an account. */
 export async function sendAccountExistsNotice(email: string, name: string) {
   const sender = getSender();

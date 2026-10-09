@@ -26,6 +26,7 @@ import AdminOverviewPanel from "@/components/dashboard/AdminOverviewPanel";
 import UsersPanel from "@/components/dashboard/UsersPanel";
 import CVPanel from "@/components/dashboard/CVPanel";
 import AdvisorWidget from "@/components/AdvisorWidget";
+import InboxPanel from "@/components/dashboard/InboxPanel";
 import { AI_ENABLED } from "@/lib/features";
 import DashboardSidebar from "@/components/dashboard/DashboardSidebar";
 import { useDashboardAdmin } from "@/hooks/useDashboardAdmin";
@@ -282,6 +283,19 @@ export default function DashboardPage() {
     } catch {}
 
   }, []);
+
+  // Unread contact-form messages, for the badge on the Inbox menu item.
+  const [inboxUnread, setInboxUnread] = useState(0);
+  const userIdForInbox = user?.id;
+  const userRoleForInbox = user?.role;
+  useEffect(() => {
+    if (!userIdForInbox || userRoleForInbox === "superadmin") return;
+    let alive = true;
+    api.get<{ is_read: boolean }[]>("/api/contact/messages")
+      .then((res) => { if (alive) setInboxUnread(res.data.filter((m) => !m.is_read).length); })
+      .catch(() => {});
+    return () => { alive = false; };
+  }, [userIdForInbox, userRoleForInbox]);
 
   useEffect(() => {
     if (!user) return;
@@ -811,6 +825,7 @@ export default function DashboardPage() {
         setActiveMenu={setActiveMenu}
         setSidebarOpen={setSidebarOpen}
         usersLabel="Users"
+        badges={{ inbox: inboxUnread }}
       />
       {/* Main area */}
       <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
@@ -844,6 +859,8 @@ export default function DashboardPage() {
             <AdvisorWidget />
           </div>
         )}
+
+        {activeMenu === "inbox" && <InboxPanel onUnreadChange={setInboxUnread} />}
 
         {activeMenu === "analytics" && (
           <AnalyticsPanel

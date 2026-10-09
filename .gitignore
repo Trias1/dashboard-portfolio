@@ -50,3 +50,9 @@ patch_*.py
 # unknown binary
 build-errors.txt
 
+
+# local build/lint output
+*.log
+lint-output.txt
+# throwaway scripts
+.tmp-*

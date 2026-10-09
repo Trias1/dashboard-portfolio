@@ -3,14 +3,15 @@ import crypto from 'crypto';
 import { sendOTP } from '@/lib/mailer';
 import { checkRateLimit, getClientId } from '@/lib/rate-limit';
 import { issueOtpChallenge, normalizeEmail, verifyPasswordChallenge } from '@/lib/auth';
-import { errorResponse, successResponse } from '@/lib/utils';
+import { errorResponse, successResponse, readJsonBody, invalidBodyResponse } from '@/lib/utils';
 
 export async function POST(request: NextRequest) {
   try {
     const rl = await checkRateLimit(getClientId(request), 'otp');
     if (!rl.allowed) return errorResponse('Too many OTP requests', 429);
 
-    const body = await request.json();
+    const body = await readJsonBody(request);
+    if (!body) return invalidBodyResponse();
     const email = normalizeEmail(body.email);
     // A password check must have succeeded for this email (pwChallenge cookie) before an OTP is issued.
     if (!email || !(await verifyPasswordChallenge(email))) return errorResponse('Unable to send OTP. Please log in again.', 400);

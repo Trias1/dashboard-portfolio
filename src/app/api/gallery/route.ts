@@ -39,6 +39,14 @@ export async function POST(request: NextRequest) {
       const fileName = `gallery-${auth.id}.${checked.type.ext}`;
       file_url = await uploadFile(checked.buffer, fileName, checked.type.mime, 'gallery');
       image_url = checked.type.kind === 'pdf' ? null : file_url;
+      // A PDF may come with a picture of its first page (rendered in the browser) to show on the page.
+      const preview = formData.get('preview');
+      if (checked.type.kind === 'pdf' && preview && typeof preview !== 'string') {
+        const previewChecked = await validateUpload(preview, ['image']);
+        if (previewChecked.ok) {
+          image_url = await uploadFile(previewChecked.buffer, `gallery-preview-${auth.id}.${previewChecked.type.ext}`, previewChecked.type.mime, 'gallery');
+        }
+      }
     } else {
       const rawUrl = formData.get('file_url');
       file_url = rawUrl ? sanitizeExternalUrl(rawUrl) : null;

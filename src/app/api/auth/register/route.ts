@@ -3,7 +3,7 @@ import bcrypt from 'bcryptjs';
 import crypto from 'crypto';
 import { getSupabaseAdmin } from '@/lib/supabase/admin';
 import { sendAccountExistsNotice, sendVerificationEmail } from '@/lib/mailer';
-import { generateSlug, errorResponse, successResponse } from '@/lib/utils';
+import { generateSlug, errorResponse, successResponse, readJsonBody, invalidBodyResponse } from '@/lib/utils';
 import { checkRateLimit, getClientId } from '@/lib/rate-limit';
 import { BCRYPT_COST, MIN_PASSWORD_LENGTH, hashToken, normalizeEmail } from '@/lib/auth';
 
@@ -16,7 +16,8 @@ export async function POST(request: NextRequest) {
     const rl = await checkRateLimit(getClientId(request), 'auth');
     if (!rl.allowed) return errorResponse('Too many requests', 429);
 
-    const body = await request.json();
+    const body = await readJsonBody(request);
+    if (!body) return invalidBodyResponse();
     const name = typeof body.name === 'string' ? body.name.trim().slice(0, 100) : '';
     const email = normalizeEmail(body.email);
     const password = typeof body.password === 'string' ? body.password : '';
