@@ -20,11 +20,22 @@ export const hashToken = (token: string) => crypto.createHash('sha256').update(t
 export const normalizeEmail = (email: unknown) => (typeof email === 'string' ? email.trim().toLowerCase() : '');
 export const isBcryptHash = (hash: unknown): hash is string => typeof hash === 'string' && /^\$2[aby]\$\d{2}\$/.test(hash);
 
+/**
+ * Token lifetime from an env var, tolerant of how it was pasted: surrounding spaces, newlines or quotes are
+ * dropped and a bare number means seconds. Anything still unreadable falls back to the default instead of
+ * breaking every login (jose rejects e.g. "7d " or "604800").
+ */
+export function tokenLifetime(raw: string | undefined, fallback: string): string {
+  const v = (raw ?? '').trim().replace(/^["']+|["']+$/g, '').trim();
+  if (/^d+$/.test(v)) return `${v}s`;
+  return /^d+(?:.d+)?s*(?:s|sec|secs|seconds?|m|mins?|minutes?|h|hrs?|hours?|d|days?|w|weeks?|y|yrs?|years?)$/i.test(v) ? v : fallback;
+}
+
 export async function signAccessToken(payload: JWTPayload): Promise<string> {
   return new SignJWT({ id: payload.id, email: payload.email, role: payload.role })
     .setProtectedHeader({ alg: 'HS256' })
     .setAudience('access')
-    .setExpirationTime(process.env.JWT_EXPIRES_IN || '15m')
+    .setExpirationTime(tokenLifetime(process.env.JWT_EXPIRES_IN, '15m'))
     .sign(getSecret());
 }
 
@@ -35,7 +46,7 @@ export async function signRefreshToken(payload: RefreshClaims): Promise<string> 
   return new SignJWT({ id: payload.id, ...(payload.jti ? { jti: payload.jti, fam: payload.fam } : {}) })
     .setProtectedHeader({ alg: 'HS256' })
     .setAudience('refresh')
-    .setExpirationTime(process.env.JWT_REFRESH_EXPIRES_IN || '7d')
+    .setExpirationTime(tokenLifetime(process.env.JWT_REFRESH_EXPIRES_IN, '7d'))
     .sign(getRefreshSecret());
 }
 
