@@ -18,10 +18,13 @@ function redirectToLogin(error: string) {
 }
 
 export async function GET(request: NextRequest) {
+  // Which step failed, so an unexpected error can be told apart in the login URL (no details, just the step name).
+  let step = 'start';
   try {
     const rl = await checkRateLimit(`google-callback:${getClientId(request)}`, 'auth');
     if (!rl.allowed) return redirectToLogin('rate_limited');
 
+    step = 'state';
     const code = request.nextUrl.searchParams.get('code');
     const returnedState = request.nextUrl.searchParams.get('state') || '';
 
@@ -40,6 +43,7 @@ export async function GET(request: NextRequest) {
 
     if (!code) return redirectToLogin('no_code');
 
+    step = 'token';
     const tokenRes = await fetch('https://oauth2.googleapis.com/token', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -57,6 +61,7 @@ export async function GET(request: NextRequest) {
       return redirectToLogin('token_failed');
     }
 
+    step = 'profile';
     const userRes = await fetch('https://www.googleapis.com/oauth2/v2/userinfo', {
       headers: { Authorization: `Bearer ${tokens.access_token}` },
     });
@@ -71,6 +76,7 @@ export async function GET(request: NextRequest) {
     // Never link/create an account from an email address Google hasn't verified.
     if (profile.verified_email !== true && profile.email_verified !== true) return redirectToLogin('email_not_verified');
 
+    step = 'lookup';
     const supabase = getSupabaseAdmin();
     const { data: existingUser, error: lookupError } = await supabase
       .from('users')
@@ -130,6 +136,7 @@ export async function GET(request: NextRequest) {
 
     // An existing account whose email was never confirmed: Google has now proven the address belongs to this person.
     // Its password was set by whoever registered it — possibly not them — so it is dropped (they can set one later).
+    step = 'verify';
     if (!user.is_verified) {
       const { error: verifyError } = await supabase.from('users')
         .update({ is_verified: true, verification_token: null, verification_expires: null, password: GOOGLE_OAUTH_PASSWORD })
@@ -138,16 +145,20 @@ export async function GET(request: NextRequest) {
       await revokeAllSessions(user.id);
     }
 
+    step = 'access_token';
     const accessToken = await signAccessToken({ id: user.id, email: user.email, role: user.role });
+    step = 'session';
     const refreshToken = await startSession(user.id, request.headers.get('user-agent'));
+    step = 'cookies';
     await setAuthCookies(accessToken, refreshToken);
 
+    step = 'redirect';
     const fallback = new URL(user.role === 'admin' || user.role === 'superadmin' ? '/dashboard' : '/', BASE_URL);
     const target = from ? new URL(from, BASE_URL) : fallback;
     return Response.redirect(target.origin === fallback.origin ? target : fallback);
   } catch (error) {
-    console.error('[google oauth] unexpected error', error instanceof Error ? { name: error.name, message: error.message } : error);
-    return redirectToLogin('oauth_failed');
+    console.error('[google oauth] unexpected error', step, error instanceof Error ? { name: error.name, message: error.message } : error);
+    return redirectToLogin(`oauth_failed&at=${step}`);
   }
 }
 
