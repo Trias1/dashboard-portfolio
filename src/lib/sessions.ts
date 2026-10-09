@@ -70,9 +70,17 @@ export async function rotateSession(token: string, userAgent?: string | null): P
   if (row.revoked_at) {
     const revokedAgo = Date.now() - new Date(row.revoked_at).getTime();
     if (row.replaced_by && revokedAgo < REUSE_GRACE_MS) {
-      const { data: next } = await db.from('auth_sessions').select('id, expires_at, revoked_at').eq('id', row.replaced_by).maybeSingle();
-      if (next && !next.revoked_at && new Date(next.expires_at).getTime() > Date.now()) {
-        return { userId: decoded.id, refreshToken: await signRefreshToken({ id: decoded.id, jti: next.id, fam: row.family_id }) };
+      // Follow the chain to its current head: another tab may have refreshed more than once meanwhile.
+      let nextId: string | null = row.replaced_by;
+      for (let hop = 0; nextId && hop < 5; hop++) {
+        const { data: next } = await db.from('auth_sessions').select('id, expires_at, revoked_at, replaced_by').eq('id', nextId).maybeSingle();
+        if (!next) break;
+        if (!next.revoked_at) {
+          if (new Date(next.expires_at).getTime() <= Date.now()) break;
+          return { userId: decoded.id, refreshToken: await signRefreshToken({ id: decoded.id, jti: next.id, fam: row.family_id }) };
+        }
+        if (Date.now() - new Date(next.revoked_at).getTime() >= REUSE_GRACE_MS) break;
+        nextId = next.replaced_by;
       }
     }
     // Replay of an old token: someone else has a copy. End every session in this chain.

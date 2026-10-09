@@ -70,7 +70,9 @@ Put these in `.env.local` locally and in the Vercel project settings for deploym
 - Changing email or password requires the current password; passwords must be at least 8 characters.
 - Every data route checks ownership (`owner_id`); unpublished portfolios are only visible to their owner.
 - Uploads are validated by their actual file bytes (PNG/JPEG/WebP/GIF images, PDF/DOC/DOCX), size-limited and stored under random names.
-- Rate limits (per IP and per account) protect login, codes, contact form, AI and uploads. They are stored in the `rate_limits` table.
+- Rate limits (per IP and per account) protect login, codes, contact form, AI and uploads. They are stored in the `rate_limits` table and checked atomically by `rate_limit_hit()`. Only wrong passwords count toward the per-account login limit.
+- Login sessions are stored server-side (`auth_sessions`). Refresh tokens rotate on every use; replaying an old one revokes the whole session chain. Logout revokes the session, and a password reset or change signs the user out everywhere.
+- Database changes live in `supabase/migrations/` (run them in order in the Supabase SQL editor; 004 = notification emails, 005 = sessions + atomic rate limiter).
 - Emails escape all user content; contact messages go to the owner's verified account email.
 - Basic security headers are set in `next.config.ts`.
 
