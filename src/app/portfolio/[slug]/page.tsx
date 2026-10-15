@@ -44,6 +44,9 @@ export default function PublicPortfolioPage() {
   const isPreview = searchParams.get("preview") === "true";
   const orderParam = isPreview ? searchParams.get("order") : null;
   const themeParam = searchParams.get("theme");
+  // Landing-page showcase: the parent switches templates by message instead of reloading the frame.
+  const isShowcase = isPreview && searchParams.get("showcase") === "1";
+  const [showcaseTemplate, setShowcaseTemplate] = useState<string | null>(null);
   const requestKey = `${slug}|${isPreview}`;
   // Loading resets automatically whenever the slug/preview mode changes.
   const loading = result?.key !== requestKey;
@@ -79,6 +82,33 @@ export default function PublicPortfolioPage() {
     () => (rawData ? getThemeById(themeParam || rawData.portfolio?.theme) : themes[0]),
     [rawData, themeParam],
   );
+  const urlTemplate =
+    typeof window !== "undefined"
+      ? searchParams.get("template")
+      : null;
+  const templateName = showcaseTemplate || urlTemplate || data?.portfolio?.template || "modern";
+
+  useEffect(() => {
+    if (!isShowcase) return;
+    const onMessage = (e: MessageEvent) => {
+      // Only the page embedding this frame, on our own origin, may switch the template
+      if (e.origin !== window.location.origin || e.source !== window.parent) return;
+      const msg = e.data as { type?: unknown; template?: unknown };
+      if (msg?.type === "pk:showcase-template" && typeof msg.template === "string") setShowcaseTemplate(msg.template);
+    };
+    window.addEventListener("message", onMessage);
+    return () => window.removeEventListener("message", onMessage);
+  }, [isShowcase]);
+
+  // Tell the showcase once the template has been painted, so it can cross-fade without a blank frame
+  useEffect(() => {
+    if (!isShowcase || !data) return;
+    const timer = window.setTimeout(() => {
+      window.parent.postMessage({ type: "pk:showcase-rendered", template: templateName }, window.location.origin);
+    }, 250);
+    return () => window.clearTimeout(timer);
+  }, [isShowcase, data, templateName]);
+
   if (loading)
     return (
       <div className="flex min-h-screen items-center justify-center bg-paper font-sans" aria-busy="true">
@@ -98,13 +128,8 @@ export default function PublicPortfolioPage() {
         </div>
       </main>
     );
-  const urlTemplate =
-    typeof window !== "undefined"
-      ? searchParams.get("template")
-      : null;
-  const templateName = urlTemplate || data.portfolio?.template || "modern";
   const accentColor = theme.accent;
-  const widget = isPreview ? (
+  const widget = isShowcase ? null : isPreview ? (
     AI_ENABLED ? <AdvisorFloating accentColor={accentColor} /> : null
   ) : (
     <>

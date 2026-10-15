@@ -1,33 +1,101 @@
 'use client';
-import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
+import { useEffect, useReducer, useRef, useState, useSyncExternalStore } from 'react';
 import Link from 'next/link';
 
 export interface ShowcaseTemplate { id: string; name: string; desc: string }
 
 const FRAME_W = 1280;
 const FRAME_H = 860;
-const INTERVAL_MS = 3800;
+const INTERVAL_MS = 5000;
+const FADE_MS = 500;
 
-const reducedMotionQuery = '(prefers-reduced-motion: reduce)';
-const subscribeReducedMotion = (cb: () => void) => {
-  const mq = window.matchMedia(reducedMotionQuery);
+// Auto-play only on wide screens, without reduced motion and off slow or data-saving connections
+const autoplayQuery = '(min-width: 768px) and (prefers-reduced-motion: no-preference)';
+type NetworkInfo = { saveData?: boolean; effectiveType?: string };
+const onSlowConnection = () => {
+  const c = (navigator as Navigator & { connection?: NetworkInfo }).connection;
+  return !!c && (c.saveData === true || ['slow-2g', '2g', '3g'].includes(c.effectiveType ?? ''));
+};
+const subscribeAutoplay = (cb: () => void) => {
+  const mq = window.matchMedia(autoplayQuery);
   mq.addEventListener('change', cb);
   return () => mq.removeEventListener('change', cb);
 };
+const subscribeTabVisibility = (cb: () => void) => {
+  document.addEventListener('visibilitychange', cb);
+  return () => document.removeEventListener('visibilitychange', cb);
+};
+
+type Pair<T> = [T, T];
+type State = {
+  index: number;                 // template on screen (in the front frame)
+  front: 0 | 1;
+  leaving: 0 | 1 | null;         // previous front frame, kept visible while the new one fades in
+  mounted: Pair<number | null>;  // template each frame was created with; its src never changes afterwards
+  rendered: Pair<number | null>; // template each frame has actually painted
+  wanted: number | null;         // template being prepared in the back frame
+  inView: boolean;
+};
+type Action =
+  | { type: 'start' }
+  | { type: 'view'; inView: boolean }
+  | { type: 'show'; idx: number }
+  | { type: 'rendered'; frame: 0 | 1; idx: number }
+  | { type: 'loaded'; frame: 0 | 1 }
+  | { type: 'settled' };
+
+const set = <T,>(pair: Pair<T>, i: 0 | 1, value: T): Pair<T> => (i === 0 ? [value, pair[1]] : [pair[0], value]);
+
+function swapIfReady(s: State): State {
+  const back = (1 - s.front) as 0 | 1;
+  if (s.wanted === null || s.rendered[back] !== s.wanted) return s;
+  return { ...s, leaving: s.front, front: back, index: s.wanted, wanted: null };
+}
+
+function reducer(s: State, a: Action): State {
+  switch (a.type) {
+    case 'start':
+      return s.mounted[s.front] === null ? { ...s, mounted: set(s.mounted, s.front, s.index) } : s;
+    case 'view':
+      return { ...s, inView: a.inView };
+    case 'show': {
+      if (a.idx === (s.wanted ?? s.index)) return s;
+      if (a.idx === s.index) return { ...s, wanted: null };
+      const back = (1 - s.front) as 0 | 1;
+      let mounted = s.mounted[s.front] === null ? set(s.mounted, s.front, s.index) : s.mounted;
+      if (mounted[back] === null) mounted = set(mounted, back, a.idx);
+      return swapIfReady({ ...s, mounted, wanted: a.idx });
+    }
+    case 'rendered':
+      return swapIfReady({ ...s, rendered: set(s.rendered, a.frame, a.idx) });
+    case 'loaded': {
+      // Fallback for a missed message: the frame shows the template it was created with
+      const idx = s.mounted[a.frame];
+      return s.rendered[a.frame] !== null || idx === null ? s : swapIfReady({ ...s, rendered: set(s.rendered, a.frame, idx) });
+    }
+    case 'settled':
+      return { ...s, leaving: null };
+  }
+}
 
 /**
- * Live, scaled-down previews of the real templates (demo data), cycling one after another.
- * Each layer is an iframe; a new one fades in once it has loaded, then the old one is dropped.
- * Pauses on hover/focus and when the tab is hidden; no auto-play for reduced-motion users.
+ * Live, scaled-down previews of the real templates (demo data).
+ * Two frames take turns: the hidden one switches template by message (no reload), reports once painted,
+ * then cross-fades in. Frames load only after the page has loaded and the card is on screen, so the
+ * landing page itself stays light; auto-play pauses on hover/focus, off screen and in hidden tabs.
  */
 export default function TemplateShowcase({ templates }: { templates: ShowcaseTemplate[] }) {
-  const [index, setIndex] = useState(0);
-  const [layers, setLayers] = useState<{ key: number; idx: number; ready: boolean }[]>([{ key: 0, idx: 0, ready: false }]);
+  const [state, dispatch] = useReducer(reducer, {
+    index: 0, front: 0, leaving: null, mounted: [null, null], rendered: [null, null], wanted: null, inView: false,
+  });
   const [paused, setPaused] = useState(false);
   const [scale, setScale] = useState(0.3);
+  const rootRef = useRef<HTMLDivElement>(null);
   const boxRef = useRef<HTMLDivElement>(null);
-  const keyRef = useRef(0);
-  const reducedMotion = useSyncExternalStore(subscribeReducedMotion, () => window.matchMedia(reducedMotionQuery).matches, () => true);
+  const frameEls = useRef<Pair<HTMLIFrameElement | null>>([null, null]);
+  const posted = useRef<Pair<number | null>>([null, null]);
+  const autoplay = useSyncExternalStore(subscribeAutoplay, () => window.matchMedia(autoplayQuery).matches && !onSlowConnection(), () => false);
+  const tabVisible = useSyncExternalStore(subscribeTabVisibility, () => !document.hidden, () => true);
 
   // Fit the 1280px-wide page into the card.
   useEffect(() => {
@@ -38,30 +106,63 @@ export default function TemplateShowcase({ templates }: { templates: ShowcaseTem
     return () => ro.disconnect();
   }, []);
 
-  const show = (next: number) => {
-    const idx = ((next % templates.length) + templates.length) % templates.length;
-    keyRef.current += 1;
-    setIndex(idx);
-    setLayers((prev) => [...prev.slice(-1), { key: keyRef.current, idx, ready: false }]);
-  };
+  // Start loading frames once the page itself has finished loading and the card is near the viewport.
+  useEffect(() => {
+    const el = rootRef.current;
+    if (!el) return;
+    const start = () => dispatch({ type: 'start' });
+    const io = new IntersectionObserver(([entry]) => {
+      dispatch({ type: 'view', inView: entry.isIntersecting });
+      if (!entry.isIntersecting) return;
+      if (document.readyState === 'complete') start();
+      else window.addEventListener('load', start, { once: true });
+    }, { rootMargin: '200px' });
+    io.observe(el);
+    return () => { io.disconnect(); window.removeEventListener('load', start); };
+  }, []);
+
+  // Frames report the template they painted.
+  useEffect(() => {
+    const onMessage = (e: MessageEvent) => {
+      if (e.origin !== window.location.origin) return;
+      const msg = e.data as { type?: unknown; template?: unknown };
+      if (msg?.type !== 'pk:showcase-rendered') return;
+      const frame = frameEls.current.findIndex((f) => f?.contentWindow === e.source);
+      const idx = templates.findIndex((t) => t.id === msg.template);
+      if ((frame === 0 || frame === 1) && idx >= 0) dispatch({ type: 'rendered', frame, idx });
+    };
+    window.addEventListener('message', onMessage);
+    return () => window.removeEventListener('message', onMessage);
+  }, [templates]);
+
+  // Ask the back frame for the wanted template once its app is running.
+  const back = (1 - state.front) as 0 | 1;
+  const backAlive = state.rendered[back] !== null;
+  useEffect(() => {
+    if (state.wanted === null || !backAlive || state.rendered[back] === state.wanted || posted.current[back] === state.wanted) return;
+    posted.current[back] = state.wanted;
+    frameEls.current[back]?.contentWindow?.postMessage({ type: 'pk:showcase-template', template: templates[state.wanted].id }, window.location.origin);
+  }, [state.wanted, state.rendered, back, backAlive, templates]);
 
   useEffect(() => {
-    if (paused || reducedMotion) return;
-    const id = window.setInterval(() => { if (!document.hidden) show(index + 1); }, INTERVAL_MS);
-    return () => window.clearInterval(id);
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- show() only depends on index, which is listed
-  }, [index, paused, reducedMotion]);
+    if (state.leaving === null) return;
+    const id = window.setTimeout(() => dispatch({ type: 'settled' }), FADE_MS);
+    return () => window.clearTimeout(id);
+  }, [state.leaving]);
 
-  const markReady = (key: number) => {
-    setLayers((prev) => prev.map((l) => (l.key === key ? { ...l, ready: true } : l)));
-    // Drop the previous layer after the fade.
-    window.setTimeout(() => setLayers((prev) => (prev.length > 1 && prev[prev.length - 1].key === key ? prev.slice(-1) : prev)), 450);
-  };
+  const ready = state.rendered[state.front] !== null;
+  useEffect(() => {
+    if (!autoplay || paused || !tabVisible || !state.inView || !ready || state.wanted !== null) return;
+    const id = window.setTimeout(() => dispatch({ type: 'show', idx: (state.index + 1) % templates.length }), INTERVAL_MS);
+    return () => window.clearTimeout(id);
+  }, [autoplay, paused, tabVisible, state.inView, ready, state.wanted, state.index, templates.length]);
 
-  const current = templates[index];
+  const current = templates[state.index];
+  const selected = state.wanted ?? state.index;
 
   return (
     <div
+      ref={rootRef}
       className="mx-auto w-full max-w-md"
       onMouseEnter={() => setPaused(true)} onMouseLeave={() => setPaused(false)}
       onFocus={() => setPaused(true)} onBlur={() => setPaused(false)}
@@ -72,18 +173,29 @@ export default function TemplateShowcase({ templates }: { templates: ShowcaseTem
           <span className="ml-2 truncate font-mono text-[10px] text-ink-soft">/portfolio/alex-rivera · {current.name.toLowerCase()}</span>
         </div>
         <div ref={boxRef} className="relative w-full overflow-hidden rounded-sm bg-paper-deep" style={{ height: FRAME_H * scale }}>
-          {layers.map((layer) => (
-            <iframe
-              key={layer.key}
-              title={`${templates[layer.idx].name} template preview`}
-              src={`/portfolio/demo?preview=true&template=${templates[layer.idx].id}&theme=dark-space&demo=alex`}
-              tabIndex={-1}
-              aria-hidden="true"
-              onLoad={() => markReady(layer.key)}
-              className="pointer-events-none absolute left-0 top-0 max-w-none origin-top-left border-0 transition-opacity duration-500"
-              style={{ width: FRAME_W, minWidth: FRAME_W, height: FRAME_H, transform: `scale(${scale})`, opacity: layer.ready ? 1 : 0 }}
-            />
-          ))}
+          {!ready && <p className="absolute inset-0 flex items-center justify-center text-xs text-ink-soft">Loading preview…</p>}
+          {([0, 1] as const).map((i) => {
+            const mountedIdx = state.mounted[i];
+            if (mountedIdx === null) return null;
+            const shown = (i === state.front && state.rendered[i] !== null) || i === state.leaving;
+            return (
+              <iframe
+                key={i}
+                ref={(el) => { frameEls.current[i] = el; }}
+                title={`${templates[state.rendered[i] ?? mountedIdx].name} template preview`}
+                src={`/portfolio/demo?preview=true&showcase=1&template=${templates[mountedIdx].id}&theme=dark-space&demo=alex`}
+                tabIndex={-1}
+                aria-hidden="true"
+                onLoad={() => dispatch({ type: 'loaded', frame: i })}
+                className="pointer-events-none absolute left-0 top-0 max-w-none origin-top-left border-0"
+                style={{
+                  width: FRAME_W, minWidth: FRAME_W, height: FRAME_H, transform: `scale(${scale})`,
+                  opacity: shown ? 1 : 0, zIndex: i === state.front ? 2 : 1,
+                  transition: i === state.front ? `opacity ${FADE_MS}ms ease` : 'none',
+                }}
+              />
+            );
+          })}
         </div>
       </div>
 
@@ -100,11 +212,11 @@ export default function TemplateShowcase({ templates }: { templates: ShowcaseTem
             key={tpl.id}
             type="button"
             role="tab"
-            aria-selected={i === index}
+            aria-selected={i === selected}
             aria-label={tpl.name}
             title={tpl.name}
-            onClick={() => show(i)}
-            className={`h-1.5 rounded-full transition-all ${i === index ? 'w-6 bg-ink' : 'w-1.5 bg-rule hover:bg-ink-soft'}`}
+            onClick={() => dispatch({ type: 'show', idx: i })}
+            className={`h-1.5 rounded-full transition-all ${i === selected ? 'w-6 bg-ink' : 'w-1.5 bg-rule hover:bg-ink-soft'}`}
           />
         ))}
       </div>
