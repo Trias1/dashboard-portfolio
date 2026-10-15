@@ -3,7 +3,7 @@
 A portfolio builder: fill in your experience, projects and skills once, pick one of 17 layouts, and publish a page you can share with clients or recruiters.
 
 - Production: <https://portfolio.west-solutions.web.id>
-- Demo / staging: <https://demo-portfolio.west-solutions.web.id>
+- Demo / staging: <https://demo-portfolio.tzm.web.id> (behind Vercel Authentication — sign in to Vercel to open it)
 
 PortfolioKit is free and open-source software under the [MIT License](LICENSE).
 
@@ -15,7 +15,7 @@ PortfolioKit is free and open-source software under the [MIT License](LICENSE).
 - **CV tools** — import a PDF CV into your sections (works without AI via a keyword parser), and generate a CV in four layouts. The default **ATS** layout is plain and single-column; "Download PDF" uses the browser's Save as PDF so the file keeps real text that applicant tracking systems can read. Published portfolios add their link to the CV header.
 - **GitHub import** — pull your profile and selected repositories into projects and skills.
 - **Statistics** — daily visits per portfolio.
-- **Contact form** — messages are emailed to the account owner.
+- **Contact form** — messages are emailed to the account owner and kept, encrypted, in the dashboard Inbox.
 - **Advisor and visitor chat (hidden by default)** — AI suggestions in the dashboard and an AI chat on public portfolios. Both stay hidden until `NEXT_PUBLIC_AI_ENABLED=true` and an AI provider is configured.
 - **Admin** — user management, platform stats and Vercel runtime logs for the superadmin.
 
@@ -56,6 +56,7 @@ Put these in `.env.local` locally and in the Vercel project settings for deploym
 | `JWT_SECRET`, `JWT_REFRESH_SECRET` | yes | Signing keys, **at least 32 characters each**, different from each other and per environment. |
 | `JWT_EXPIRES_IN`, `JWT_REFRESH_EXPIRES_IN` | no | Token lifetimes (default `15m` / `7d`). |
 | `GMAIL_USER`, `GMAIL_APP_PASSWORD`, `MAIL_FROM_NAME` | yes | Outgoing mail: verification, login codes, password reset, contact messages. |
+| `MESSAGES_ENC_KEY` | strongly recommended | 32-byte key (base64, or 64 hex chars) that encrypts contact messages at rest. Generate with `node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"`. Use the **same** key on the demo and production (they share a database); if it is lost, stored messages can no longer be read. Without it, new messages are stored as plain text. |
 | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `GOOGLE_REDIRECT_URI` | for Google login | Redirect URI is `<base url>/api/auth/google/callback`; add it in Google Cloud Console for every domain. |
 | `GITHUB_TOKEN` | no | Raises GitHub API limits for the import. Use a token with no scopes. |
 | `NINE_ROUTER_API_KEY`, `NINE_ROUTER_BASE_URL`, `NINE_ROUTER_MODEL` | no | AI provider for the Advisor, visitor chat and AI CV parsing. Without them CV import falls back to the keyword parser. |
@@ -72,7 +73,8 @@ Put these in `.env.local` locally and in the Vercel project settings for deploym
 - Uploads are validated by their actual file bytes (PNG/JPEG/WebP/GIF images, PDF/DOC/DOCX), size-limited and stored under random names.
 - Rate limits (per IP and per account) protect login, codes, contact form, AI and uploads. They are stored in the `rate_limits` table and checked atomically by `rate_limit_hit()`. Only wrong passwords count toward the per-account login limit.
 - Login sessions are stored server-side (`auth_sessions`). Refresh tokens rotate on every use; replaying an old one revokes the whole session chain. Logout revokes the session, and a password reset or change signs the user out everywhere.
-- Database changes live in `supabase/migrations/` (run them in order in the Supabase SQL editor; 004 = notification emails, 005 = sessions + atomic rate limiter).
+- Database changes live in `supabase/migrations/` (run them in order in the Supabase SQL editor; 004 = notification emails, 005 = sessions + atomic rate limiter, 006 = text columns for encrypted contact messages).
+- Contact messages (name, email, message) are stored AES-256-GCM encrypted; the key lives in the app env.
 - Emails escape all user content; contact messages go to the owner's verified account email.
 - Basic security headers are set in `next.config.ts`.
 
@@ -87,6 +89,8 @@ Put these in `.env.local` locally and in the Vercel project settings for deploym
 Flow: feature branch → merge into `staging` → check the demo → merge into `main`.
 
 The demo and production currently share one Supabase database, so use a test account on the demo.
+
+Uptime monitors should use `GET /api/health`: it returns `200 {"ok":true}` without touching the database or any external service.
 
 ## Git hooks
 
