@@ -1,6 +1,7 @@
 'use client';
 import { useState, useRef, useEffect } from 'react';
 import api, { initAuth, getToken } from '@/lib/api';
+import MessageText, { ElapsedSeconds } from '@/components/MessageText';
 
 interface GeneratedSkillCategory {
   title?: string;
@@ -452,20 +453,6 @@ export default function AdvisorWidget({ inline = false }: { inline?: boolean }) 
 
   const scorePercent = score && score.total ? Math.round(score.score / score.total * 100) : null;
 
-  const renderContent = (text: string) => {
-    // Render **bold** as React elements (no raw HTML from LLM output)
-    return text.split('\n').map((line, i) => {
-      if (!line) return <div key={i} className="h-2" aria-hidden="true" />;
-      if (line.trim() === '---') return <hr key={i} className="my-2 border-rule" />;
-      const parts = line.split(/\*\*(.*?)\*\*/g);
-      return (
-        <p key={i}>
-          {parts.map((part, j) => (j % 2 === 1 ? <strong key={j} className="font-semibold">{part}</strong> : part))}
-        </p>
-      );
-    });
-  };
-
   const last = messages[messages.length - 1];
 
   return (
@@ -500,7 +487,7 @@ export default function AdvisorWidget({ inline = false }: { inline?: boolean }) 
                 ) : (
                   <div className="max-w-[90%]">
                     <p className="mb-1 text-xs font-medium text-ink-soft">Advisor</p>
-                    <div className="border-l-2 border-rule pl-3.5 text-sm leading-relaxed">{renderContent(msg.content)}</div>
+                    <div className="border-l-2 border-rule pl-3.5 text-sm leading-relaxed"><MessageText text={msg.content} /></div>
                     {msg.preview && (
                       <button
                         type="button"
@@ -517,7 +504,7 @@ export default function AdvisorWidget({ inline = false }: { inline?: boolean }) 
           })}
 
           {loading && last?.role === 'assistant' && last.content === '' && (
-            <p className="text-[13px] text-ink-soft" role="status">Advisor is writing…</p>
+            <p className="text-[13px] text-ink-soft" role="status">Advisor is writing…<ElapsedSeconds /></p>
           )}
           <div ref={messagesEndRef} />
         </div>

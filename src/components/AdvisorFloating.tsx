@@ -1,5 +1,6 @@
 'use client';
 import { useState, useRef, useEffect } from 'react';
+import MessageText, { ElapsedSeconds } from '@/components/MessageText';
 
 interface Message {
   role: 'user' | 'assistant';
@@ -160,9 +161,9 @@ export default function AdvisorFloating({ accentColor }: { accentColor: string }
               }
               return msg.tone === 'notice'
                 ? <div key={i} role="status" className="rounded-md border border-[#dcdcd5] bg-[#fafaf7] px-3 py-2 text-[13px] leading-relaxed text-[#55555a]">{msg.content}</div>
-                : <div key={i} className="max-w-[90%] whitespace-pre-wrap text-sm leading-relaxed">{msg.content}</div>;
+                : <div key={i} className="max-w-[90%] text-sm leading-relaxed"><MessageText text={msg.content} /></div>;
             })}
-            {loading && last?.content === '' && <p className="text-[13px] text-[#55555a]" role="status">Writing…</p>}
+            {loading && last?.content === '' && <p className="text-[13px] text-[#55555a]" role="status">Writing…<ElapsedSeconds /></p>}
             <div ref={messagesEndRef} />
           </div>
 

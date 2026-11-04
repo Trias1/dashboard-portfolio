@@ -4,6 +4,7 @@ import { requireAuth } from '@/lib/auth';
 import { getSupabaseAdmin } from '@/lib/supabase/admin';
 import { checkRateLimit } from '@/lib/rate-limit';
 import { getErrorMessage } from '@/lib/utils';
+import { relayCompletionTokens } from '@/lib/sse-relay';
 import type { ChatHistoryInput } from '@/types/api';
 
 const NINE_ROUTER_API_KEY = process.env.NINE_ROUTER_API_KEY!;
@@ -70,27 +71,8 @@ Portfolio completeness: ${score}/${total}. Be helpful and concise.`;
     const stream = new ReadableStream({
       async start(controller) {
         controller.enqueue(encoder.encode(`data: ${JSON.stringify({ score, total })}\n\n`));
-        const reader = groqRes.body!.getReader();
-        const decoder = new TextDecoder();
         try {
-          while (true) {
-            const { done, value } = await reader.read();
-            if (done) break;
-            const chunk = decoder.decode(value);
-            const lines = chunk.split('\n').filter(l => l.startsWith('data: '));
-            for (const line of lines) {
-              const data = line.slice(6).trim();
-              if (data === '[DONE]') {
-                controller.enqueue(encoder.encode(`data: ${JSON.stringify({ done: true })}\n\n`));
-                continue;
-              }
-              try {
-                const json = JSON.parse(data);
-                const token = json.choices?.[0]?.delta?.content;
-                if (token) controller.enqueue(encoder.encode(`data: ${JSON.stringify({ token })}\n\n`));
-              } catch {}
-            }
-          }
+          await relayCompletionTokens(groqRes.body!, (event) => controller.enqueue(encoder.encode(`data: ${JSON.stringify(event)}\n\n`)));
         } catch {} finally { controller.close(); }
       },
     });

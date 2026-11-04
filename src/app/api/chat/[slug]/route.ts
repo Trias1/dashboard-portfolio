@@ -4,6 +4,7 @@ import { getSupabaseAdmin } from '@/lib/supabase/admin';
 import { checkRateLimit, getClientId } from '@/lib/rate-limit';
 import type { Experience, Project } from '@/types';
 import type { ChatHistoryInput, SkillGroupRow } from '@/types/api';
+import { relayCompletionTokens } from '@/lib/sse-relay';
 
 const NINE_ROUTER_API_KEY = process.env.NINE_ROUTER_API_KEY!;
 const NINE_ROUTER_BASE_URL = process.env.NINE_ROUTER_BASE_URL || "https://router.zeen.my.id/v1";
@@ -88,27 +89,8 @@ Contact: ${ct.email || '-'}`;
     const encoder = new TextEncoder();
     const stream = new ReadableStream({
       async start(controller) {
-        const reader = groqRes.body!.getReader();
-        const decoder = new TextDecoder();
         try {
-          while (true) {
-            const { done, value } = await reader.read();
-            if (done) break;
-            const chunk = decoder.decode(value);
-            const lines = chunk.split('\n').filter(l => l.startsWith('data: '));
-            for (const line of lines) {
-              const data = line.slice(6).trim();
-              if (data === '[DONE]') {
-                controller.enqueue(encoder.encode(`data: ${JSON.stringify({ done: true })}\n\n`));
-                continue;
-              }
-              try {
-                const json = JSON.parse(data);
-                const token = json.choices?.[0]?.delta?.content;
-                if (token) controller.enqueue(encoder.encode(`data: ${JSON.stringify({ token })}\n\n`));
-              } catch {}
-            }
-          }
+          await relayCompletionTokens(groqRes.body!, (event) => controller.enqueue(encoder.encode(`data: ${JSON.stringify(event)}\n\n`)));
         } catch (err) {
           console.error('Chat stream error:', err);
           controller.enqueue(encoder.encode(`data: ${JSON.stringify({ error: 'Stream interrupted' })}\n\n`));
