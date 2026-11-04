@@ -57,9 +57,6 @@ interface ExistingSectionFlags {
   hasExperience?: boolean;
   hasProjects?: boolean;
   hasServices?: boolean;
-  hasTestimonials?: boolean;
-  hasCertificates?: boolean;
-  hasContact?: boolean;
 }
 
 interface Message {
@@ -88,14 +85,11 @@ const ALL_SUGGESTED = [
   'Fill all my empty sections',
   'Analyze my portfolio',
   'Fill in my skills section',
-  'Generate testimonials for my portfolio',
   'Suggest certificates for me',
-  'Generate my experience',
   'Generate my bio',
   'Create a hero section',
   'Generate my services',
   'Suggest experience for me',
-  'Generate a project for my portfolio',
   "What's missing from my portfolio?",
   'How do I make my portfolio stand out?',
   'Tips for the contact section',
@@ -105,7 +99,13 @@ const ALL_SUGGESTED = [
   'What should a good bio include?',
 ];
 
-const pickSuggestions = () => [...ALL_SUGGESTED].sort(() => Math.random() - 0.5).slice(0, 4);
+/** The message an API error carries (e.g. why a section is not drafted), if any. */
+function apiErrorMessage(err: unknown): string | null {
+  const msg = (err as { response?: { data?: { message?: unknown } } })?.response?.data?.message;
+  return typeof msg === 'string' && msg && msg !== 'Unauthorized' ? msg : null;
+}
+
+const pickSuggestions =() => [...ALL_SUGGESTED].sort(() => Math.random() - 0.5).slice(0, 4);
 
 export default function AdvisorWidget({ inline = false }: { inline?: boolean }) {
   const [messages, setMessages] = useState<Message[]>([
@@ -159,6 +159,15 @@ export default function AdvisorWidget({ inline = false }: { inline?: boolean }) 
     return updated;
   });
 
+  const previewTextFor = (section: string, generated: GeneratedPayload): string => {
+    const obj = asObject(generated);
+    if (section === 'skills') return (obj.categories || []).map((c) => `**${c.title}:** ${c.skills}`).join('\n');
+    if (section === 'bio') return obj.bio || '';
+    if (section === 'hero') return `**Headline:** ${obj.headline}\n**Subheadline:** ${obj.subheadline}`;
+    if (section === 'services') return Array.isArray(generated) ? generated.map((s) => `**${s.title}:** ${s.description}`).join('\n') : '';
+    return '';
+  };
+
   const generateSection = async (section: string) => {
     reshuffleSuggestions();
     setLoading(true);
@@ -171,27 +180,15 @@ export default function AdvisorWidget({ inline = false }: { inline?: boolean }) 
         replaceLast({ role: 'assistant', content: GENERATE_UNAVAILABLE, tone: 'notice' });
         return;
       }
-      const obj = asObject(generated);
-
-      let previewText = '';
-      if (section === 'skills' && obj.categories) {
-        previewText = obj.categories.map((c) => `**${c.title}:** ${c.skills}`).join('\n');
-      } else if (section === 'bio') {
-        previewText = obj.bio || '';
-      } else if (section === 'hero') {
-        previewText = `**Headline:** ${obj.headline}\n**Subheadline:** ${obj.subheadline}`;
-      } else if (section === 'services') {
-        if (!Array.isArray(generated)) throw new Error('Unexpected services payload');
-        previewText = generated.map((s) => `**${s.title}:** ${s.description}`).join('\n');
-      }
+      const previewText = previewTextFor(section, generated);
 
       replaceLast({
         role: 'assistant',
         content: `Suggestion for **${section}**:\n\n${previewText}\n\nIf it looks right, save it to your portfolio.`,
         preview: { section, data: generated },
       });
-    } catch {
-      replaceLast({ role: 'assistant', content: GENERATE_UNAVAILABLE, tone: 'notice' });
+    } catch (err) {
+      replaceLast({ role: 'assistant', content: apiErrorMessage(err) || GENERATE_UNAVAILABLE, tone: 'notice' });
     } finally {
       setLoading(false);
     }
@@ -227,18 +224,21 @@ export default function AdvisorWidget({ inline = false }: { inline?: boolean }) 
         setApplying(null);
         return;
       }
-      await api.post(`/api/advisor/apply/${section}`, { data });
+      const res = await api.post<{ saved?: number }>(`/api/advisor/apply/${section}`, { data });
+      const nothingNew = res.data?.saved === 0;
       setMessages(prev => {
         const updated = [...prev];
         updated[msgIndex] = {
           ...updated[msgIndex],
-          content: updated[msgIndex].content + '\n\n**Saved.** Refresh the preview to see the change.',
+          content: updated[msgIndex].content + (nothingNew
+            ? '\n\nThese are already in your portfolio, so nothing new was added.'
+            : '\n\n**Saved.** Refresh the preview to see the change.'),
           preview: undefined
         };
         return updated;
       });
-    } catch {
-      setMessages(prev => [...prev, { role: 'assistant', content: 'Could not save. Try again, or fill in this section by hand in the Builder.', tone: 'notice' }]);
+    } catch (err) {
+      setMessages(prev => [...prev, { role: 'assistant', content: apiErrorMessage(err) || 'Could not save. Try again, or fill in this section by hand in the Builder.', tone: 'notice' }]);
     } finally {
       setApplying(null);
     }
@@ -250,10 +250,11 @@ export default function AdvisorWidget({ inline = false }: { inline?: boolean }) 
     // Check what already exists first
     let existingData: ExistingSectionFlags = {};
     try {
-      const [aboutRes, heroRes, skillsRes, expRes, projRes] = await Promise.all([
+      const [aboutRes, heroRes, skillsRes, servicesRes, expRes, projRes] = await Promise.all([
         api.get('/api/about'),
         api.get('/api/hero'),
         api.get('/api/skills'),
+        api.get('/api/services'),
         api.get('/api/experience'),
         api.get('/api/projects'),
       ]);
@@ -261,71 +262,46 @@ export default function AdvisorWidget({ inline = false }: { inline?: boolean }) 
         hasBio: !!(aboutRes.data?.bio),
         hasHero: !!(heroRes.data?.headline),
         hasSkills: !!(skillsRes.data?.length),
+        hasServices: !!(servicesRes.data?.length),
         hasExperience: !!(expRes.data?.length),
         hasProjects: !!(projRes.data?.length),
       };
     } catch {}
 
-    const allSections = ['bio', 'hero', 'skills', 'services', 'projects', 'experience', 'testimonials', 'gallery', 'contact'];
+    // Drafted from the user's own data; experience and projects have to be real, so they are only listed.
+    const draftable: [string, boolean | undefined][] = [['bio', existingData.hasBio], ['hero', existingData.hasHero], ['skills', existingData.hasSkills], ['services', existingData.hasServices]];
+    const sectionsToGenerate = draftable.filter(([, has]) => !has).map(([s]) => s);
+    const missingReal = [
+      !existingData.hasExperience && '**Work experience**',
+      !existingData.hasProjects && '**Projects**',
+    ].filter(Boolean) as string[];
 
-    // Only generate optional sections; important ones are listed for the user to fill.
-    const importantSections = ['bio', 'hero', 'experience', 'skills', 'projects', 'contact'];
-
-    const missingSections: string[] = [];
-    const sectionsToGenerate = allSections.filter(s => {
-      if (s === 'bio' && existingData.hasBio) return false;
-      if (s === 'hero' && existingData.hasHero) return false;
-      if (s === 'skills' && existingData.hasSkills) return false;
-      if (s === 'experience' && existingData.hasExperience) return false;
-      if (s === 'projects' && existingData.hasProjects) return false;
-      if (s === 'services' && existingData.hasServices) return false;
-      if (s === 'testimonials' && existingData.hasTestimonials) return false;
-      if (s === 'gallery' && existingData.hasCertificates) return false;
-      if (s === 'contact' && existingData.hasContact) return false;
-      if (importantSections.includes(s)) {
-        missingSections.push(s);
-        return false;
-      }
-      return true;
-    });
-
-    const sectionLabels: Record<string,string> = {
-      bio: 'Bio/About', hero: 'Hero Headline', experience: 'Work Experience',
-      skills: 'Skills', projects: 'Projects', contact: 'Contact'
-    };
-
-    if (sectionsToGenerate.length === 0 && missingSections.length === 0) {
+    if (missingReal.length > 0) {
       setMessages(prev => [...prev, {
         role: 'assistant',
-        content: 'Every portfolio section is filled in.\n\nWant help improving one? Try something like "improve my bio".'
+        content: `Still empty, and these need your real details:\n\n${missingReal.map((l) => `* ${l}`).join('\n')}\n\nAdd them in the Builder (projects can also come from GitHub import). The more real work you add, the better my drafts get.`
       }]);
+    }
+
+    if (sectionsToGenerate.length === 0) {
+      if (missingReal.length === 0) {
+        setMessages(prev => [...prev, {
+          role: 'assistant',
+          content: 'Every section I can help with is filled in.\n\nWant help improving one? Try something like "improve my bio".'
+        }]);
+      }
       setLoading(false);
       return;
     }
 
-    if (missingSections.length > 0) {
-      const missingLabels = missingSections.map(s => `* **${sectionLabels[s] || s}**`).join('\n');
-      const dummyMsg = sectionsToGenerate.length > 0 ? `\n\nMeanwhile, I'll draft examples for the optional sections that are still empty.` : '';
-      setMessages(prev => [...prev, {
-        role: 'assistant',
-        content: `**Key sections still empty:**\n\n${missingLabels}\n\nFill these in the Builder with your real details.${dummyMsg}`
-      }]);
-      if (sectionsToGenerate.length === 0) {
-        setLoading(false);
-        return;
-      }
-    }
-
-    const skipped = allSections.filter(s => !sectionsToGenerate.includes(s));
-    const skipMsg = skipped.length > 0 ? `\n\nAlready filled (skipped): ${skipped.join(', ')}` : '';
-
     setMessages(prev => [...prev, {
       role: 'assistant',
       tone: 'notice',
-      content: `Drafting ${sectionsToGenerate.length} sections…${skipMsg}`
+      content: `Drafting ${sectionsToGenerate.join(', ')} from your portfolio…`
     }]);
 
     const results: GeneratedResult[] = [];
+    let reason: string | null = null;
 
     for (const section of sectionsToGenerate) {
       try {
@@ -333,44 +309,23 @@ export default function AdvisorWidget({ inline = false }: { inline?: boolean }) 
         const res = await api.post<{ generated?: unknown }>(`/api/advisor/generate/${section}`);
         const generated = res.data?.generated;
         if (!isGeneratedPayload(generated)) continue;
-        const obj = asObject(generated);
-
-        let previewText = '';
-        if (section === 'skills' && obj.categories) {
-          previewText = obj.categories.map((c) => `**${c.title}:** ${c.skills}`).join('\n');
-        } else if (section === 'bio') {
-          previewText = obj.bio || '';
-        } else if (section === 'hero') {
-          previewText = `**Headline:** ${obj.headline}\n**Subheadline:** ${obj.subheadline}`;
-        } else if (section === 'services') {
-          previewText = Array.isArray(generated) ? generated.map((s) => `**${s.title}:** ${s.description}`).join('\n') : '';
-        } else if (section === 'projects') {
-          previewText = `**${obj.title}**\n${obj.description}\nTech: ${obj.tech_stack}`;
-        } else if (section === 'experience') {
-          previewText = `**${obj.position}** at ${obj.company}\n${obj.description}`;
-        } else if (section === 'testimonials') {
-          previewText = Array.isArray(generated) ? generated.map((t) => `"${t.message}" — **${t.name}**, ${t.position}`).join('\n\n') : '';
-        } else if (section === 'gallery') {
-          previewText = Array.isArray(generated) ? generated.map((g) => `**${g.title}**\n${g.description}`).join('\n\n') : '';
-        } else if (section === 'contact') {
-          previewText = [obj.email, obj.phone, obj.location].filter(Boolean).join('\n');
-        }
-        results.push({ section, data: generated, previewText });
-      } catch {}
+        results.push({ section, data: generated, previewText: previewTextFor(section, generated) });
+      } catch (err) {
+        reason = reason || apiErrorMessage(err);
+      }
     }
 
     if (results.length === 0) {
-      // Before, this still said "everything generated" and showed an apply button for nothing.
-      setMessages(prev => [...prev, { role: 'assistant', content: GENERATE_UNAVAILABLE, tone: 'notice' }]);
+      setMessages(prev => [...prev, { role: 'assistant', content: reason || GENERATE_UNAVAILABLE, tone: 'notice' }]);
       setLoading(false);
       return;
     }
 
-    const summaryText = results.map(r => `**${r.section === 'gallery' ? 'CERTIFICATE' : r.section.toUpperCase()}:**\n${r.previewText}`).join('\n\n---\n\n');
+    const summaryText = results.map(r => `**${r.section.toUpperCase()}:**\n${r.previewText}`).join('\n\n---\n\n');
 
     setMessages(prev => [...prev, {
       role: 'assistant',
-      content: `Suggestions for ${results.length} sections:\n\n${summaryText}\n\nCheck them, then save them all to your portfolio.`,
+      content: `Drafts for ${results.length} section${results.length === 1 ? '' : 's'}, written from your portfolio:\n\n${summaryText}\n\nCheck them, then save them to your portfolio.`,
       preview: { section: 'all', data: results }
     }]);
     setLoading(false);
@@ -483,7 +438,7 @@ export default function AdvisorWidget({ inline = false }: { inline?: boolean }) 
                 {msg.role === 'user' ? (
                   <div className="max-w-[85%] rounded-lg border border-rule bg-white px-3.5 py-2.5 text-sm leading-relaxed whitespace-pre-wrap">{msg.content}</div>
                 ) : msg.tone === 'notice' ? (
-                  <div role="status" className="max-w-[90%] rounded-md border border-rule bg-paper-deep px-3.5 py-2.5 text-[13px] leading-relaxed text-ink-soft">{msg.content}</div>
+                  <div role="status" className="max-w-[90%] rounded-md border border-rule bg-paper-deep px-3.5 py-2.5 text-[13px] leading-relaxed text-ink-soft">{msg.content}{loading && i === messages.length - 1 && <ElapsedSeconds />}</div>
                 ) : (
                   <div className="max-w-[90%]">
                     <p className="mb-1 text-xs font-medium text-ink-soft">Advisor</p>

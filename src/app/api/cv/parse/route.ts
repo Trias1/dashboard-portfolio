@@ -87,6 +87,8 @@ async function parseWithAi(rawText: string): Promise<{ status: AiStatus; data: P
       messages: [{ role: 'user', content: buildPrompt(rawText) }],
       temperature: 0.1,
       max_tokens: 8000,
+      // 9Router streams unless told otherwise, and the SDK then fails to parse the reply as JSON
+      stream: false,
     });
     const aiText = completion.choices?.[0]?.message?.content || '';
     const parsed = aiText ? parseAiJson(aiText) : null;
