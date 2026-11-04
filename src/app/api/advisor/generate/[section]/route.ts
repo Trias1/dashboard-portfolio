@@ -3,6 +3,7 @@ import { requireAuth } from '@/lib/auth';
 import { getSupabaseAdmin } from '@/lib/supabase/admin';
 import { checkRateLimit } from '@/lib/rate-limit';
 import { AI_ENABLED } from '@/lib/features';
+import { getErrorMessage } from '@/lib/utils';
 
 const NINE_ROUTER_API_KEY = process.env.NINE_ROUTER_API_KEY!;
 const NINE_ROUTER_BASE_URL = process.env.NINE_ROUTER_BASE_URL || "https://router.zeen.my.id/v1";
@@ -65,7 +66,9 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     return new Response(stream, {
       headers: { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache' },
     });
-  } catch {
+  } catch (err) {
+    // requireAuth throws 'Unauthorized': a 401 lets the client refresh the session and retry
+    if (getErrorMessage(err) === 'Unauthorized') return Response.json({ message: 'Unauthorized' }, { status: 401 });
     return new Response(`data: ${JSON.stringify({ token: 'Error generating content', done: true })}\n\n`, {
       headers: { 'Content-Type': 'text/event-stream' },
     });

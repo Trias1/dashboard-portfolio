@@ -3,6 +3,7 @@ import { AI_ENABLED } from '@/lib/features';
 import { requireAuth } from '@/lib/auth';
 import { getSupabaseAdmin } from '@/lib/supabase/admin';
 import { checkRateLimit } from '@/lib/rate-limit';
+import { getErrorMessage } from '@/lib/utils';
 import type { ChatHistoryInput } from '@/types/api';
 
 const NINE_ROUTER_API_KEY = process.env.NINE_ROUTER_API_KEY!;
@@ -97,7 +98,13 @@ Portfolio completeness: ${score}/${total}. Be helpful and concise.`;
     return new Response(stream, {
       headers: { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache' },
     });
-  } catch {
+  } catch (err) {
+    // requireAuth throws 'Unauthorized': answer 401 so clients and monitors see a missing session, not a success
+    if (getErrorMessage(err) === 'Unauthorized') {
+      return new Response(`data: ${JSON.stringify({ token: 'Your session has expired. Log in again to use the Advisor.', done: true })}\n\n`, {
+        status: 401, headers: { 'Content-Type': 'text/event-stream' },
+      });
+    }
     return new Response(`data: ${JSON.stringify({ token: 'Sorry, something went wrong.', done: true })}\n\n`, {
       headers: { 'Content-Type': 'text/event-stream' },
     });
