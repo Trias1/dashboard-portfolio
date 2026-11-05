@@ -75,13 +75,12 @@ export default function CVPanel({ portfolio, setSections, loadPreview }: Props) 
           }
           updated.push(section);
         });
-        localStorage.setItem('portfolio-sections', JSON.stringify(updated));
         if (portfolio) {
           api.put(`/api/portfolios/${portfolio.id}`, {
             title: portfolio.title, theme: portfolio.theme,
             is_published: portfolio.is_published, template: portfolio.template,
             sections_order: updated
-          }).catch(() => {});
+          }).catch(() => setCvError('The imported sections were added, but the section list could not be saved. Reorder or toggle a section to save it again.'));
         }
         return updated;
       });

@@ -1,6 +1,7 @@
 ﻿"use client";
 
 import api, { getApiErrorMessage } from "@/lib/api";
+import { uploadImage, UploadError } from "@/lib/upload-client";
 import type { EditFormData, StringFieldKey } from "@/types";
 
 const inputClass =
@@ -265,9 +266,12 @@ export function ExperienceEditor({
 export function ProjectEditor({
   value,
   onChange,
+  setMessage,
 }: {
   value: EditFormData;
   onChange: (value: EditFormData) => void;
+  /** status: "success" (green), "" (in progress, neutral) or "error" (default). */
+  setMessage: (message: string, status?: "success" | "error" | "") => void;
 }) {
   return (
     <div className="space-y-5">
@@ -302,17 +306,18 @@ export function ProjectEditor({
           type="file"
           accept="image/*"
           className="hidden"
-          onChange={(event) => {
+          onChange={async (event) => {
             const file = event.target.files?.[0];
+            event.target.value = "";
             if (!file) return;
-            const reader = new FileReader();
-            reader.onload = () =>
-              onChange({
-                ...value,
-                image_url:
-                  typeof reader.result === "string" ? reader.result : null,
-              });
-            reader.readAsDataURL(file);
+            // Upload now and keep the URL: the projects route only accepts web links, not base64 data
+            setMessage("Uploading image...", "");
+            try {
+              onChange({ ...value, image_url: await uploadImage(file, "projects") });
+              setMessage("Image uploaded. Save to keep it.", "success");
+            } catch (error) {
+              setMessage(error instanceof UploadError ? error.message : getApiErrorMessage(error, "Image upload failed"));
+            }
           }}
         />
         <div className={dropClass}>

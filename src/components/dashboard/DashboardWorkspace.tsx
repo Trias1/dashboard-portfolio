@@ -43,6 +43,8 @@ import DashboardCustomEditor from "@/components/dashboard/DashboardCustomEditor"
 import { AboutEditor, ExperienceEditor, ProjectEditor } from "@/components/dashboard/DashboardContentEditors";
 import DashboardEditorPanel from "@/components/dashboard/DashboardEditorPanel";
 import { SKILL_SUGGESTIONS } from "@/lib/dashboard-data";
+import { uploadImage, UploadError } from "@/lib/upload-client";
+import { buildGenericContent, genericType, uniqueLabel } from "@/lib/custom-content";
 import DashboardAccountMenu from "@/components/dashboard/DashboardAccountMenu";
 import DashboardPortfolioControls from "@/components/dashboard/DashboardPortfolioControls";
 import { useDashboardProfileActions } from "@/hooks/useDashboardProfileActions";
@@ -163,6 +165,18 @@ export default function DashboardPage() {
   const [saveStatus, setSaveStatus] = useState<"success" | "error" | "">("");
   // Messages from editors (uploads, deletes): an error unless they say otherwise, so a success isn't shown in red.
   const editorMessage = (message: string, status: "success" | "error" | "" = "error") => { setSaveMsg(message); setSaveStatus(status); };
+  // Unsaved edits in the open editor; cleared when its data loads or is saved.
+  const [dirty, setDirty] = useState(false);
+  const editField: React.Dispatch<React.SetStateAction<EditFormData>> = (value) => { setEditForm(value); setDirty(true); };
+  const confirmDiscard = () => !dirty || window.confirm("You have unsaved changes. Discard them?");
+  // A layout save (order, visibility) that failed, shown as a banner instead of being swallowed.
+  const [layoutError, setLayoutError] = useState("");
+  useEffect(() => {
+    if (!dirty) return;
+    const warn = (event: BeforeUnloadEvent) => { event.preventDefault(); event.returnValue = ""; };
+    window.addEventListener("beforeunload", warn);
+    return () => window.removeEventListener("beforeunload", warn);
+  }, [dirty]);
   const [saveMsg, setSaveMsg] = useState("");
   const [skillSearch, setSkillSearch] = useState("");
   const [skillSuggestions, setSkillSuggestions] = useState<string[]>([]);
@@ -314,6 +328,7 @@ export default function DashboardPage() {
   }, [activeMenu, user]);
 
   const fetchSectionData = useCallback(async (type: string, selectedId?: number) => {
+    setDirty(false);
     try {
       const apiType = type.split("-")[0];
       const endpoint =
@@ -335,25 +350,12 @@ export default function DashboardPage() {
           if (item) {
             const content = parseJsonSafe<CustomSectionContent>(item.content, {});
             setEditForm({ ...item, content });
-            console.log(
-              `... [${sectionTitle}] editForm loaded from row #${item.id}`,
-            );
           } else {
             setEditForm({ title: sectionTitle, type: subType, content: {} });
-            console.log(`* [${sectionTitle}] Ready for new item`);
           }
-          console.log(
-            `" [${apiType}] Fetched ${res.data.length} items from DB`,
-          );
-          console.log(
-            `" [${sectionTitle}] Filtered: ${matched.length} of ${res.data.length} custom items`,
-          );
         } else {
           setListData(res.data);
           setEditForm({});
-          console.log(
-            `" [${apiType}] Fetched ${res.data.length} items from DB`,
-          );
         }
       } else {
         setListData([]);
@@ -362,7 +364,7 @@ export default function DashboardPage() {
     } catch (err) {
       console.error(err);
     }
-  }, [activeSection]);
+  }, [activeSection, setDirty]);
 
   useEffect(() => {
     if (!activeSection) return;
@@ -378,6 +380,20 @@ export default function DashboardPage() {
     }
   }, [portfolio?.slug]);
 
+  const saveLayout = (order: Section[]) => {
+    if (!portfolio) return Promise.resolve();
+    return api
+      .put(`/api/portfolios/${portfolio.id}`, {
+        title: portfolio.title,
+        theme: portfolio.theme,
+        is_published: portfolio.is_published,
+        template: portfolio.template,
+        sections_order: order,
+      })
+      .then(() => setLayoutError(""))
+      .catch(() => setLayoutError("Your section changes couldn't be saved. Check your connection and try again."));
+  };
+
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
     if (active.id !== over?.id) {
@@ -386,16 +402,7 @@ export default function DashboardPage() {
         const newIndex = items.findIndex((i) => i.id === over?.id);
         const newOrder = arrayMove(items, oldIndex, newIndex);
         if (portfolio) {
-          api
-            .put(`/api/portfolios/${portfolio.id}`, {
-              title: portfolio.title,
-              theme: portfolio.theme,
-              is_published: portfolio.is_published,
-              template: portfolio.template,
-              sections_order: newOrder,
-            })
-            .then(() => setToggleVersion((version) => version + 1))
-            .catch(() => {});
+          saveLayout(newOrder).then(() => setToggleVersion((version) => version + 1));
         }
         if (!portfolio) setToggleVersion((version) => version + 1);
         return newOrder;
@@ -410,15 +417,7 @@ export default function DashboardPage() {
       );
       // Save to DB
       if (portfolio) {
-        api
-          .put(`/api/portfolios/${portfolio.id}`, {
-            title: portfolio.title,
-            theme: portfolio.theme,
-            is_published: portfolio.is_published,
-            template: portfolio.template,
-            sections_order: updated,
-          })
-          .catch((err) => console.error("Failed to save sections", err));
+        saveLayout(updated);
       }
       return updated;
     });
@@ -437,15 +436,7 @@ export default function DashboardPage() {
         s.id === id ? { ...s, enabled: false } : s,
       );
       if (portfolio) {
-        api
-          .put(`/api/portfolios/${portfolio.id}`, {
-            title: portfolio.title,
-            theme: portfolio.theme,
-            is_published: portfolio.is_published,
-            template: portfolio.template,
-            sections_order: updated,
-          })
-          .catch(() => {});
+        saveLayout(updated);
       }
       return updated;
     });
@@ -472,8 +463,13 @@ export default function DashboardPage() {
     if (portfolio?.slug) loadPreview(portfolio.slug);
   };
 
-  const handleAddSection = async (type: SectionType, label: string, icon: string) => {
+  const handleAddSection = async (type: SectionType, requestedLabel: string, icon: string) => {
     const id = `${type}-${Date.now()}`;
+    // Custom sections are matched to their rows by name, so a second "Custom Section" would share the
+    // first one's content: give free-form ones a free name ("Custom Section 2").
+    const label = type === "custom" && !typedSectionMap[normalizeCustomTitle(requestedLabel)]
+      ? uniqueLabel(requestedLabel, sections.filter((s) => s.type === "custom").map((s) => s.label))
+      : requestedLabel;
     const newSection: Section = {
       id,
       type,
@@ -545,6 +541,7 @@ export default function DashboardPage() {
     const file = e.target.files?.[0];
     if (file) {
       setPhotoFile(file);
+      setDirty(true);
       const reader = new FileReader();
       reader.onload = () => setPhotoPreview(reader.result as string);
       reader.readAsDataURL(file);
@@ -570,7 +567,7 @@ export default function DashboardPage() {
       .map((s: string) => s.trim())
       .filter(Boolean);
     if (!skillList.includes(skill)) {
-      setEditForm({ ...editForm, skills: [...skillList, skill].join(", ") });
+      editField({ ...editForm, skills: [...skillList, skill].join(", ") });
     }
     setSkillSearch("");
     setSkillSuggestions([]);
@@ -581,7 +578,7 @@ export default function DashboardPage() {
       .split(",")
       .map((s: string) => s.trim())
       .filter((s: string) => s !== skill);
-    setEditForm({ ...editForm, skills: skillList.join(", ") });
+    editField({ ...editForm, skills: skillList.join(", ") });
   };
 
   const handleCertSkillSearch = (val: string) => {
@@ -599,7 +596,7 @@ export default function DashboardPage() {
   const addCertSkill = (skill: string) => {
     const current: string[] = editForm.content?.skills || [];
     if (!current.includes(skill)) {
-      setEditForm({
+      editField({
         ...editForm,
         content: { ...(editForm.content || {}), skills: [...current, skill] },
       });
@@ -610,7 +607,7 @@ export default function DashboardPage() {
 
   const removeCertSkill = (skill: string) => {
     const current: string[] = editForm.content?.skills || [];
-    setEditForm({
+    editField({
       ...editForm,
       content: {
         ...(editForm.content || {}),
@@ -626,7 +623,7 @@ export default function DashboardPage() {
     try {
       const { data } = await api.post<{ image?: string }>("/api/og-image", { url: credUrl });
       if (data?.image) {
-        setEditForm({
+        editField({
           ...editForm,
           content: { ...(editForm.content || {}), imageUrl: data.image },
         });
@@ -654,15 +651,8 @@ export default function DashboardPage() {
       }
 
       if (photoFile && type === "about") {
-        const reader = new FileReader();
-        reader.readAsDataURL(photoFile);
-
-        await new Promise((resolve) => {
-          reader.onload = resolve;
-        });
-
-        formData.photo_url =
-          typeof reader.result === "string" ? reader.result : null;
+        // Store the photo and save its URL; the about route only accepts web links, not base64 data
+        formData.photo_url = await uploadImage(photoFile, "photos");
       }
 
       if (type === "custom") {
@@ -678,18 +668,17 @@ export default function DashboardPage() {
 
           if (formData.id) {
             await api.put(`/api/custom/${formData.id}`, payload);
-            console.log(`Updated ${sectionTitle} item #${formData.id}`);
           } else {
             await api.post("/api/custom", payload);
-            console.log(`Inserted new ${sectionTitle} item`);
           }
         } else {
+          // Free-form section: the row is titled with the section name (that is how rows are matched to
+          // their section) and stores only the field its type uses.
+          const contentType = genericType(formData.type);
           const payload = {
-            title: formData.title,
-            type: formData.type || "text",
-            content: {
-              body: formData.content?.body || "",
-            },
+            title: sectionTitle,
+            type: contentType,
+            content: buildGenericContent(contentType, formData.content),
           };
 
           if (formData.id) {
@@ -724,6 +713,7 @@ export default function DashboardPage() {
       // Success
       setSaveMsg("Saved!");
       setSaveStatus("success");
+      setDirty(false);
 
       setPhotoFile(null);
       setPhotoPreview("");
@@ -742,7 +732,7 @@ export default function DashboardPage() {
     } catch (err) {
       console.error(err);
 
-      setSaveMsg(getApiErrorMessage(err, "Save failed"));
+      setSaveMsg(err instanceof UploadError ? err.message : getApiErrorMessage(err, "Save failed"));
       setSaveStatus("error");
 
       setTimeout(() => {
@@ -775,18 +765,18 @@ export default function DashboardPage() {
     if (!activeSection) return null;
     const type = activeSection.type.split("-")[0];
     const fields: Record<string, React.ReactElement> = {
-      about: <AboutEditor value={editForm} onChange={setEditForm} photoPreview={photoPreview} onPhotoChange={handlePhotoChange} setMessage={editorMessage} />,
-      experience: <ExperienceEditor value={editForm} onChange={setEditForm} />,
-      projects: <ProjectEditor value={editForm} onChange={setEditForm} />,
-      services: <ServiceEditor value={editForm} onChange={setEditForm} />,
-      testimonials: <TestimonialEditor value={editForm} onChange={setEditForm} />,
-      hero: <HeroEditor value={editForm} onChange={setEditForm} />,
-      contact: <ContactEditor value={editForm} onChange={setEditForm} />,
-      skills: <SkillsEditor value={editForm} onChange={setEditForm} search={skillSearch} suggestions={skillSuggestions} onSearch={handleSkillSearch} onAdd={addSkill} onRemove={removeSkill} />,
-      gallery: <GalleryEditor value={editForm} onChange={setEditForm} setMessage={editorMessage} onRefresh={async () => { await fetchSectionData("gallery"); await loadPreview(); }} />,
-      custom: <DashboardCustomEditor activeSection={activeSection} normalizeCustomTitle={normalizeCustomTitle} typedSectionMap={typedSectionMap} editForm={editForm} setEditForm={setEditForm} inputClass={inputClass} labelClass={labelClass} certSkillSearch={certSkillSearch} handleCertSkillSearch={handleCertSkillSearch} addCertSkill={addCertSkill} certSkillSuggestions={certSkillSuggestions} removeCertSkill={removeCertSkill} detectOgImage={detectOgImage} />,
+      about: <AboutEditor value={editForm} onChange={editField} photoPreview={photoPreview} onPhotoChange={handlePhotoChange} setMessage={editorMessage} />,
+      experience: <ExperienceEditor value={editForm} onChange={editField} />,
+      projects: <ProjectEditor value={editForm} onChange={editField} setMessage={editorMessage} />,
+      services: <ServiceEditor value={editForm} onChange={editField} />,
+      testimonials: <TestimonialEditor value={editForm} onChange={editField} />,
+      hero: <HeroEditor value={editForm} onChange={editField} />,
+      contact: <ContactEditor value={editForm} onChange={editField} />,
+      skills: <SkillsEditor value={editForm} onChange={editField} search={skillSearch} suggestions={skillSuggestions} onSearch={handleSkillSearch} onAdd={addSkill} onRemove={removeSkill} />,
+      gallery: <GalleryEditor value={editForm} onChange={editField} setMessage={editorMessage} onRefresh={async () => { await fetchSectionData("gallery"); await loadPreview(); }} />,
+      custom: <DashboardCustomEditor activeSection={activeSection} normalizeCustomTitle={normalizeCustomTitle} typedSectionMap={typedSectionMap} editForm={editForm} setEditForm={editField} inputClass={inputClass} labelClass={labelClass} certSkillSearch={certSkillSearch} handleCertSkillSearch={handleCertSkillSearch} addCertSkill={addCertSkill} certSkillSuggestions={certSkillSuggestions} removeCertSkill={removeCertSkill} detectOgImage={detectOgImage} />,
     };
-    return <DashboardEditorPanel activeSection={activeSection} field={fields[type]} saveMsg={saveMsg} saveStatus={saveStatus} listData={listData} showAllItems={showAllItems} saving={saving} saveLabel="Save" savingLabel="Saving..." normalizeCustomTitle={normalizeCustomTitle} typedSectionMap={typedSectionMap} onClose={() => setActiveSection(null)} onSave={handleSave} onEditStored={(item) => setEditForm({ ...item, content: parseJsonSafe<CustomSectionContent>(item.content, {}) })} onDeleteStored={async (item) => { if (!confirm("Delete this item?")) return; try { await api.delete(`/api/${activeSection.type.split("-")[0]}/${item.id}`); setListData((previous) => previous.filter((entry) => entry.id !== item.id)); await loadPreview(); } catch { editorMessage("Failed to delete"); } }} onToggleItems={() => setShowAllItems(!showAllItems)} />;
+    return <DashboardEditorPanel activeSection={activeSection} field={fields[type]} saveMsg={saveMsg} saveStatus={saveStatus} listData={listData} showAllItems={showAllItems} saving={saving} saveLabel="Save" savingLabel="Saving..." normalizeCustomTitle={normalizeCustomTitle} typedSectionMap={typedSectionMap} onClose={() => { if (!confirmDiscard()) return; setDirty(false); setActiveSection(null); }} onSave={handleSave} onEditStored={(item) => { if (!confirmDiscard()) return; setDirty(false); setEditForm({ ...item, content: parseJsonSafe<CustomSectionContent>(item.content, {}) }); }} onDeleteStored={async (item) => { if (!confirm("Delete this item?")) return; try { await api.delete(`/api/${activeSection.type.split("-")[0]}/${item.id}`); setListData((previous) => previous.filter((entry) => entry.id !== item.id)); await loadPreview(); } catch { editorMessage("Failed to delete"); } }} onToggleItems={() => setShowAllItems(!showAllItems)} />;
   };
 
   return (
@@ -832,6 +822,12 @@ export default function DashboardPage() {
             account={<DashboardAccountMenu user={user} open={showUserMenu} onToggle={() => setShowUserMenu(!showUserMenu)} onProfile={() => { setShowProfile(true); setShowUserMenu(false); }} onLogout={() => { handleLogout(); setShowUserMenu(false); }} />}
           />
         </DashboardHeader>
+        {layoutError && (
+          <div role="alert" className="mx-4 mt-3 flex items-start justify-between gap-3 rounded-md border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-800 md:mx-8">
+            <span>{layoutError}</span>
+            <button type="button" onClick={() => setLayoutError("")} className="shrink-0 font-medium underline-offset-4 hover:underline">Dismiss</button>
+          </div>
+        )}
         {/* Content area */}
         {activeMenu === "builder" && (
           <DashboardBuilder
@@ -839,7 +835,7 @@ export default function DashboardPage() {
             activeSection={activeSection}
             sensors={sensors}
             setShowAddSection={setShowAddSection}
-            setActiveSection={setActiveSection}
+            setActiveSection={(section) => { if (section?.id !== activeSection?.id && !confirmDiscard()) return; setDirty(false); setActiveSection(section); }}
             onDragEnd={handleDragEnd}
             onToggle={handleToggle}
             onDelete={handleDelete}
@@ -913,15 +909,7 @@ export default function DashboardPage() {
                   }
                 });
                 if (portfolio) {
-                  api
-                    .put(`/api/portfolios/${portfolio.id}`, {
-                      title: portfolio.title,
-                      theme: portfolio.theme,
-                      is_published: portfolio.is_published,
-                      template: portfolio.template,
-                      sections_order: updated,
-                    })
-                    .catch(() => {});
+                  saveLayout(updated);
                 }
                 return updated;
               });

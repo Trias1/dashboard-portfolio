@@ -17,6 +17,9 @@ export default function LoginPage() {
   const [otpLoading, setOtpLoading] = useState(false);
   const [resending, setResending] = useState(false);
   const [info, setInfo] = useState('');
+  // Set when the password was right but the email isn't verified yet: offer a new link.
+  const [needsVerify, setNeedsVerify] = useState(false);
+  const [sendingLink, setSendingLink] = useState(false);
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -36,14 +39,31 @@ export default function LoginPage() {
     e.preventDefault();
     setSubmitting(true);
     setError('');
+    setInfo('');
+    setNeedsVerify(false);
     try {
       await api.post('/api/auth/verify-credentials', form);
       await api.post('/api/otp/send', { email: form.email });
       setOtpSent(true);
     } catch (err: unknown) {
       setError(getApiErrorMessage(err, 'Login failed'));
+      setNeedsVerify(axios.isAxiosError(err) && err.response?.status === 403 && /verify your email/i.test(String(err.response?.data?.message || '')));
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const handleResendVerification = async () => {
+    setSendingLink(true);
+    try {
+      const res = await api.post('/api/auth/resend-verification', form);
+      setError('');
+      setNeedsVerify(false);
+      setInfo(res.data?.message || 'A new verification link is on its way.');
+    } catch (err: unknown) {
+      setError(getApiErrorMessage(err, 'Could not send a new link'));
+    } finally {
+      setSendingLink(false);
     }
   };
 
@@ -118,6 +138,13 @@ export default function LoginPage() {
       subtitle="Pick up where you left off."
       footer={<>Don&apos;t have an account? <Link href="/register" className="font-medium text-accent underline-offset-4 hover:underline">Sign up free</Link></>}>
       {error && <Notice tone="error">{error}</Notice>}
+      {needsVerify && (
+        <button type="button" onClick={handleResendVerification} disabled={sendingLink}
+          className="-mt-2 mb-4 text-sm font-medium text-accent underline-offset-4 hover:underline disabled:opacity-50">
+          {sendingLink ? 'Sending…' : 'Send me a new verification link'}
+        </button>
+      )}
+      {info && !error && <Notice tone="ok">{info}</Notice>}
       <form onSubmit={handleSubmit} className="space-y-5">
         <Field id="login-email" label="Email" type="email" autoComplete="email" placeholder="you@email.com"
           value={form.email} required onChange={e => setForm({ ...form, email: e.target.value })} />

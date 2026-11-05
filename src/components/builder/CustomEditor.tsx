@@ -1,6 +1,7 @@
 'use client';
 import React from 'react';
 import type { CustomCard, CustomLink, EditFormData } from '@/types';
+import { genericType } from '@/lib/custom-content';
 
 interface Props {
   editForm: EditFormData;
@@ -13,8 +14,12 @@ const hintClass = "mt-1.5 text-xs text-ink-soft";
 const removeClass = "shrink-0 px-1 text-xs text-red-700 underline-offset-2 hover:underline focus-visible:outline-none focus-visible:underline";
 const addClass = "rounded-md border border-dashed border-rule bg-white px-3 py-2 text-sm font-medium text-ink transition-colors hover:border-ink-soft";
 
+/**
+ * Editor for a free-form custom section row: text, list, cards or links (all four render in every template).
+ * The row's title always follows the section name, so it isn't edited here.
+ */
 export default function CustomEditor({ editForm, setEditForm }: Props) {
-  const type = editForm.type || 'text';
+  const type = genericType(editForm.type);
 
   const renderFields = () => {
     switch (type) {
@@ -65,18 +70,12 @@ export default function CustomEditor({ editForm, setEditForm }: Props) {
                       cards[i] = {...cards[i], desc: e.target.value};
                       setEditForm({...editForm, content: {...editForm.content, cards}});
                     }} className={inputClass} placeholder="Description" />
-                    <label htmlFor={`ce-card-icon-${i}`} className="sr-only">Card {i + 1} icon</label>
-                    <input id={`ce-card-icon-${i}`} value={card.icon || ''} onChange={e => {
-                      const cards = [...(editForm.content?.cards || [])];
-                      cards[i] = {...cards[i], icon: e.target.value};
-                      setEditForm({...editForm, content: {...editForm.content, cards}});
-                    }} className={inputClass + ' max-w-[8rem]'} placeholder="Icon" />
                   </li>
                 ))}
               </ul>
             )}
             <button type="button" onClick={() => {
-              const cards = [...(editForm.content?.cards || []), {title: '', desc: '', icon: '✦'}];
+              const cards = [...(editForm.content?.cards || []), {title: '', desc: ''}];
               setEditForm({...editForm, content: {...editForm.content, cards}});
             }} className={addClass}>
               Add card
@@ -131,17 +130,12 @@ export default function CustomEditor({ editForm, setEditForm }: Props) {
   return (
     <div className="space-y-5 text-ink">
       <div>
-        <label htmlFor="ce-title" className={labelClass}>Section title</label>
-        <input id="ce-title" value={editForm.title || ''} onChange={e => setEditForm({...editForm, title: e.target.value})}
-          className={inputClass} placeholder="My Custom Section" />
-      </div>
-      <div>
         <label htmlFor="ce-type" className={labelClass}>Content type</label>
         <select id="ce-type" value={type} onChange={e => setEditForm({...editForm, type: e.target.value, content: {}})}
           className={inputClass}>
           <option value="text">Text: free text content</option>
           <option value="list">List: bullet points</option>
-          <option value="cards">Cards: icon, title and description</option>
+          <option value="cards">Cards: title and description</option>
           <option value="links">Links: label and URL</option>
         </select>
         <p className={hintClass}>Changing the type clears the content below.</p>

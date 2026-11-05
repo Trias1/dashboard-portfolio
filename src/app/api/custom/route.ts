@@ -2,7 +2,7 @@ import { NextRequest } from 'next/server';
 import { requireAuth } from '@/lib/auth';
 import { getSupabaseAdmin } from '@/lib/supabase/admin';
 import { errorResponse, successResponse, getErrorMessage } from '@/lib/utils';
-import { checkSectionBody } from '@/lib/validate';
+import { checkCustomContent, checkSectionBody } from '@/lib/validate';
 
 export async function GET(request: NextRequest) {
   try {
@@ -22,7 +22,10 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const invalid = checkSectionBody(body, { maxText: 50000 });
     if (invalid) return errorResponse(invalid, 400);
-    const { title, type, content } = body;
+    const { title, type } = body;
+    const checked = checkCustomContent(type, body.content);
+    if ('error' in checked) return errorResponse(checked.error, 400);
+    const content = checked.content;
     const { data } = await getSupabaseAdmin().from('custom_sections').insert({ title, type: type || 'text', content: JSON.stringify(content || {}), owner_id: auth.id }).select().single();
     return successResponse(data, 201);
   } catch (err) { return errorResponse(getErrorMessage(err)); }

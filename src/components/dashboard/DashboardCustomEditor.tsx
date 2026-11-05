@@ -3,6 +3,7 @@
 import React from 'react';
 import type { Section } from '@/lib/sections';
 import type { EditFormData } from '@/types';
+import CustomEditor from '@/components/builder/CustomEditor';
 
 interface DashboardCustomEditorProps {
   activeSection: Section;
@@ -701,55 +702,7 @@ export default function DashboardCustomEditor(props: DashboardCustomEditorProps)
           return editorMap[subType] || null;
         }
 
-        return (
-          <div className="space-y-5">
-            <div>
-              <label htmlFor="cx-section-title" className={labelClass}>Section title</label>
-              <input
-                id="cx-section-title"
-                value={editForm.title || ""}
-                onChange={(e) =>
-                  setEditForm({ ...editForm, title: e.target.value })
-                }
-                className={inputClass}
-                placeholder="My Custom Section"
-              />
-            </div>
-            <div>
-              <label htmlFor="cx-section-type" className={labelClass}>Type</label>
-              <select
-                id="cx-section-type"
-                value={editForm.type || "text"}
-                onChange={(e) =>
-                  setEditForm({ ...editForm, type: e.target.value })
-                }
-                className={inputClass}
-              >
-                <option value="text">Text</option>
-                <option value="list">List</option>
-                <option value="html">HTML</option>
-              </select>
-            </div>
-            <div>
-              <label htmlFor="cx-section-content" className={labelClass}>Content</label>
-              <textarea
-                id="cx-section-content"
-                value={
-                  typeof editForm.content === "string"
-                    ? editForm.content
-                    : editForm.content?.body || ""
-                }
-                onChange={(e) =>
-                  setEditForm({
-                    ...editForm,
-                    content: { body: e.target.value },
-                  })
-                }
-                className={inputClass + " h-36 resize-y"}
-                placeholder="Write anything here..."
-              />
-            </div>
-          </div>
-        );
+        // Free-form section: text, list, cards or links
+        return <CustomEditor editForm={editForm} setEditForm={setEditForm} />;
 
 }
