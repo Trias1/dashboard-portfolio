@@ -2,13 +2,14 @@ import { NextRequest } from 'next/server';
 import { requireSuperAdmin } from '@/lib/auth';
 import { getSupabaseAdmin } from '@/lib/supabase/admin';
 import { errorResponse, successResponse, getErrorMessage } from '@/lib/utils';
+import { fetchAllRows } from '@/lib/supabase/paged';
 
 export async function GET(request: NextRequest) {
   try {
     await requireSuperAdmin(request);
     const supabase = getSupabaseAdmin();
     const onlineSince = new Date(Date.now() - 5 * 60 * 1000).toISOString();
-    const [users, onlineUsers, presenceUsers, portfolios, published, messages, recent] = await Promise.all([
+    const [users, onlineUsers, presenceUsers, portfolios, published, messages, recent, allTemplates] = await Promise.all([
       supabase.from('users').select('*', { count: 'exact', head: true }).eq('is_active', true),
       supabase.from('users').select('*', { count: 'exact', head: true }).eq('is_active', true).gte('last_seen_at', onlineSince),
       supabase.from('users').select('id, name, email, created_at, last_seen_at, last_device, is_active').eq('is_active', true).order('last_seen_at', { ascending: false, nullsFirst: false }),
@@ -16,10 +17,12 @@ export async function GET(request: NextRequest) {
       supabase.from('portfolios').select('*', { count: 'exact', head: true }).eq('is_published', true),
       supabase.from('contact_messages').select('*', { count: 'exact', head: true }),
       supabase.from('portfolios').select('id, title, slug, template, is_published, updated_at, owner_id').order('updated_at', { ascending: false }).limit(10),
+      // Template usage across every portfolio, not just the 10 most recent
+      fetchAllRows<{ template: string | null }>((from, to) => supabase.from('portfolios').select('template').order('id').range(from, to)),
     ]);
 
     if (recent.error) throw recent.error;
-    const templateCounts = (recent.data || []).reduce<Record<string, number>>((counts, portfolio) => {
+    const templateCounts = allTemplates.reduce<Record<string, number>>((counts, portfolio) => {
       const template = portfolio.template || 'modern';
       counts[template] = (counts[template] || 0) + 1;
       return counts;

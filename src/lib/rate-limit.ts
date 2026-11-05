@@ -20,8 +20,9 @@ export async function checkRateLimit(identifier: string, type: RateLimitType = '
       p_identifier: identifier, p_type: type, p_window_seconds: WINDOW_MS / 1000, p_max: max,
     });
     if (!error && typeof data === 'boolean') {
-      // Housekeeping now and then instead of on every request.
-      if (Math.random() < 0.02) void db.from('rate_limits').delete().lt('created_at', new Date(Date.now() - WINDOW_MS).toISOString());
+      // Housekeeping now and then instead of on every request. It must be awaited: a supabase-js query
+      // is only sent once it is awaited, so the old `void …delete()` never ran and the table kept growing.
+      if (Math.random() < 0.02) await db.from('rate_limits').delete().lt('created_at', new Date(Date.now() - WINDOW_MS).toISOString());
       return { allowed: data, remaining: data ? 1 : 0, resetIn: WINDOW_MS };
     }
   } catch { /* fall through to the non-atomic path */ }

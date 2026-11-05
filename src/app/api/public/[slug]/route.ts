@@ -15,6 +15,8 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     if (slug === 'demo') {
       const template = request.nextUrl.searchParams.get('template') || 'modern';
       return successResponse({
+        // Sample data: previews may restyle it freely
+        preview: true,
         portfolio: {
           id: 0,
           slug: 'demo',
@@ -114,6 +116,13 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       const section = sectionsConfig.find((s) => s.type?.split('-')[0] === type);
       return section ? section.enabled !== false : true;
     };
+    // Custom sections are toggled one by one: each entry's label matches the title of its rows. Checking
+    // the type alone found the first custom entry (Education by default), so hiding it hid them all.
+    const customEnabled = (title: string | undefined) => {
+      const key = (title || '').trim().toLowerCase();
+      const entry = sectionsConfig.find((s) => s.type?.split('-')[0] === 'custom' && String(s.label ?? '').trim().toLowerCase() === key);
+      return entry ? entry.enabled !== false : true;
+    };
 
     const rawCustomData = (custom.data || []).map((section: CustomSectionRow): CustomSectionOutput => {
       let content = section.content;
@@ -180,6 +189,8 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     }, []);
 
     return successResponse({
+      // Tells the page whether ?template=/?theme=/?order= may apply (owner or superadmin previewing)
+      preview: isPreview,
       portfolio: {
         id: portfolio.id, slug: portfolio.slug, title: portfolio.title,
          template: portfolio.template, sections_order: sectionsConfig,
@@ -194,7 +205,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       skills: isEnabled('skills') ? (skills.data || []) : [],
       testimonials: isEnabled('testimonials') ? (testimonials.data || []) : [],
       gallery: isEnabled('gallery') ? (gallery.data || []) : [],
-      custom: isEnabled('custom') ? groupedCustomData : [],
+      custom: groupedCustomData.filter((section: CustomSectionOutput) => customEnabled(section.title)),
     });
   } catch (err) { return errorResponse(getErrorMessage(err)); }
 }

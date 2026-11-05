@@ -42,16 +42,19 @@ export default function PublicPortfolioPage() {
   const searchParams = useSearchParams();
   const [result, setResult] = useState<{ key: string; data: PortfolioPageData | null; notFound: boolean } | null>(null);
   const isPreview = searchParams.get("preview") === "true";
-  const orderParam = isPreview ? searchParams.get("order") : null;
-  const themeParam = searchParams.get("theme");
-  // Landing-page showcase: the parent switches templates by message instead of reloading the frame.
-  const isShowcase = isPreview && searchParams.get("showcase") === "1";
   const [showcaseTemplate, setShowcaseTemplate] = useState<string | null>(null);
   const requestKey = `${slug}|${isPreview}`;
   // Loading resets automatically whenever the slug/preview mode changes.
   const loading = result?.key !== requestKey;
   const rawData = loading ? null : result.data;
   const notFound = !loading && result.notFound;
+  // ?template=, ?theme= and ?order= only apply when the API confirms a real preview (the owner or a
+  // superadmin, or the built-in demo data); adding ?preview=true can't restyle someone's live portfolio.
+  const previewAllowed = isPreview && rawData?.preview === true;
+  const orderParam = previewAllowed ? searchParams.get("order") : null;
+  const themeParam = previewAllowed ? searchParams.get("theme") : null;
+  // Landing-page showcase: the parent switches templates by message instead of reloading the frame.
+  const isShowcase = previewAllowed && searchParams.get("showcase") === "1";
   // Guards against duplicate fetches (and duplicate visit counts) for the same
   // slug, e.g. React Strict Mode re-running effects in development.
   const requestKeyRef = useRef<string | null>(null);
@@ -83,7 +86,7 @@ export default function PublicPortfolioPage() {
     [rawData, themeParam],
   );
   const urlTemplate =
-    typeof window !== "undefined"
+    previewAllowed && typeof window !== "undefined"
       ? searchParams.get("template")
       : null;
   const templateName = showcaseTemplate || urlTemplate || data?.portfolio?.template || "modern";
@@ -129,7 +132,7 @@ export default function PublicPortfolioPage() {
       </main>
     );
   const accentColor = theme.accent;
-  const widget = isShowcase ? null : isPreview ? (
+  const widget = isShowcase ? null : previewAllowed ? (
     AI_ENABLED ? <AdvisorFloating accentColor={accentColor} /> : null
   ) : (
     <>
@@ -140,109 +143,109 @@ export default function PublicPortfolioPage() {
 
   if (templateName === "modern") return (
     <OrderSections sections_order={data?.portfolio?.sections_order}>
-      <ModernTemplate data={data} theme={theme} isPreview={isPreview} />
+      <ModernTemplate data={data} theme={theme} isPreview={previewAllowed} />
       {widget}
     </OrderSections>
   );
   if (templateName === "creative") return (
     <OrderSections sections_order={data?.portfolio?.sections_order}>
-      <CreativeTemplate data={data} theme={theme} isPreview={isPreview} />
+      <CreativeTemplate data={data} theme={theme} isPreview={previewAllowed} />
       {widget}
     </OrderSections>
   );
   if (templateName === "minimal") return (
     <OrderSections sections_order={data?.portfolio?.sections_order}>
-      <MinimalTemplate data={data} theme={theme} isPreview={isPreview} />
+      <MinimalTemplate data={data} theme={theme} isPreview={previewAllowed} />
       {widget}
     </OrderSections>
   );
   if (templateName === "bold") return (
     <OrderSections sections_order={data?.portfolio?.sections_order}>
-      <BoldTemplate data={data} theme={theme} isPreview={isPreview} />
+      <BoldTemplate data={data} theme={theme} isPreview={previewAllowed} />
       {widget}
     </OrderSections>
   );
   if (templateName === "classic") return (
     <OrderSections sections_order={data?.portfolio?.sections_order}>
-      <ClassicTemplate data={data} theme={theme} isPreview={isPreview} />
+      <ClassicTemplate data={data} theme={theme} isPreview={previewAllowed} />
       {widget}
     </OrderSections>
   );
   if (templateName === "neon") return (
     <OrderSections sections_order={data?.portfolio?.sections_order}>
-      <NeonTemplate data={data} theme={theme} isPreview={isPreview} />
+      <NeonTemplate data={data} theme={theme} isPreview={previewAllowed} />
       {widget}
     </OrderSections>
   );
   if (templateName === "glass") return (
     <OrderSections sections_order={data?.portfolio?.sections_order}>
-      <GlassTemplate data={data} theme={theme} isPreview={isPreview} />
+      <GlassTemplate data={data} theme={theme} isPreview={previewAllowed} />
       {widget}
     </OrderSections>
   );
   if (templateName === "nature") return (
     <OrderSections sections_order={data?.portfolio?.sections_order}>
-      <NatureTemplate data={data} theme={theme} isPreview={isPreview} />
+      <NatureTemplate data={data} theme={theme} isPreview={previewAllowed} />
       {widget}
     </OrderSections>
   );
   if (templateName === "vibrant") return (
     <OrderSections sections_order={data?.portfolio?.sections_order}>
-      <VibrantTemplate data={data} theme={theme} isPreview={isPreview} />
+      <VibrantTemplate data={data} theme={theme} isPreview={previewAllowed} />
       {widget}
     </OrderSections>
   );
   if (templateName === "retro") return (
     <OrderSections sections_order={data?.portfolio?.sections_order}>
-      <RetroTemplate data={data} theme={theme} isPreview={isPreview} />
+      <RetroTemplate data={data} theme={theme} isPreview={previewAllowed} />
       {widget}
     </OrderSections>
   );
   if (templateName === "immersive") return (
     <OrderSections sections_order={data?.portfolio?.sections_order}>
-      <ImmersiveTemplate data={data} theme={theme} isPreview={isPreview} />
+      <ImmersiveTemplate data={data} theme={theme} isPreview={previewAllowed} />
       {widget}
     </OrderSections>
   );
   if (templateName === "playful") return (
     <OrderSections sections_order={data?.portfolio?.sections_order}>
-      <PlayfulTemplate data={data} theme={theme} isPreview={isPreview} />
+      <PlayfulTemplate data={data} theme={theme} isPreview={previewAllowed} />
       {widget}
     </OrderSections>
   );
   if (templateName === "developer") return (
     <OrderSections sections_order={data?.portfolio?.sections_order}>
-      <DeveloperTemplate data={data} theme={theme} isPreview={isPreview} />
+      <DeveloperTemplate data={data} theme={theme} isPreview={previewAllowed} />
       {widget}
     </OrderSections>
   );
   if (templateName === "swiss") return (
     <OrderSections sections_order={data?.portfolio?.sections_order}>
-      <SwissTemplate data={data} theme={theme} isPreview={isPreview} />
+      <SwissTemplate data={data} theme={theme} isPreview={previewAllowed} />
       {widget}
     </OrderSections>
   );
   if (templateName === "white") return (
     <OrderSections sections_order={data?.portfolio?.sections_order}>
-      <WhiteTemplate data={data} theme={theme} isPreview={isPreview} />
+      <WhiteTemplate data={data} theme={theme} isPreview={previewAllowed} />
       {widget}
     </OrderSections>
   );
   if (templateName === "agency") return (
     <OrderSections sections_order={data?.portfolio?.sections_order}>
-      <AgencyTemplate data={data} theme={theme} isPreview={isPreview} />
+      <AgencyTemplate data={data} theme={theme} isPreview={previewAllowed} />
       {widget}
     </OrderSections>
   );
   if (templateName === "boldpersona") return (
     <OrderSections sections_order={data?.portfolio?.sections_order}>
-      <BoldPersonaTemplate data={data} theme={theme} isPreview={isPreview} />
+      <BoldPersonaTemplate data={data} theme={theme} isPreview={previewAllowed} />
       {widget}
     </OrderSections>
   );
   return (
     <OrderSections sections_order={data?.portfolio?.sections_order}>
-      <ModernTemplate data={data} theme={theme} isPreview={isPreview} />
+      <ModernTemplate data={data} theme={theme} isPreview={previewAllowed} />
       {widget}
     </OrderSections>
   );

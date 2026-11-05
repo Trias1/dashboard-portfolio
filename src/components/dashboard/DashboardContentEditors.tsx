@@ -71,7 +71,8 @@ export function AboutEditor({
   onChange: (value: EditFormData) => void;
   photoPreview: string;
   onPhotoChange: (event: React.ChangeEvent<HTMLInputElement>) => void;
-  setMessage: (message: string) => void;
+  /** status: "success" (green), "" (in progress, neutral) or "error" (default). */
+  setMessage: (message: string, status?: "success" | "error" | "") => void;
 }) {
   return (
     <div className="space-y-5">
@@ -153,7 +154,7 @@ export function AboutEditor({
                 { headers: { "Content-Type": "multipart/form-data" } },
               );
               onChange({ ...value, cv_url: response.data.cv_url });
-              setMessage("CV uploaded");
+              setMessage("CV uploaded", "success");
             } catch (error) {
               setMessage(getApiErrorMessage(error, "CV upload failed"));
             }

@@ -32,6 +32,11 @@ async function insertSession(db: Db, userId: number, familyId: string, userAgent
 /** Start a new session after a successful login; returns the refresh token to put in the cookie. */
 export async function startSession(userId: number, userAgent?: string | null): Promise<string> {
   const db = getSupabaseAdmin();
+  // Now and then drop sessions that expired over a day ago: their refresh JWTs are expired too, so the rows
+  // can no longer catch a replay. Revoked rows that haven't expired stay for replay detection.
+  if (Math.random() < 0.1) {
+    await db.from('auth_sessions').delete().lt('expires_at', new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString());
+  }
   const familyId = crypto.randomUUID();
   const { id, error } = await insertSession(db, userId, familyId, userAgent);
   if (error) {

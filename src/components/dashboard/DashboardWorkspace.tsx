@@ -161,6 +161,8 @@ export default function DashboardPage() {
   const [editForm, setEditForm] = useState<EditFormData>({});
   const [saving, setSaving] = useState(false);
   const [saveStatus, setSaveStatus] = useState<"success" | "error" | "">("");
+  // Messages from editors (uploads, deletes): an error unless they say otherwise, so a success isn't shown in red.
+  const editorMessage = (message: string, status: "success" | "error" | "" = "error") => { setSaveMsg(message); setSaveStatus(status); };
   const [saveMsg, setSaveMsg] = useState("");
   const [skillSearch, setSkillSearch] = useState("");
   const [skillSuggestions, setSkillSuggestions] = useState<string[]>([]);
@@ -452,14 +454,6 @@ export default function DashboardPage() {
 
   const handleDeleteSectionData = async (section: Section) => {
     const type = section.type.split("-")[0];
-    console.log(
-      "[DELETE] Calling API:",
-      `/api/portfolio/sections/${section.id}`,
-      {
-        portfolioId: portfolio?.id,
-        label: type === "custom" ? section.label : undefined,
-      },
-    );
     const res = await api.delete(`/api/portfolio/sections/${section.id}`, {
       data: {
         portfolioId: portfolio?.id,
@@ -469,7 +463,6 @@ export default function DashboardPage() {
         deleteData: true,
       },
     });
-    console.log("[DELETE] Response:", res.status, res.data);
     if (!res.data?.message) throw new Error("Could not delete the section");
     setSections((prev) => {
       const updated = prev.filter((s) => s.id !== section.id);
@@ -782,7 +775,7 @@ export default function DashboardPage() {
     if (!activeSection) return null;
     const type = activeSection.type.split("-")[0];
     const fields: Record<string, React.ReactElement> = {
-      about: <AboutEditor value={editForm} onChange={setEditForm} photoPreview={photoPreview} onPhotoChange={handlePhotoChange} setMessage={setSaveMsg} />,
+      about: <AboutEditor value={editForm} onChange={setEditForm} photoPreview={photoPreview} onPhotoChange={handlePhotoChange} setMessage={editorMessage} />,
       experience: <ExperienceEditor value={editForm} onChange={setEditForm} />,
       projects: <ProjectEditor value={editForm} onChange={setEditForm} />,
       services: <ServiceEditor value={editForm} onChange={setEditForm} />,
@@ -790,10 +783,10 @@ export default function DashboardPage() {
       hero: <HeroEditor value={editForm} onChange={setEditForm} />,
       contact: <ContactEditor value={editForm} onChange={setEditForm} />,
       skills: <SkillsEditor value={editForm} onChange={setEditForm} search={skillSearch} suggestions={skillSuggestions} onSearch={handleSkillSearch} onAdd={addSkill} onRemove={removeSkill} />,
-      gallery: <GalleryEditor value={editForm} onChange={setEditForm} setMessage={setSaveMsg} onRefresh={async () => { await fetchSectionData("gallery"); await loadPreview(); }} />,
+      gallery: <GalleryEditor value={editForm} onChange={setEditForm} setMessage={editorMessage} onRefresh={async () => { await fetchSectionData("gallery"); await loadPreview(); }} />,
       custom: <DashboardCustomEditor activeSection={activeSection} normalizeCustomTitle={normalizeCustomTitle} typedSectionMap={typedSectionMap} editForm={editForm} setEditForm={setEditForm} inputClass={inputClass} labelClass={labelClass} certSkillSearch={certSkillSearch} handleCertSkillSearch={handleCertSkillSearch} addCertSkill={addCertSkill} certSkillSuggestions={certSkillSuggestions} removeCertSkill={removeCertSkill} detectOgImage={detectOgImage} />,
     };
-    return <DashboardEditorPanel activeSection={activeSection} field={fields[type]} saveMsg={saveMsg} saveStatus={saveStatus} listData={listData} showAllItems={showAllItems} saving={saving} saveLabel="Save" savingLabel="Saving..." normalizeCustomTitle={normalizeCustomTitle} typedSectionMap={typedSectionMap} onClose={() => setActiveSection(null)} onSave={handleSave} onEditStored={(item) => setEditForm({ ...item, content: parseJsonSafe<CustomSectionContent>(item.content, {}) })} onDeleteStored={async (item) => { if (!confirm("Delete this item?")) return; try { await api.delete(`/api/${activeSection.type.split("-")[0]}/${item.id}`); setListData((previous) => previous.filter((entry) => entry.id !== item.id)); await loadPreview(); } catch { setSaveMsg("Failed to delete"); } }} onToggleItems={() => setShowAllItems(!showAllItems)} />;
+    return <DashboardEditorPanel activeSection={activeSection} field={fields[type]} saveMsg={saveMsg} saveStatus={saveStatus} listData={listData} showAllItems={showAllItems} saving={saving} saveLabel="Save" savingLabel="Saving..." normalizeCustomTitle={normalizeCustomTitle} typedSectionMap={typedSectionMap} onClose={() => setActiveSection(null)} onSave={handleSave} onEditStored={(item) => setEditForm({ ...item, content: parseJsonSafe<CustomSectionContent>(item.content, {}) })} onDeleteStored={async (item) => { if (!confirm("Delete this item?")) return; try { await api.delete(`/api/${activeSection.type.split("-")[0]}/${item.id}`); setListData((previous) => previous.filter((entry) => entry.id !== item.id)); await loadPreview(); } catch { editorMessage("Failed to delete"); } }} onToggleItems={() => setShowAllItems(!showAllItems)} />;
   };
 
   return (

@@ -10,7 +10,8 @@ const labelClass = "mb-1.5 block text-sm font-medium text-ink";
 interface GalleryEditorProps {
   value: EditFormData;
   onChange: (value: EditFormData) => void;
-  setMessage: (message: string) => void;
+  /** status: "success" (green), "" (in progress, neutral) or "error" (default). */
+  setMessage: (message: string, status?: "success" | "error" | "") => void;
   onRefresh: () => Promise<void> | void;
 }
 
@@ -83,16 +84,16 @@ export default function GalleryEditor({
             try {
               // PDFs get a picture of their first page so the certificate shows on the portfolio, not just a link.
               if (file.type === "application/pdf" || /\.pdf$/i.test(file.name)) {
-                setMessage("Making a preview of the PDF...");
+                setMessage("Making a preview of the PDF...", "");
                 const { pdfFirstPageToImage } = await import("@/lib/pdf-thumbnail");
                 const preview = await pdfFirstPageToImage(file);
                 if (preview) formData.append("preview", preview, preview.type === "image/webp" ? "preview.webp" : "preview.png");
               }
-              setMessage("Uploading...");
+              setMessage("Uploading...", "");
               await api.post("/api/gallery", formData, {
                 headers: { "Content-Type": "multipart/form-data" },
               });
-              setMessage("Certificate saved");
+              setMessage("Certificate saved", "success");
               onChange({});
               await onRefresh();
             } catch (error) {
@@ -121,7 +122,7 @@ export default function GalleryEditor({
             Upload file
           </label>
           <span className="text-xs text-ink-soft">
-            JPG, PNG, or PDF up to 10 MB.
+            Images up to 5 MB, PDF up to 10 MB.
           </span>
         </div>
         <p className="mt-1.5 text-xs text-ink-soft">

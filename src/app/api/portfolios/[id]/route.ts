@@ -2,6 +2,7 @@ import { NextRequest } from 'next/server';
 import { requireAuth } from '@/lib/auth';
 import { getSupabaseAdmin } from '@/lib/supabase/admin';
 import { errorResponse, successResponse } from '@/lib/utils';
+import { checkSlug } from '@/lib/slug';
 
 const authStatus = (err: unknown) => {
   const message = err instanceof Error ? err.message : '';
@@ -36,15 +37,17 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     const updates: Record<string, unknown> = { updated_at: new Date().toISOString() };
 
     // Slug update
-    if (body.slug) {
-      const cleanSlug = body.slug.toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
-      if (cleanSlug.length < 3) return errorResponse('Slug must be at least 3 characters', 400);
+    if (body.slug !== undefined) {
+      const checked = checkSlug(body.slug);
+      if ('error' in checked) return errorResponse(checked.error, 400);
+      const cleanSlug = checked.slug;
       const { data: existing } = await getSupabaseAdmin().from('portfolios').select('id').eq('slug', cleanSlug).neq('id', id).maybeSingle();
       if (existing) return errorResponse('That slug is already taken', 400);
       updates.slug = cleanSlug;
     }
     // Publish toggle
     if (body.publish !== undefined) {
+      if (typeof body.publish !== 'boolean') return errorResponse('Invalid publish value', 400);
       updates.is_published = body.publish;
     }
 

@@ -27,8 +27,9 @@ export const isBcryptHash = (hash: unknown): hash is string => typeof hash === '
  */
 export function tokenLifetime(raw: string | undefined, fallback: string): string {
   const v = (raw ?? '').trim().replace(/^["']+|["']+$/g, '').trim();
-  if (/^d+$/.test(v)) return `${v}s`;
-  return /^d+(?:.d+)?s*(?:s|sec|secs|seconds?|m|mins?|minutes?|h|hrs?|hours?|d|days?|w|weeks?|y|yrs?|years?)$/i.test(v) ? v : fallback;
+  if (/^\d+$/.test(v)) return `${v}s`;
+  // Same shape jose accepts: a number, at most one space, a unit
+  return /^\d+(?:\.\d+)? ?(?:s|sec|secs|seconds?|m|mins?|minutes?|h|hrs?|hours?|d|days?|w|weeks?|y|yrs?|years?)$/i.test(v) ? v : fallback;
 }
 
 export async function signAccessToken(payload: JWTPayload): Promise<string> {

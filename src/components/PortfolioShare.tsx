@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { readableOn } from '@/lib/contrast';
 
 export default function PortfolioShare({ title, accentColor }: { title: string; accentColor: string }) {
   const [showQr, setShowQr] = useState(false);
@@ -25,7 +26,7 @@ export default function PortfolioShare({ title, accentColor }: { title: string; 
           <img src={`https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=${encodeURIComponent(url)}`} alt={`QR code for ${title}`} width="160" height="160" />
         </div>
       ) : null}
-      <button type="button" onClick={() => void share()} className="rounded-full px-4 py-3 font-medium text-white shadow-xl" style={{ backgroundColor: accentColor }} aria-label="Share portfolio">
+      <button type="button" onClick={() => void share()} className="rounded-full px-4 py-3 font-medium shadow-xl" style={{ backgroundColor: accentColor, color: readableOn(accentColor) }} aria-label="Share portfolio">
         {copied ? 'Copied' : 'Share'}
       </button>
       <button type="button" onClick={() => setShowQr((visible) => !visible)} className="rounded-full bg-white px-4 py-3 font-medium text-gray-900 shadow-xl" aria-expanded={showQr} aria-label="Show portfolio QR code">

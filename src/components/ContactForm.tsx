@@ -1,16 +1,7 @@
 'use client';
 import { useId, useState } from 'react';
 import api, { getApiErrorMessage } from '@/lib/api';
-
-// Black or white, whichever reads better on the given hex colour (WCAG relative luminance).
-function readableOn(hex: string): string {
-  const m = /^#?([0-9a-f]{6})$/i.exec(hex.trim());
-  if (!m) return '#ffffff';
-  const n = parseInt(m[1], 16);
-  const lin = (c: number) => { const s = c / 255; return s <= 0.03928 ? s / 12.92 : ((s + 0.055) / 1.055) ** 2.4; };
-  const L = 0.2126 * lin((n >> 16) & 255) + 0.7152 * lin((n >> 8) & 255) + 0.0722 * lin(n & 255);
-  return (1.05) / (L + 0.05) >= (L + 0.05) / 0.05 ? '#ffffff' : '#111111';
-}
+import { readableOn } from '@/lib/contrast';
 
 export default function ContactForm({ slug, accentColor, textColor = '#f1f5f9', subColor = '#94a3b8', align = 'center' }: {
   slug: string;
@@ -24,6 +15,8 @@ export default function ContactForm({ slug, accentColor, textColor = '#f1f5f9', 
   const [status, setStatus] = useState<'idle' | 'sending' | 'sent' | 'error'>('idle');
   const [errorMsg, setErrorMsg] = useState('');
   const uid = useId();
+  // Light text means a dark background: there #dc2626 only reaches ~3.8:1, so use a lighter red (both ≥ 4.5:1)
+  const errorColor = readableOn(textColor) === '#111111' ? '#f87171' : '#b91c1c';
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -74,7 +67,7 @@ export default function ContactForm({ slug, accentColor, textColor = '#f1f5f9', 
           style={{ backgroundColor: accentColor, color: readableOn(accentColor), outlineColor: accentColor }}>
           {status === 'sending' ? 'Sending…' : 'Send message'}
         </button>
-        <span role="status" aria-live="polite" className="text-sm" style={{ color: status === 'error' ? '#dc2626' : subColor }}>
+        <span role="status" aria-live="polite" className="text-sm" style={{ color: status === 'error' ? errorColor : subColor }}>
           {status === 'sent' && 'Thanks — your message was sent.'}
           {status === 'error' && errorMsg}
         </span>
