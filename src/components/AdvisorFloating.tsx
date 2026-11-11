@@ -1,5 +1,6 @@
 'use client';
 import { useState, useRef, useEffect } from 'react';
+import { readableOn } from '@/lib/contrast';
 import MessageText, { ElapsedSeconds } from '@/components/MessageText';
 
 interface Message {
@@ -12,15 +13,6 @@ interface Message {
 const SERVER_FAILURE = /^sorry, something went wrong\.?$/i;
 const AI_UNAVAILABLE = "Advisor can't answer right now: the AI service isn't set up or is unavailable.";
 
-/** Black or white text, whichever reads better on the accent. */
-function textOn(hex: string) {
-  const m = hex.replace('#', '').match(/^([0-9a-f]{6}|[0-9a-f]{3})$/i);
-  if (!m) return '#fff';
-  const full = m[1].length === 3 ? m[1].split('').map((c) => c + c).join('') : m[1];
-  const [r, g, b] = [0, 2, 4].map((i) => parseInt(full.slice(i, i + 2), 16) / 255)
-    .map((c) => (c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4));
-  return 0.2126 * r + 0.7152 * g + 0.0722 * b > 0.4 ? '#141414' : '#fff';
-}
 
 function ChatGlyph({ className }: { className?: string }) {
   return (
@@ -45,7 +37,7 @@ export default function AdvisorFloating({ accentColor }: { accentColor: string }
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const ac = accentColor || '#1f45c9';
-  const onAc = textOn(ac);
+  const onAc = readableOn(ac);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
@@ -126,7 +118,7 @@ export default function AdvisorFloating({ accentColor }: { accentColor: string }
   const last = messages[messages.length - 1];
 
   return (
-    <div className="fixed inset-x-3 bottom-3 z-[999] flex flex-col items-end gap-3 font-sans sm:inset-x-auto sm:bottom-6 sm:right-6">
+    <div className="pointer-events-none fixed inset-x-3 bottom-3 z-[999] flex flex-col items-end gap-3 font-sans sm:inset-x-auto sm:bottom-6 sm:right-6 [&>*]:pointer-events-auto">
       {open && (
         <div role="dialog" aria-label="Portfolio Advisor"
           className="flex h-[min(480px,calc(100dvh-6rem))] w-full flex-col overflow-hidden rounded-lg border border-[#dcdcd5] bg-white text-[#141414] shadow-[0_8px_24px_rgba(0,0,0,0.12)] sm:w-96">
@@ -149,7 +141,7 @@ export default function AdvisorFloating({ accentColor }: { accentColor: string }
             </button>
           </div>
 
-          <div className="flex-1 space-y-3 overflow-y-auto p-4" aria-live="polite">
+          <div className="flex-1 space-y-3 overflow-y-auto p-4" aria-live="polite" aria-busy={loading}>
             {messages.map((msg, i) => {
               if (msg.role === 'assistant' && !msg.content) return null;
               if (msg.role === 'user') {
@@ -183,7 +175,7 @@ export default function AdvisorFloating({ accentColor }: { accentColor: string }
             <input id="advisor-floating-input" ref={inputRef} value={input}
               onChange={e => setInput(e.target.value)}
               placeholder="Ask a question…"
-              disabled={loading}
+              readOnly={loading}
               className="min-w-0 flex-1 rounded-md border border-[#dcdcd5] bg-white px-3 py-2 text-sm text-[#141414] placeholder:text-[#9a9aa0] outline-none transition-colors focus:border-[#141414] disabled:opacity-60"
             />
             <button type="submit" disabled={loading || !input.trim()}

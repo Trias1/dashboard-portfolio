@@ -30,14 +30,15 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
 
     // Delete from section data table
     if (baseType === 'custom') {
-      // One custom section = the rows titled with its label. Without a label this used to match every
-      // custom section the user has, and ilike treated % and _ in the label as wildcards.
-      const label = typeof body.label === 'string' ? body.label.trim() : '';
+      // One custom section = the rows titled with its label, matched here in code, exactly (ignoring case and
+      // surrounding spaces). A LIKE pattern built from the label treated %, _ and * as wildcards, and without
+      // a label it matched every custom section the user has.
+      const label = typeof body.label === 'string' ? body.label.trim().toLowerCase() : '';
       if (!label) return errorResponse('Missing section label', 400);
-      const pattern = label.replace(/[\\%_]/g, (c: string) => `\\${c}`);
-      const { data: toDelete, error: selectError } = await getSupabaseAdmin().from('custom_sections').select('id').eq('owner_id', userId).ilike('title', pattern);
+      const { data: rows, error: selectError } = await getSupabaseAdmin().from('custom_sections').select('id, title').eq('owner_id', userId);
       if (selectError) throw selectError;
-      if (toDelete && toDelete.length > 0) {
+      const toDelete = (rows || []).filter((row: IdRow & { title?: string | null }) => (row.title || '').trim().toLowerCase() === label);
+      if (toDelete.length > 0) {
         const ids = toDelete.map((r: IdRow) => r.id);
         const { error: delError } = await getSupabaseAdmin().from('custom_sections').delete().in('id', ids).eq('owner_id', userId);
         if (delError) throw delError;

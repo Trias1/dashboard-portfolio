@@ -4,6 +4,7 @@ import { getAuthUser } from '@/lib/auth';
 import { checkRateLimit, getClientId } from '@/lib/rate-limit';
 import { errorResponse, successResponse, getErrorMessage } from '@/lib/utils';
 import type { CustomSectionContent, CustomSectionOutput, CustomSectionRow, SectionOrderEntry } from '@/types/api';
+import { projectImage } from '@/lib/project-screenshot';
 
 export const dynamic = 'force-dynamic';
 
@@ -111,10 +112,12 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       }
     };
     const sectionsConfig = parseSectionsOrder(portfolio.sections_order);
+    // Optional sections the owner has to add themselves: not in their saved list means not shown
+    const OPT_IN = new Set(['services', 'gallery', 'testimonials']);
     const isEnabled = (type: string) => {
-      if (!Array.isArray(sectionsConfig) || !sectionsConfig.length) return true;
+      if (!Array.isArray(sectionsConfig) || !sectionsConfig.length) return !OPT_IN.has(type);
       const section = sectionsConfig.find((s) => s.type?.split('-')[0] === type);
-      return section ? section.enabled !== false : true;
+      return section ? section.enabled !== false : !OPT_IN.has(type);
     };
     // Custom sections are toggled one by one: each entry's label matches the title of its rows. Checking
     // the type alone found the first custom entry (Education by default), so hiding it hid them all.
@@ -199,7 +202,8 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       hero: isEnabled('hero') ? (hero.data || null) : null,
       about: isEnabled('about') ? (about.data || null) : null,
       experience: isEnabled('experience') ? (experience.data || []) : [],
-      projects: isEnabled('projects') ? (projects.data || []) : [],
+      // A project without its own image shows a live screenshot of its demo site
+      projects: isEnabled('projects') ? (projects.data || []).map((project) => ({ ...project, image_url: projectImage(project) })) : [],
       services: isEnabled('services') ? (services.data || []) : [],
       contact: isEnabled('contact') ? (contact.data || null) : null,
       skills: isEnabled('skills') ? (skills.data || []) : [],

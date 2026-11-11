@@ -57,6 +57,12 @@ export async function PUT(request: NextRequest) {
       }
     }
 
+    // Checked before anything is written, so a 429 never leaves a half-applied change behind
+    if (emailChanged) {
+      const rl = await checkRateLimit(`email-change:${auth.id}`, 'otp');
+      if (!rl.allowed) return errorResponse('Too many email change requests. Please try again later.', 429);
+    }
+
     let data: { id: number; name: string; email: string; role: UserRole; photo_url: string | null } | null = null;
     if (Object.keys(updates).length) {
       const res = await supabase.from('users').update(updates).eq('id', auth.id).select('id, name, email, role, photo_url').single();
@@ -69,11 +75,17 @@ export async function PUT(request: NextRequest) {
     }
     if (!data) return errorResponse('Unable to update profile', 500);
 
+    // New password: sign out every other device, keep this one logged in with a fresh session. Done right
+    // after the write and before the email step, so a mail failure below can't skip it.
+    if (updates.password) {
+      await revokeAllSessions(auth.id);
+      const accessToken = await signAccessToken({ id: data.id, email: data.email, role: data.role });
+      await setAuthCookies(accessToken, await startSession(data.id, request.headers.get('user-agent')));
+    }
+
     // New login email: mail a confirmation link to the new address and a heads-up to the current one.
     let pendingEmail: string | null = null;
     if (emailChanged) {
-      const rl = await checkRateLimit(`email-change:${auth.id}`, 'otp');
-      if (!rl.allowed) return errorResponse('Too many email change requests. Please try again later.', 429);
       try {
         // Same answer whether or not another account has that address, so this can't be used to look up users;
         // no link is sent in that case (the confirm page would refuse it anyway).
@@ -86,16 +98,12 @@ export async function PUT(request: NextRequest) {
         pendingEmail = newEmail;
       } catch (err) {
         console.error('[profile] email change mail failed', err instanceof Error ? err.message : err);
-        return errorResponse("We couldn't send the confirmation email. Please try again.", 502);
+        return errorResponse(updates.password || Object.keys(updates).length
+          ? "Your other changes were saved, but we couldn't send the confirmation email for the new address. Try the email change again."
+          : "We couldn't send the confirmation email. Please try again.", 502);
       }
     }
 
-    // New password: sign out every other device, keep this one logged in with a fresh session.
-    if (updates.password) {
-      await revokeAllSessions(auth.id);
-      const accessToken = await signAccessToken({ id: data.id, email: data.email, role: data.role });
-      await setAuthCookies(accessToken, await startSession(data.id, request.headers.get('user-agent')));
-    }
     return successResponse({ ...data, pendingEmail });
   } catch (err) {
     return getErrorMessage(err) === 'Unauthorized' ? errorResponse('Unauthorized', 401) : errorResponse('Unable to update profile', 500);

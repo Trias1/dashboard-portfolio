@@ -13,6 +13,7 @@ export async function GET(request: NextRequest) {
       .limit(10);
     return successResponse(data || []);
   } catch (err) {
-    return errorResponse(getErrorMessage(err), getErrorMessage(err) === 'Forbidden' ? 403 : 401);
+    // Default path maps Unauthorized/Forbidden to 401/403 and hides other errors behind a 500
+    return errorResponse(getErrorMessage(err));
   }
 }

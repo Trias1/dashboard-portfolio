@@ -51,7 +51,11 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
       updates.is_published = body.publish;
     }
 
-    const { data } = await getSupabaseAdmin().from('portfolios').update(updates).eq('id', id).eq('owner_id', auth.id).select().single();
+    const { data, error } = await getSupabaseAdmin().from('portfolios').update(updates).eq('id', id).eq('owner_id', auth.id).select().maybeSingle();
+    // 23505: someone took the slug between the check above and this write
+    if (error?.code === '23505') return errorResponse('That slug is already taken', 400);
+    if (error) return errorResponse('Could not update the portfolio', 500);
+    if (!data) return errorResponse('Portfolio not found', 404);
     return successResponse(data);
   } catch (err) { return errorResponse(err instanceof Error ? err.message : 'Request failed', authStatus(err)); }
 }

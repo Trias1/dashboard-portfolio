@@ -15,6 +15,12 @@ const getRefreshSecret = () => new TextEncoder().encode(readSecret('JWT_REFRESH_
 
 export const MIN_PASSWORD_LENGTH = 8;
 export const BCRYPT_COST = 12;
+/**
+ * Compared against when an email has no account, so the answer takes as long as a real check. It must use
+ * BCRYPT_COST: a cheaper dummy (it was cost 10) answers ~4x faster and gives away which emails exist.
+ * A hash of a random string that was thrown away; it matches nothing.
+ */
+export const DUMMY_PASSWORD_HASH = '$2b$12$DSg.4W4aLsNPmD9EPA6n2.xcSnM/a7.uCECut6JmKQZpJK5fjsrRC';
 /** One-time tokens (email verification, password reset) are stored hashed, so a leaked table can't be used to reset accounts. */
 export const hashToken = (token: string) => crypto.createHash('sha256').update(token).digest('hex');
 export const normalizeEmail = (email: unknown) => (typeof email === 'string' ? email.trim().toLowerCase() : '');

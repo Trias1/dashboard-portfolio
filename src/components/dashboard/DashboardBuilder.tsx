@@ -9,6 +9,8 @@ import SortableSection from "@/components/builder/SortableSection";
 import { Section } from "@/lib/sections";
 
 interface DashboardBuilderProps {
+  /** The saved layout hasn't arrived yet. */
+  loading?: boolean;
   sections: Section[];
   activeSection: Section | null;
   sensors: ReturnType<typeof useSensors>;
@@ -22,6 +24,7 @@ interface DashboardBuilderProps {
 }
 
 export default function DashboardBuilder({
+  loading = false,
   sections,
   activeSection,
   sensors,
@@ -43,13 +46,13 @@ export default function DashboardBuilder({
               Page sections
             </h3>
             <p className="font-mono text-[11px] text-ink-soft">
-              {visibleCount}/{sections.length} shown
+              {loading ? "Loading…" : `${visibleCount}/${sections.length} shown`}
             </p>
           </div>
           <button
             type="button"
             onClick={() => setShowAddSection(true)}
-            className="inline-flex shrink-0 items-center gap-1 rounded-md border border-rule bg-white px-2 py-1 text-xs font-medium text-ink transition-colors hover:border-ink-soft focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink/15"
+            className="inline-flex shrink-0 items-center gap-1 rounded-md border border-rule bg-white px-2 py-1 text-xs font-medium text-ink transition-colors hover:border-ink-soft focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
           >
             <svg aria-hidden="true" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" className="h-3 w-3">
               <path d="M8 3v10 M3 8h10" />
@@ -58,6 +61,9 @@ export default function DashboardBuilder({
           </button>
         </div>
         <div className="flex-1 overflow-y-auto">
+          {loading ? (
+            <p className="px-3 py-4 text-sm text-ink-soft" role="status">Loading sections…</p>
+          ) : (
           <DndContext
             id="dashboard-dnd"
             sensors={sensors}
@@ -82,6 +88,7 @@ export default function DashboardBuilder({
               </div>
             </SortableContext>
           </DndContext>
+          )}
         </div>
         <p className="border-t border-rule px-3 py-2 text-xs text-ink-soft">
           Drag the handle on the left to reorder.

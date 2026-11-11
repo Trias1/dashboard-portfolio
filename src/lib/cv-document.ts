@@ -136,14 +136,14 @@ function css(t: CvTemplate) {
 .cv-doc{all:initial;display:block;box-sizing:border-box;width:100%;max-width:182mm;margin:0 auto;background:#fff;color:#111;font-family:${font};font-size:10pt;line-height:1.45;-webkit-print-color-adjust:exact;print-color-adjust:exact}
 .cv-doc *{box-sizing:border-box;margin:0;padding:0;border:0;font:inherit;color:inherit;text-decoration:none;list-style:none}
 .cv-doc .cv-header{${exec ? 'text-align:center;' : ''}padding-bottom:${exec ? '10pt' : '8pt'};margin-bottom:4pt;border-bottom:${exec ? `0.75pt solid #222` : `1.5pt solid ${accent}`}}
-.cv-doc .cv-name{font-family:${headFont};font-size:${exec ? '24pt' : '22pt'};font-weight:${exec ? '400' : '700'};line-height:1.1;letter-spacing:${exec ? '0.06em' : '-0.01em'};${exec ? 'text-transform:uppercase;' : ''}color:#111}
+.cv-doc .cv-name{font-family:${headFont};font-size:${exec ? '24pt' : '22pt'};font-weight:${exec ? '400' : '700'};line-height:1.1;letter-spacing:${exec ? '0' : '-0.01em'};${exec ? 'text-transform:uppercase;' : ''}color:#111}
 .cv-doc .cv-role{margin-top:3pt;font-size:11.5pt;color:${exec ? '#444' : accent};${exec ? 'font-style:italic;' : ''}}
 .cv-doc .cv-contact{margin-top:5pt;font-size:9pt;color:#333}
 .cv-doc .cv-contact a{color:inherit;text-decoration:none}
 .cv-doc .cv-contact span+span::before{content:"  |  ";white-space:pre;color:#999}
 .cv-doc .cv-summary{margin-top:10pt;font-size:10pt;color:#222;white-space:pre-line;${exec ? 'text-align:center;font-style:italic;' : ''}}
 .cv-doc .cv-section{margin-top:12pt}
-.cv-doc .cv-h2{font-family:${headFont};font-size:9.5pt;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;color:${exec ? '#111' : accent};padding-bottom:3pt;margin-bottom:6pt;border-bottom:0.75pt solid ${exec ? '#999' : '#c9c9c9'}}
+.cv-doc .cv-h2{font-family:${headFont};font-size:9.5pt;font-weight:700;letter-spacing:0;text-transform:uppercase;color:${exec ? '#111' : accent};padding-bottom:3pt;margin-bottom:6pt;border-bottom:0.75pt solid ${exec ? '#999' : '#c9c9c9'}}
 .cv-doc .cv-keep,.cv-doc .cv-entry{page-break-inside:avoid;break-inside:avoid}
 /* margin on every entry (not sibling selectors): html2pdf inserts spacer divs before entries, which would break "+" rules */
 .cv-doc .cv-entry{margin-top:8pt}
@@ -165,11 +165,19 @@ function css(t: CvTemplate) {
 .cv-doc .cv-skill b{font-weight:700}
 .cv-doc .cv-text,.cv-doc .cv-li,.cv-doc .cv-meta,.cv-doc .cv-contact{overflow-wrap:anywhere}
 ${t === 'ats' ? '.cv-doc.cv-ats .cv-date{display:block;margin-top:1pt;color:#333}.cv-doc.cv-ats .cv-h2{color:#111;border-bottom-color:#111}.cv-doc.cv-ats .cv-header{border-bottom:0.75pt solid #111}.cv-doc.cv-ats .cv-role{color:#111}.cv-doc.cv-ats .cv-dot{color:#111}' : ''}
-@page{size:A4;margin:16mm 14mm}
+/* No letter-spacing on text: PDF text extraction (and so ATS parsers) reads widely spaced letters as separate
+   words ("S U M M A R Y"), so headings would not be recognised. Uppercase alone is safe. */
+/* Zero page margin: Chrome prints its date/title/URL/page-number header and footer inside the page margin
+   (the URL read about:blank, from the print window), so with no margin there is nowhere to put them. The
+   16mm top/bottom margin comes back on every page from the repeated thead/tfoot spacers of .cv-page. */
+@page{size:A4;margin:0}
+.cv-page{width:100%;border-collapse:collapse}
+.cv-page td{padding:0}
+.cv-page-space{display:none}
 html.cv-standalone{background:#ecebe7}
 html.cv-standalone body{margin:0;padding:24px 0}
 html.cv-standalone .cv-doc{max-width:210mm;min-height:297mm;padding:16mm 14mm;box-shadow:0 1px 3px rgba(0,0,0,.15)}
-@media print{html.cv-standalone{background:#fff}html.cv-standalone body{padding:0}html.cv-standalone .cv-doc{max-width:none;min-height:0;padding:0;box-shadow:none}}
+@media print{html.cv-standalone{background:#fff}html.cv-standalone body{padding:0}html.cv-standalone .cv-doc{max-width:none;min-height:0;padding:0 14mm;box-shadow:none}.cv-page-space{display:block;height:16mm}}
 `;
 }
 
@@ -312,11 +320,17 @@ export function buildCvHtml(data: CvSourceData, template: string, language?: str
 <title>${esc(name)} - CV</title>
 </head>
 <body>
+<table class="cv-page" role="presentation">
+<thead><tr><td><div class="cv-page-space"></div></td></tr></thead>
+<tbody><tr><td>
 <div class="cv-doc cv-${t}">
 <style>${css(t)}</style>
 ${header}
 ${body}
 </div>
+</td></tr></tbody>
+<tfoot><tr><td><div class="cv-page-space"></div></td></tr></tfoot>
+</table>
 </body>
 </html>`;
   return { html, name };

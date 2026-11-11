@@ -29,6 +29,8 @@ export const SECTION_ORDER: string[] = [
   'services', 'gallery', 'testimonials', 'contact',
 ];
 
+// Services, Gallery and Testimonials are not in the starting list (they sat there switched off and unused);
+// they stay available under "+ Add" (availableSections).
 export const defaultSections: Section[] = [
   { id: 'hero', type: 'hero', label: 'Hero', icon: 'H', enabled: true },
   { id: 'about', type: 'about', label: 'About', icon: 'A', enabled: true },
@@ -41,9 +43,6 @@ export const defaultSections: Section[] = [
   { id: 'custom-languages', type: 'custom', label: 'Languages', icon: 'LG', enabled: true, deletable: true },
   { id: 'custom-awards', type: 'custom', label: 'Awards', icon: 'AW', enabled: true, deletable: true },
   { id: 'custom-organizations', type: 'custom', label: 'Organizations', icon: 'OR', enabled: true, deletable: true },
-  { id: 'services-1', type: 'services', label: 'Services', icon: 'SV', enabled: false, deletable: true },
-  { id: 'gallery-1', type: 'gallery', label: 'Gallery', icon: 'G', enabled: false, deletable: true },
-  { id: 'testimonials-1', type: 'testimonials', label: 'Testimonials', icon: 'T', enabled: false, deletable: true },
   { id: 'contact', type: 'contact', label: 'Contact', icon: 'C', enabled: true, deletable: true },
 ];
 

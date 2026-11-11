@@ -3,6 +3,17 @@
 import { Section } from "@/lib/sections";
 import type { CustomSectionContent, StoredSectionItem } from "@/types";
 
+/** Stored row content as an object. Older rows can hold plain text (or "undefined"), which JSON.parse would throw on and take the whole dashboard down. */
+function readContent(value: unknown): CustomSectionContent {
+  if (typeof value !== "string") return (value as CustomSectionContent) || {};
+  try {
+    const parsed: unknown = JSON.parse(value);
+    return parsed && typeof parsed === "object" ? (parsed as CustomSectionContent) : {};
+  } catch {
+    return value === "undefined" || value === "null" ? {} : { body: value };
+  }
+}
+
 interface Props {
   activeSection: Section | null;
   field: React.ReactNode;
@@ -101,10 +112,7 @@ export default function DashboardEditorPanel({
           </h3>
           <ul className="divide-y divide-rule border-y border-rule">
             {visibleItems.map((item) => {
-              const content: CustomSectionContent =
-                typeof item.content === "string"
-                  ? JSON.parse(item.content)
-                  : item.content || {};
+              const content = readContent(item.content);
               // Custom sections keep their fields in `content`; regular sections (experience,
               // projects, skills, ...) keep them on the row itself.
               const title =

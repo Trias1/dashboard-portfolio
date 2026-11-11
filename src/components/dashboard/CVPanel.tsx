@@ -195,7 +195,7 @@ export default function CVPanel({ portfolio, setSections, loadPreview }: Props) 
                 {busy === 'print' ? 'Opening…' : 'Open print version'}
               </button>
             </div>
-            <p className="text-[12px] text-ink-soft">&ldquo;Download PDF&rdquo; opens the print dialog: choose <b className="font-medium text-ink">Save as PDF</b> as the destination. The PDF keeps real text, so applicant tracking systems can read it. Turn off &ldquo;Headers and footers&rdquo; in the print dialog so no date or URL is printed in the margins.</p>
+            <p className="text-[12px] text-ink-soft">&ldquo;Download PDF&rdquo; opens the print dialog: choose <b className="font-medium text-ink">Save as PDF</b> as the destination. The PDF keeps real text, so applicant tracking systems can read it. If nothing opens, allow pop-ups for this site in your browser.</p>
           </div>
         </section>
       </div>

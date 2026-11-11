@@ -429,7 +429,7 @@ export default function AdvisorWidget({ inline = false }: { inline?: boolean }) 
       </header>
 
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto" aria-live="polite">
+      <div className="flex-1 overflow-y-auto" aria-live="polite" aria-busy={loading}>
         <div className="mx-auto max-w-3xl space-y-5 px-5 py-6 sm:px-8">
           {messages.map((msg, i) => {
             if (msg.role === 'assistant' && !msg.content && loading && i === messages.length - 1) return null;
@@ -483,7 +483,7 @@ export default function AdvisorWidget({ inline = false }: { inline?: boolean }) 
             <input id="advisor-input" ref={inputRef} value={input}
               onChange={e => setInput(e.target.value)}
               placeholder={'e.g. "What\'s missing from my portfolio?"'}
-              disabled={loading}
+              readOnly={loading}
               className="min-w-0 flex-1 rounded-md border border-rule bg-white px-3 py-2 text-sm text-ink placeholder:text-[#9a9aa0] outline-none transition-colors focus:border-ink focus:ring-2 focus:ring-ink/10 disabled:opacity-60"
             />
             <button type="submit" disabled={loading || !input.trim()}

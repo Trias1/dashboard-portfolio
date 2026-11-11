@@ -240,10 +240,11 @@ export default function PlayfulTemplate({ data, theme, isPreview }: { data: Temp
     <div className="min-h-screen overflow-x-hidden font-sans antialiased" style={{ backgroundColor: bg, color: ink }}>
       <header className="sticky top-0 z-40 border-b-2" style={{ backgroundColor: bg, borderColor: p.edge }}>
         <div className="mx-auto flex max-w-5xl items-center justify-between gap-4 px-5 py-3">
-          <a href="#hero" className="truncate text-xl font-extrabold tracking-tight" style={{ color: ink, fontFamily: ROUNDED }}>{firstName}</a>
-          <nav aria-label="Sections" className="flex gap-1 sm:gap-2">
+          <a href="#hero" className="min-w-0 max-w-[40%] shrink-0 truncate text-xl font-extrabold tracking-tight" style={{ color: ink, fontFamily: ROUNDED }}>{firstName}</a>
+          {/* Phones: the links scroll sideways instead of being hidden, so every section (Contact too) stays reachable */}
+          <nav aria-label="Sections" className="flex min-w-0 gap-1 overflow-x-auto [scrollbar-width:none] sm:gap-2">
             {nav.map(([id, label]) => (
-              <a key={id} href={`#${id}`} className="rounded-lg px-2 py-1 text-sm font-bold transition-colors duration-150 hover:underline decoration-2 underline-offset-4 max-sm:[&:nth-child(n+3)]:hidden"
+              <a key={id} href={`#${id}`} className="shrink-0 whitespace-nowrap rounded-lg px-2 py-2 text-sm font-bold transition-colors duration-150 hover:underline decoration-2 underline-offset-4"
                 style={{ color: ink, fontFamily: ROUNDED }}>{label}</a>
             ))}
           </nav>
@@ -361,7 +362,7 @@ export default function PlayfulTemplate({ data, theme, isPreview }: { data: Temp
                     )}
                     {(proj.demo_url || proj.github_url) && (
                       <div className="mt-auto flex flex-wrap gap-3 pt-6">
-                        {proj.demo_url && <PushButton href={proj.demo_url} s={S0} p={p} external>Try it</PushButton>}
+                        {proj.demo_url && <PushButton href={proj.demo_url} s={S0} p={p} external>Demo</PushButton>}
                         {proj.github_url && <PushButton href={proj.github_url} s={{ fill: card, text: ink }} p={p} external>Code</PushButton>}
                       </div>
                     )}

@@ -1,7 +1,9 @@
 import { NextRequest } from 'next/server';
 import { requireAuth } from '@/lib/auth';
 import { getSupabaseAdmin } from '@/lib/supabase/admin';
-import { errorResponse, successResponse, getErrorMessage } from '@/lib/utils';
+import { errorResponse, successResponse, getErrorMessage, readJsonBody } from '@/lib/utils';
+import { checkRateLimit } from '@/lib/rate-limit';
+import { checkCustomContent, checkSectionBody } from '@/lib/validate';
 import type { CvApplyBody } from '@/types/api';
 import { safeLinkUrl } from '@/lib/upload-validation';
 
@@ -73,7 +75,11 @@ function customSignature(type: string, title: string, content: Record<string, un
 export async function POST(request: NextRequest) {
   try {
     const auth = await requireAuth(request);
-    const body: CvApplyBody = await request.json();
+    const rl = await checkRateLimit(`cv-apply:${auth.id}`, 'upload');
+    if (!rl.allowed) return errorResponse('Too many imports. Please try again later.', 429);
+    const raw = await readJsonBody(request);
+    if (!raw) return errorResponse('Invalid request body', 400);
+    const body = raw as CvApplyBody;
     const userId = auth.id;
     const db = getSupabaseAdmin();
     const replace = body.replace === true; // default false (merge)
@@ -96,6 +102,11 @@ export async function POST(request: NextRequest) {
     const about = body.about || {};
     const hero = body.hero || {};
     const contact = (body.contact || {}) as NonNullable<CvApplyBody['contact']> & { linkedin?: string; website?: string };
+    // Same length limits as the section routes (these fields skipped every check before)
+    for (const [label, part] of [['about', about], ['hero', hero], ['contact', contact]] as const) {
+      const invalid = checkSectionBody(part, {});
+      if (invalid) return errorResponse(`${label}: ${invalid}`, 400);
+    }
 
     // -- About --
     if (about.name || about.title || about.bio) {
@@ -123,7 +134,7 @@ export async function POST(request: NextRequest) {
     // -- Contact (linkedin/github were parsed but never saved before) --
     const website = clean(contact.website);
     const contactData: Record<string, string> = {};
-    if (contact.email) contactData.email = contact.email;
+    if (contact.email && /^[^s@]+@[^s@]+.[^s@]{2,}$/.test(String(contact.email).trim())) contactData.email = String(contact.email).trim();
     if (contact.phone) contactData.phone = contact.phone;
     if (contact.location) contactData.location = contact.location;
     const linkedinUrl = contact.linkedin ? safeLinkUrl(contact.linkedin) : '';
@@ -270,10 +281,17 @@ export async function POST(request: NextRequest) {
       const seen = new Set(keep.map((r) => customSignature(r.type || 'text', r.title || '', parseContent(r.content))));
       const rows = [];
       for (const cs of allCustom) {
-        const sig = customSignature(cs.type, cs.title, cs.content);
+        // Same content checks as the custom-section routes: web links only, size capped
+        const checked = checkCustomContent(cs.type, cs.content);
+        if ('error' in checked) {
+          if (!failed.includes('custom sections')) failed.push('custom sections');
+          continue;
+        }
+        const title = String(cs.title).trim().slice(0, 200);
+        const sig = customSignature(cs.type, title, checked.content);
         if (seen.has(sig)) continue;
         seen.add(sig);
-        rows.push({ title: cs.title, type: cs.type, content: JSON.stringify(cs.content), owner_id: userId });
+        rows.push({ title, type: cs.type, content: JSON.stringify(checked.content), owner_id: userId });
       }
       if (rows.length && await run('custom sections', db.from('custom_sections').insert(rows))) customInserted = rows.length;
     }

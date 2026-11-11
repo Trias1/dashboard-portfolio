@@ -1,5 +1,5 @@
 "use client";
-import React, { useCallback, useEffect, useState, useSyncExternalStore } from "react";
+import React, { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { useRouter } from "next/navigation";
 import {
   KeyboardSensor,
@@ -92,6 +92,15 @@ function parseSectionsOrder(value: unknown): Section[] {
   }
 }
 
+/** Id for a section the user adds (outside the component: it is only called from the add handler). */
+const newSectionId = (type: string) => `${type}-${Date.now()}`;
+
+/** Optional sections: only shown when the user adds them (see pruneUnusedOptional). */
+const OPT_IN_SECTION_TYPES: string[] = ["services", "gallery", "testimonials"];
+
+/** Sections that hold a list of rows (the editor either adds a row or edits one). */
+const LIST_SECTION_TYPES = ["experience", "projects", "services", "testimonials", "skills", "gallery"];
+
 function parseJsonSafe<T = unknown>(value: unknown, fallback: T): T {
   if (typeof value !== "string") return (value ?? fallback) as T;
   try {
@@ -157,7 +166,7 @@ export default function DashboardPage() {
     }
   }
   const { logout: handleLogout, updateProfile: handleUpdateProfile } = useDashboardProfileActions({ user, profileForm, setUser, setProfileForm, setProfileMsg, setProfileError, router });
-  const { visits, setVisits, dateFrom, setDateFrom, dateTo, setDateTo, fetchVisits } = useDashboardAnalytics();
+  const { visits, setVisits, dateFrom, setDateFrom, dateTo, setDateTo, fetchVisits, visitsLoading, visitsError } = useDashboardAnalytics();
   const { githubUsername, setGithubUsername, githubPreview, setGithubPreview, githubLoading, setGithubLoading, githubImporting, setGithubImporting, githubMsg, setGithubMsg, githubOptions, setGithubOptions, selectedProjects, setSelectedProjects } = useDashboardGitHubImport();
 
   const [editForm, setEditForm] = useState<EditFormData>({});
@@ -169,8 +178,35 @@ export default function DashboardPage() {
   const [dirty, setDirty] = useState(false);
   const editField: React.Dispatch<React.SetStateAction<EditFormData>> = (value) => { setEditForm(value); setDirty(true); };
   const confirmDiscard = () => !dirty || window.confirm("You have unsaved changes. Discard them?");
+  // Leaving an editor drops its unsaved state, including a picked but unsaved About photo.
+  const resetEditor = () => { setDirty(false); setPhotoFile(null); setPhotoPreview(""); setSaveMsg(""); setSaveStatus(""); };
+
+  // Services, Gallery and Testimonials used to start in every portfolio's list, switched off. Entries that are
+  // still off and whose section has no content are dropped, so older portfolios match new ones; anything
+  // switched on or with content stays.
+  const pruneUnusedOptional = async (portfolioId: number, loaded: Section[]) => {
+    const candidates = loaded.filter((s) => OPT_IN_SECTION_TYPES.includes(s.type) && s.enabled === false);
+    if (!candidates.length) return;
+    const unused = new Set<string>();
+    for (const section of candidates) {
+      try {
+        const res = await api.get<unknown[]>(`/api/${section.type}`);
+        if (Array.isArray(res.data) && res.data.length === 0) unused.add(section.id);
+      } catch { /* unknown: keep it */ }
+    }
+    if (!unused.size) return;
+    const cleaned = loaded.filter((s) => !unused.has(s.id));
+    try {
+      await api.put(`/api/portfolios/${portfolioId}`, { sections_order: cleaned });
+      setSections((current) => current.filter((s) => !unused.has(s.id)));
+      setPortfolio((current) => (current ? { ...current, sections_order: cleaned } : current));
+    } catch { /* leave the list as it is */ }
+  };
+
   // A layout save (order, visibility) that failed, shown as a banner instead of being swallowed.
   const [layoutError, setLayoutError] = useState("");
+  // False until the saved layout arrives, so the builder doesn't flash the default list first
+  const [layoutLoaded, setLayoutLoaded] = useState(false);
   useEffect(() => {
     if (!dirty) return;
     const warn = (event: BeforeUnloadEvent) => { event.preventDefault(); event.returnValue = ""; };
@@ -268,28 +304,22 @@ export default function DashboardPage() {
               const dbSections = parsedSectionsOrder.filter((s) =>
                 allowedSectionTypes.includes(s.type),
               );
-              const merged = defaultSections.map((def) => {
-                const saved = dbSections.find((s) =>
-                  s.type === "custom"
-                    ? s.label === def.label
-                    : s.type === def.type,
+              // The saved list is the layout: its order is the user's order, and sections they deleted are
+              // gone. (Rebuilding it in default order lost the order and brought deleted sections back.)
+              // Defaults only fill in fields an old saved entry might lack (icon, deletable).
+              const loaded = dbSections.map((saved) => {
+                const def = defaultSections.find((d) =>
+                  saved.type === "custom" ? d.type === "custom" && d.label === saved.label : d.type === saved.type,
                 );
-                return saved ? { ...def, ...saved } : def;
+                return def ? { ...def, ...saved } : saved;
               });
-              const customDefaultLabels = new Set(
-                defaultSections
-                  .filter((d) => d.type === "custom")
-                  .map((d) => d.label),
-              );
-              const extras = dbSections.filter((s) => {
-                if (s.type === "custom") return !customDefaultLabels.has(s.label);
-                return !defaultSections.find((d) => d.type === s.type);
-              });
-              setSections([...merged, ...extras]);
+              setSections(loaded);
+              pruneUnusedOptional(p.id, loaded);
             }
           }
         })
-        .catch((err) => console.error("Failed to fetch portfolio", err));
+        .catch((err) => console.error("Failed to fetch portfolio", err))
+        .finally(() => setLayoutLoaded(true));
     });
     try {
       // Sections & theme are loaded from the DB (per user). Drop the legacy
@@ -327,13 +357,16 @@ export default function DashboardPage() {
     }
   }, [activeMenu, user]);
 
-  const fetchSectionData = useCallback(async (type: string, selectedId?: number) => {
+  // `isCurrent` lets the caller drop a reply that arrives after the user left the section: a slow reply would
+  // otherwise put that section's row (and its id) into the form, and Save would overwrite it.
+  const fetchSectionData = useCallback(async (type: string, selectedId?: number, isCurrent: () => boolean = () => true) => {
     setDirty(false);
     try {
       const apiType = type.split("-")[0];
       const endpoint =
         apiType === "contact" ? "/api/contact" : `/api/${apiType}`;
       const res = await api.get<StoredSectionItem[] | EditFormData>(endpoint);
+      if (!isCurrent()) return;
       if (Array.isArray(res.data)) {
         if (apiType === "custom" && activeSection) {
           const sectionTitle = normalizeCustomTitle(activeSection.label);
@@ -369,8 +402,11 @@ export default function DashboardPage() {
   useEffect(() => {
     if (!activeSection) return;
     // State updates in fetchSectionData happen after the awaited request, not synchronously.
+    // Switching section ends this effect, so a reply for the section just left is ignored
+    let alive = true;
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    fetchSectionData(activeSection.type);
+    fetchSectionData(activeSection.type, undefined, () => alive);
+    return () => { alive = false; };
   }, [activeSection, fetchSectionData]);
 
   // Single source of initial preview loading: fires when the portfolio slug is known/changes.
@@ -380,48 +416,40 @@ export default function DashboardPage() {
     }
   }, [portfolio?.slug]);
 
+  // Layout saves run one after another, so an older save can never finish last and win.
+  const layoutQueue = useRef<Promise<unknown>>(Promise.resolve());
   const saveLayout = (order: Section[]) => {
     if (!portfolio) return Promise.resolve();
-    return api
-      .put(`/api/portfolios/${portfolio.id}`, {
-        title: portfolio.title,
-        theme: portfolio.theme,
-        is_published: portfolio.is_published,
-        template: portfolio.template,
-        sections_order: order,
-      })
-      .then(() => setLayoutError(""))
-      .catch(() => setLayoutError("Your section changes couldn't be saved. Check your connection and try again."));
+    // Keep the local copy current too: theme/template saves used to send a stale sections_order.
+    setPortfolio((current) => (current ? { ...current, sections_order: order } : current));
+    const save = () =>
+      api
+        .put(`/api/portfolios/${portfolio.id}`, { sections_order: order })
+        .then(() => setLayoutError(""))
+        .catch(() => setLayoutError("Your section changes couldn't be saved. Check your connection and try again."));
+    const next = layoutQueue.current.then(save, save);
+    layoutQueue.current = next;
+    return next;
+  };
+
+  // Save first, then refresh the preview, so it never shows the layout from before the change.
+  const applyLayout = (updated: Section[]) => {
+    setSections(updated);
+    if (portfolio) saveLayout(updated).then(() => setToggleVersion((version) => version + 1));
+    else setToggleVersion((version) => version + 1);
   };
 
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
-    if (active.id !== over?.id) {
-      setSections((items) => {
-        const oldIndex = items.findIndex((i) => i.id === active.id);
-        const newIndex = items.findIndex((i) => i.id === over?.id);
-        const newOrder = arrayMove(items, oldIndex, newIndex);
-        if (portfolio) {
-          saveLayout(newOrder).then(() => setToggleVersion((version) => version + 1));
-        }
-        if (!portfolio) setToggleVersion((version) => version + 1);
-        return newOrder;
-      });
-    }
+    if (!over || active.id === over.id) return;
+    const oldIndex = sections.findIndex((i) => i.id === active.id);
+    const newIndex = sections.findIndex((i) => i.id === over.id);
+    if (oldIndex < 0 || newIndex < 0) return;
+    applyLayout(arrayMove(sections, oldIndex, newIndex));
   };
 
-  const handleToggle = async (id: string) => {
-    setSections((prev) => {
-      const updated = prev.map((s) =>
-        s.id === id ? { ...s, enabled: !s.enabled } : s,
-      );
-      // Save to DB
-      if (portfolio) {
-        saveLayout(updated);
-      }
-      return updated;
-    });
-    setToggleVersion((v) => v + 1);
+  const handleToggle = (id: string) => {
+    applyLayout(sections.map((s) => (s.id === id ? { ...s, enabled: !s.enabled } : s)));
   };
 
   const handleDelete = (id: string) => {
@@ -431,15 +459,7 @@ export default function DashboardPage() {
 
   const handleHideSection = (sectionOrId: string | Section) => {
     const id = typeof sectionOrId === "string" ? sectionOrId : sectionOrId.id;
-    setSections((prev) => {
-      const updated = prev.map((s) =>
-        s.id === id ? { ...s, enabled: false } : s,
-      );
-      if (portfolio) {
-        saveLayout(updated);
-      }
-      return updated;
-    });
+    applyLayout(sections.map((s) => (s.id === id ? { ...s, enabled: false } : s)));
     if (activeSection?.id === id) setActiveSection(null);
   };
 
@@ -455,16 +475,19 @@ export default function DashboardPage() {
       },
     });
     if (!res.data?.message) throw new Error("Could not delete the section");
-    setSections((prev) => {
-      const updated = prev.filter((s) => s.id !== section.id);
-      return updated;
-    });
+    // The route already removed it from sections_order; mirror that locally.
+    const updated = sections.filter((s) => s.id !== section.id);
+    setSections(updated);
+    setPortfolio((current) => (current ? { ...current, sections_order: updated } : current));
     if (activeSection?.id === section.id) setActiveSection(null);
     if (portfolio?.slug) loadPreview(portfolio.slug);
   };
 
   const handleAddSection = async (type: SectionType, requestedLabel: string, icon: string) => {
-    const id = `${type}-${Date.now()}`;
+    // Opening the new section replaces the editor: don't drop unsaved edits without asking.
+    if (!confirmDiscard()) return;
+    resetEditor();
+    const id = newSectionId(type);
     // Custom sections are matched to their rows by name, so a second "Custom Section" would share the
     // first one's content: give free-form ones a free name ("Custom Section 2").
     const label = type === "custom" && !typedSectionMap[normalizeCustomTitle(requestedLabel)]
@@ -485,19 +508,8 @@ export default function DashboardPage() {
     setShowAddSection(false);
 
     if (portfolio) {
-      try {
-        const res = await api.put<DashboardPortfolio>(`/api/portfolios/${portfolio.id}`, {
-          title: portfolio.title,
-          theme: portfolio.theme,
-          is_published: portfolio.is_published,
-          template: portfolio.template,
-          sections_order: updated,
-        });
-        setPortfolio(res.data || { ...portfolio, sections_order: updated });
-        await loadPreview(portfolio.slug);
-      } catch (err) {
-        console.error("Failed to save added section", err);
-      }
+      await saveLayout(updated);
+      await loadPreview(portfolio.slug);
     }
 
     if (type === "custom") {
@@ -510,16 +522,11 @@ export default function DashboardPage() {
     setSelectedTheme(theme);
     if (portfolio) {
       try {
-        await api.put(`/api/portfolios/${portfolio.id}`, {
-          title: portfolio.title,
-          theme: normalizeThemeId(theme.id),
-          sections_order: portfolio.sections_order,
-          is_published: portfolio.is_published,
-          template: portfolio.template,
-        });
-        setPortfolio({ ...portfolio, theme: normalizeThemeId(theme.id) });
-      } catch (err) {
-        console.error(err);
+        // Only the theme: the section layout is saved on its own (saveLayout)
+        await api.put(`/api/portfolios/${portfolio.id}`, { theme: normalizeThemeId(theme.id) });
+        setPortfolio((current) => (current ? { ...current, theme: normalizeThemeId(theme.id) } : current));
+      } catch {
+        setLayoutError("The theme couldn't be saved. Try again.");
       }
     }
   };
@@ -530,10 +537,9 @@ export default function DashboardPage() {
       const res = await api.patch<DashboardPortfolio>(`/api/portfolios/${portfolio.id}`, {
         publish: !portfolio.is_published,
       });
-      setPortfolio(res.data);
-      setPortfolio({ ...portfolio, ...res.data });
-    } catch (err) {
-      console.error(err);
+      setPortfolio((current) => (current ? { ...current, ...res.data } : res.data));
+    } catch {
+      setLayoutError(portfolio.is_published ? "Couldn't unpublish. Try again." : "Couldn't publish. Try again.");
     }
   };
 
@@ -623,10 +629,9 @@ export default function DashboardPage() {
     try {
       const { data } = await api.post<{ image?: string }>("/api/og-image", { url: credUrl });
       if (data?.image) {
-        editField({
-          ...editForm,
-          content: { ...(editForm.content || {}), imageUrl: data.image },
-        });
+        const image = data.image;
+        // Functional update: the form may have changed while the lookup ran
+        editField((current) => ({ ...current, content: { ...(current.content || {}), imageUrl: image } }));
       }
     } catch {}
   };
@@ -732,13 +737,9 @@ export default function DashboardPage() {
     } catch (err) {
       console.error(err);
 
+      // Errors stay until the next save or section change, so there is time to read them
       setSaveMsg(err instanceof UploadError ? err.message : getApiErrorMessage(err, "Save failed"));
       setSaveStatus("error");
-
-      setTimeout(() => {
-        setSaveMsg("");
-        setSaveStatus("");
-      }, 3000);
     } finally {
       setSaving(false);
     }
@@ -776,7 +777,7 @@ export default function DashboardPage() {
       gallery: <GalleryEditor value={editForm} onChange={editField} setMessage={editorMessage} onRefresh={async () => { await fetchSectionData("gallery"); await loadPreview(); }} />,
       custom: <DashboardCustomEditor activeSection={activeSection} normalizeCustomTitle={normalizeCustomTitle} typedSectionMap={typedSectionMap} editForm={editForm} setEditForm={editField} inputClass={inputClass} labelClass={labelClass} certSkillSearch={certSkillSearch} handleCertSkillSearch={handleCertSkillSearch} addCertSkill={addCertSkill} certSkillSuggestions={certSkillSuggestions} removeCertSkill={removeCertSkill} detectOgImage={detectOgImage} />,
     };
-    return <DashboardEditorPanel activeSection={activeSection} field={fields[type]} saveMsg={saveMsg} saveStatus={saveStatus} listData={listData} showAllItems={showAllItems} saving={saving} saveLabel="Save" savingLabel="Saving..." normalizeCustomTitle={normalizeCustomTitle} typedSectionMap={typedSectionMap} onClose={() => { if (!confirmDiscard()) return; setDirty(false); setActiveSection(null); }} onSave={handleSave} onEditStored={(item) => { if (!confirmDiscard()) return; setDirty(false); setEditForm({ ...item, content: parseJsonSafe<CustomSectionContent>(item.content, {}) }); }} onDeleteStored={async (item) => { if (!confirm("Delete this item?")) return; try { await api.delete(`/api/${activeSection.type.split("-")[0]}/${item.id}`); setListData((previous) => previous.filter((entry) => entry.id !== item.id)); await loadPreview(); } catch { editorMessage("Failed to delete"); } }} onToggleItems={() => setShowAllItems(!showAllItems)} />;
+    return <DashboardEditorPanel activeSection={activeSection} field={fields[type]} saveMsg={saveMsg} saveStatus={saveStatus} listData={listData} showAllItems={showAllItems} saving={saving} saveLabel={LIST_SECTION_TYPES.includes(type) || type === "custom" ? (editForm.id ? "Save changes" : "Add item") : "Save"} savingLabel="Saving..." normalizeCustomTitle={normalizeCustomTitle} typedSectionMap={typedSectionMap} onClose={() => { if (!confirmDiscard()) return; resetEditor(); setActiveSection(null); }} onSave={handleSave} onEditStored={(item) => { if (!confirmDiscard()) return; resetEditor(); setEditForm({ ...item, content: parseJsonSafe<CustomSectionContent>(item.content, {}) }); }} onDeleteStored={async (item) => { if (!confirm("Delete this item?")) return; try { await api.delete(`/api/${activeSection.type.split("-")[0]}/${item.id}`); setListData((previous) => previous.filter((entry) => entry.id !== item.id)); if (editForm.id === item.id) await fetchSectionData(activeSection.type); await loadPreview(); } catch { editorMessage("Failed to delete"); } }} onToggleItems={() => setShowAllItems(!showAllItems)} />;
   };
 
   return (
@@ -831,11 +832,12 @@ export default function DashboardPage() {
         {/* Content area */}
         {activeMenu === "builder" && (
           <DashboardBuilder
+            loading={!layoutLoaded}
             sections={sections}
             activeSection={activeSection}
             sensors={sensors}
             setShowAddSection={setShowAddSection}
-            setActiveSection={(section) => { if (section?.id !== activeSection?.id && !confirmDiscard()) return; setDirty(false); setActiveSection(section); }}
+            setActiveSection={(section) => { if (section?.id !== activeSection?.id && !confirmDiscard()) return; resetEditor(); setActiveSection(section); }}
             onDragEnd={handleDragEnd}
             onToggle={handleToggle}
             onDelete={handleDelete}
@@ -859,6 +861,8 @@ export default function DashboardPage() {
             dateTo={dateTo}
             setDateFrom={setDateFrom}
             setDateTo={setDateTo}
+            initialLoading={visitsLoading}
+            initialError={visitsError}
           />
         )}
 

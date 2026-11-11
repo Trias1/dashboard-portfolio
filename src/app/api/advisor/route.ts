@@ -65,7 +65,17 @@ Portfolio completeness: ${score}/${total}. Be helpful and concise.`;
         ],
         stream: true, max_tokens: 600,
       }),
+      // Covers the whole answer, streaming included: a stuck upstream can't hold the function open
+      signal: AbortSignal.timeout(60000),
     });
+    if (!groqRes.ok || !groqRes.body) {
+      console.error('[advisor] upstream error', groqRes.status);
+      return new Response(`data: ${JSON.stringify({ token: 'Sorry, something went wrong.', done: true })}
+
+`, {
+        status: 502, headers: { 'Content-Type': 'text/event-stream' },
+      });
+    }
 
     const encoder = new TextEncoder();
     const stream = new ReadableStream({

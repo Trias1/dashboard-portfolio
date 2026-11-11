@@ -2,6 +2,9 @@ import type { NextConfig } from "next";
 import path from "path";
 
 const nextConfig: NextConfig = {
+  // Local only: NEXT_DIST_DIR lets a new build go to another folder while a server keeps running on .next.
+  // Unset (as on Vercel) it is the default .next.
+  distDir: process.env.NEXT_DIST_DIR || ".next",
   // Enable server actions & API routes
   serverExternalPackages: ["bcryptjs", "groq-sdk", "pdf2json"],
   turbopack: {

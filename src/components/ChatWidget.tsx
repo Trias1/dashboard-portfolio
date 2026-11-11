@@ -1,5 +1,6 @@
 'use client';
 import { useState, useRef, useEffect, useSyncExternalStore } from 'react';
+import { readableOn } from '@/lib/contrast';
 import MessageText, { ElapsedSeconds } from '@/components/MessageText';
 
 interface Message {
@@ -18,15 +19,6 @@ interface ChatWidgetProps {
   ownerName?: string;
 }
 
-/** Black or white text, whichever reads better on the accent (templates pass any theme colour). */
-function textOn(hex: string) {
-  const m = hex.replace('#', '').match(/^([0-9a-f]{6}|[0-9a-f]{3})$/i);
-  if (!m) return '#fff';
-  const full = m[1].length === 3 ? m[1].split('').map((c) => c + c).join('') : m[1];
-  const [r, g, b] = [0, 2, 4].map((i) => parseInt(full.slice(i, i + 2), 16) / 255)
-    .map((c) => (c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4));
-  return 0.2126 * r + 0.7152 * g + 0.0722 * b > 0.4 ? '#141414' : '#fff';
-}
 
 function ChatGlyph({ className }: { className?: string }) {
   return (
@@ -42,7 +34,7 @@ function CloseGlyph({ className }: { className?: string }) {
 
 export default function ChatWidget({ slug, accentColor, ownerName }: ChatWidgetProps) {
   const ac = accentColor || '#1f45c9';
-  const onAc = textOn(ac);
+  const onAc = readableOn(ac);
   const who = ownerName || 'this person';
   const unavailable = `The assistant isn't available right now. Please use the contact details on this page to reach ${who}.`;
   const [open, setOpen] = useState(false);
@@ -142,7 +134,7 @@ export default function ChatWidget({ slug, accentColor, ownerName }: ChatWidgetP
   const last = messages[messages.length - 1];
 
   return (
-    <div className="fixed inset-x-3 bottom-3 z-[999] flex flex-col items-end gap-3 font-sans sm:inset-x-auto sm:bottom-6 sm:right-6">
+    <div className="pointer-events-none fixed inset-x-3 bottom-3 z-[999] flex flex-col items-end gap-3 font-sans sm:inset-x-auto sm:bottom-6 sm:right-6 [&>*]:pointer-events-auto">
       {open && (
         <div role="dialog" aria-label={`Ask about ${who}`}
           className="flex h-[min(480px,calc(100dvh-6rem))] w-full flex-col overflow-hidden rounded-lg border border-[#dcdcd5] bg-white text-[#141414] shadow-[0_8px_24px_rgba(0,0,0,0.12)] sm:w-96">
@@ -156,7 +148,7 @@ export default function ChatWidget({ slug, accentColor, ownerName }: ChatWidgetP
             </button>
           </div>
 
-          <div className="flex-1 space-y-3 overflow-y-auto p-4" aria-live="polite">
+          <div className="flex-1 space-y-3 overflow-y-auto p-4" aria-live="polite" aria-busy={loading}>
             {messages.map((msg, i) => {
               if (msg.role === 'assistant' && !msg.content) return null;
               if (msg.role === 'user') {
@@ -191,7 +183,7 @@ export default function ChatWidget({ slug, accentColor, ownerName }: ChatWidgetP
               value={input}
               onChange={(e) => setInput(e.target.value)}
               placeholder="Type a question…"
-              disabled={loading}
+              readOnly={loading}
               className="min-w-0 flex-1 rounded-md border border-[#dcdcd5] bg-white px-3 py-2 text-sm text-[#141414] placeholder:text-[#9a9aa0] outline-none transition-colors focus:border-[#141414] disabled:opacity-60"
             />
             <button type="submit" disabled={loading || !input.trim()}

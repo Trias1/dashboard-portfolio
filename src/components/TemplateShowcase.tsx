@@ -89,6 +89,7 @@ export default function TemplateShowcase({ templates }: { templates: ShowcaseTem
     index: 0, front: 0, leaving: null, mounted: [null, null], rendered: [null, null], wanted: null, inView: false,
   });
   const [paused, setPaused] = useState(false);
+  const [stopped, setStopped] = useState(false);
   const [scale, setScale] = useState(0.3);
   const rootRef = useRef<HTMLDivElement>(null);
   const boxRef = useRef<HTMLDivElement>(null);
@@ -129,7 +130,11 @@ export default function TemplateShowcase({ templates }: { templates: ShowcaseTem
       if (msg?.type !== 'pk:showcase-rendered') return;
       const frame = frameEls.current.findIndex((f) => f?.contentWindow === e.source);
       const idx = templates.findIndex((t) => t.id === msg.template);
-      if ((frame === 0 || frame === 1) && idx >= 0) dispatch({ type: 'rendered', frame, idx });
+      if ((frame === 0 || frame === 1) && idx >= 0) {
+        // Its app is listening now; a request posted before that was lost, so allow posting it again
+        posted.current[frame] = null;
+        dispatch({ type: 'rendered', frame, idx });
+      }
     };
     window.addEventListener('message', onMessage);
     return () => window.removeEventListener('message', onMessage);
@@ -152,10 +157,10 @@ export default function TemplateShowcase({ templates }: { templates: ShowcaseTem
 
   const ready = state.rendered[state.front] !== null;
   useEffect(() => {
-    if (!autoplay || paused || !tabVisible || !state.inView || !ready || state.wanted !== null) return;
+    if (!autoplay || paused || stopped || !tabVisible || !state.inView || !ready || state.wanted !== null) return;
     const id = window.setTimeout(() => dispatch({ type: 'show', idx: (state.index + 1) % templates.length }), INTERVAL_MS);
     return () => window.clearTimeout(id);
-  }, [autoplay, paused, tabVisible, state.inView, ready, state.wanted, state.index, templates.length]);
+  }, [autoplay, paused, stopped, tabVisible, state.inView, ready, state.wanted, state.index, templates.length]);
 
   const current = templates[state.index];
   const selected = state.wanted ?? state.index;
@@ -200,25 +205,42 @@ export default function TemplateShowcase({ templates }: { templates: ShowcaseTem
       </div>
 
       <div className="mt-4 flex items-baseline justify-between gap-3">
-        <p className="text-sm" aria-live="polite">
+        <p className="text-sm">
           <span className="font-medium text-ink">{current.name}</span>
           <span className="text-ink-soft"> — {current.desc}</span>
         </p>
         <Link href={`/demo`} className="shrink-0 text-sm font-medium text-accent underline-offset-4 hover:underline">Try it →</Link>
       </div>
-      <div className="mt-3 flex flex-wrap gap-1.5" role="tablist" aria-label="Templates">
-        {templates.map((tpl, i) => (
+      <div className="mt-2 flex items-center gap-2">
+        {autoplay && (
           <button
-            key={tpl.id}
             type="button"
-            role="tab"
-            aria-selected={i === selected}
-            aria-label={tpl.name}
-            title={tpl.name}
-            onClick={() => dispatch({ type: 'show', idx: i })}
-            className={`h-1.5 rounded-full transition-all ${i === selected ? 'w-6 bg-ink' : 'w-1.5 bg-rule hover:bg-ink-soft'}`}
-          />
-        ))}
+            onClick={() => setStopped((value) => !value)}
+            aria-label={stopped ? "Play template previews" : "Pause template previews"}
+            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-ink-soft transition-colors hover:bg-paper-deep hover:text-ink"
+          >
+            {stopped ? (
+              <svg aria-hidden="true" viewBox="0 0 16 16" className="h-3.5 w-3.5" fill="currentColor"><path d="M4 2.5v11l9-5.5z" /></svg>
+            ) : (
+              <svg aria-hidden="true" viewBox="0 0 16 16" className="h-3.5 w-3.5" fill="currentColor"><path d="M4 2.5h3v11H4zM9 2.5h3v11H9z" /></svg>
+            )}
+          </button>
+        )}
+        <div className="flex flex-wrap" role="group" aria-label="Show a template">
+          {templates.map((tpl, i) => (
+            <button
+              key={tpl.id}
+              type="button"
+              aria-pressed={i === selected}
+              aria-label={tpl.name}
+              title={tpl.name}
+              onClick={() => dispatch({ type: 'show', idx: i })}
+              className="group flex h-6 items-center px-[3px]"
+            >
+              <span aria-hidden="true" className={`block h-1.5 rounded-full transition-all ${i === selected ? 'w-6 bg-ink' : 'w-1.5 bg-rule group-hover:bg-ink-soft'}`} />
+            </button>
+          ))}
+        </div>
       </div>
     </div>
   );

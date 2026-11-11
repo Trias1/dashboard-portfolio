@@ -69,7 +69,7 @@ export function AboutEditor({
   setMessage,
 }: {
   value: EditFormData;
-  onChange: (value: EditFormData) => void;
+  onChange: React.Dispatch<React.SetStateAction<EditFormData>>;
   photoPreview: string;
   onPhotoChange: (event: React.ChangeEvent<HTMLInputElement>) => void;
   /** status: "success" (green), "" (in progress, neutral) or "error" (default). */
@@ -154,7 +154,8 @@ export function AboutEditor({
                 formData,
                 { headers: { "Content-Type": "multipart/form-data" } },
               );
-              onChange({ ...value, cv_url: response.data.cv_url });
+              // Functional update: keep anything typed while the upload ran
+              onChange((current) => ({ ...current, cv_url: response.data.cv_url }));
               setMessage("CV uploaded", "success");
             } catch (error) {
               setMessage(getApiErrorMessage(error, "CV upload failed"));
@@ -199,7 +200,7 @@ export function ExperienceEditor({
   onChange,
 }: {
   value: EditFormData;
-  onChange: (value: EditFormData) => void;
+  onChange: React.Dispatch<React.SetStateAction<EditFormData>>;
 }) {
   return (
     <div className="space-y-5">
@@ -269,7 +270,7 @@ export function ProjectEditor({
   setMessage,
 }: {
   value: EditFormData;
-  onChange: (value: EditFormData) => void;
+  onChange: React.Dispatch<React.SetStateAction<EditFormData>>;
   /** status: "success" (green), "" (in progress, neutral) or "error" (default). */
   setMessage: (message: string, status?: "success" | "error" | "") => void;
 }) {
@@ -313,7 +314,9 @@ export function ProjectEditor({
             // Upload now and keep the URL: the projects route only accepts web links, not base64 data
             setMessage("Uploading image...", "");
             try {
-              onChange({ ...value, image_url: await uploadImage(file, "projects") });
+              const url = await uploadImage(file, "projects");
+              // Functional update: keep anything typed while the upload ran
+              onChange((current) => ({ ...current, image_url: url }));
               setMessage("Image uploaded. Save to keep it.", "success");
             } catch (error) {
               setMessage(error instanceof UploadError ? error.message : getApiErrorMessage(error, "Image upload failed"));

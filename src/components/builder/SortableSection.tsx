@@ -138,10 +138,15 @@ export default function SortableSection({
       role="button"
       tabIndex={0}
       onKeyDown={(event) => {
-        if (event.key === "Enter" || event.key === " ") onEdit(section);
+        // Only keys on the row itself: Enter/Space on the toggle or grip inside it must not open the editor too
+        if (event.target !== event.currentTarget) return;
+        if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault();
+          onEdit(section);
+        }
       }}
       aria-current={isActive ? "true" : undefined}
-      className={`group relative flex cursor-pointer items-center gap-2 border-b border-rule py-2 pl-1.5 pr-2 outline-none transition-colors duration-150 focus-visible:bg-white focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ink/15 ${
+      className={`group relative flex cursor-pointer items-center gap-2 border-b border-rule py-2 pl-1.5 pr-2 outline-none transition-colors duration-150 focus-visible:bg-white focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-accent ${
         isDragging
           ? "z-10 bg-white shadow-[0_4px_12px_rgba(20,20,20,0.08)]"
           : isActive
@@ -154,7 +159,7 @@ export default function SortableSection({
         {...attributes}
         {...listeners}
         onClick={(event) => event.stopPropagation()}
-        className="flex h-6 w-4 shrink-0 cursor-grab items-center justify-center rounded text-[#a3a39c] hover:text-ink-soft active:cursor-grabbing focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink/15"
+        className="flex h-6 w-4 shrink-0 cursor-grab items-center justify-center rounded text-[#a3a39c] hover:text-ink-soft active:cursor-grabbing focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
         aria-label={`Reorder ${section.label}`}
       >
         <GripIcon />
@@ -180,7 +185,7 @@ export default function SortableSection({
           event.stopPropagation();
           onToggle(section.id);
         }}
-        className={`relative h-4 w-7 shrink-0 rounded-full transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/30 ${
+        className={`relative h-4 w-7 shrink-0 rounded-full transition-colors duration-150 before:absolute before:-inset-3 before:content-[""] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent ${
           section.enabled ? "bg-accent" : "bg-[#cfcfc8]"
         }`}
         aria-label={`Show ${section.label}`}
@@ -199,7 +204,7 @@ export default function SortableSection({
             event.stopPropagation();
             setOpenMenu((prev) => !prev);
           }}
-          className="flex h-6 w-6 items-center justify-center rounded text-ink-soft hover:bg-paper-deep hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink/15"
+          className="flex h-6 w-6 items-center justify-center rounded text-ink-soft hover:bg-paper-deep hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
           aria-label={`More actions for ${section.label}`}
           aria-expanded={openMenu}
         >

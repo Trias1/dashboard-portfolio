@@ -22,6 +22,7 @@ export async function GET(request: NextRequest) {
     const slugByOwner = new Map((portfolios || []).map((p) => [p.owner_id, p.slug]));
     return successResponse((messages || []).map((m) => ({ ...decryptMessage(m), portfolios: { slug: slugByOwner.get(m.owner_id) || null } })));
   } catch (err) {
-    return errorResponse(getErrorMessage(err), getErrorMessage(err) === 'Forbidden' ? 403 : 401);
+    // Default path maps Unauthorized/Forbidden to 401/403 and hides other errors behind a 500
+    return errorResponse(getErrorMessage(err));
   }
 }

@@ -3,6 +3,8 @@ import { requireAuth } from '@/lib/auth';
 import { getSupabaseAdmin } from '@/lib/supabase/admin';
 import { errorResponse, successResponse, getErrorMessage } from '@/lib/utils';
 import type { GitHubRepo, GitHubUser } from '@/types/api';
+import { checkRateLimit } from '@/lib/rate-limit';
+import { safeLinkUrl } from '@/lib/upload-validation';
 
 const GITHUB_TOKEN = process.env.GITHUB_TOKEN || '';
 const ghFetch = async <T>(url: string): Promise<T> => {
@@ -26,6 +28,9 @@ export async function POST(request: NextRequest) {
   try {
     const auth = await requireAuth(request);
     if (auth.role !== 'admin' && auth.role !== 'superadmin') return errorResponse('Forbidden', 403);
+    // Like preview: each import makes two GitHub calls on the shared token, so one user can't use up its quota
+    const rl = await checkRateLimit(`github-import:${auth.id}`, 'auth');
+    if (!rl.allowed) return errorResponse('Too many imports. Please try again in a few minutes.', 429);
     const { username: rawUsername, options } = await request.json();
     const username = extractUsername(rawUsername);
     if (!username) return errorResponse('Invalid GitHub username', 400);
@@ -74,7 +79,8 @@ export async function POST(request: NextRequest) {
         await getSupabaseAdmin().from('projects').insert({
           title: r.name.replace(/-/g, ' ').replace(/\b\w/g, (l: string) => l.toUpperCase()),
           description: r.description || '', tech_stack: r.language || '',
-          github_url: r.html_url, demo_url: r.homepage || '', owner_id: userId,
+          // A repo's homepage is free text on GitHub: keep it only if it's a web link
+          github_url: r.html_url, demo_url: r.homepage ? safeLinkUrl(r.homepage) || '' : '', owner_id: userId,
         });
       }
       results.push(`${selectedRepos.length} projects`);

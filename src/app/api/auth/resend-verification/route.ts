@@ -3,13 +3,11 @@ import bcrypt from 'bcryptjs';
 import crypto from 'crypto';
 import { getSupabaseAdmin } from '@/lib/supabase/admin';
 import { sendVerificationEmail } from '@/lib/mailer';
-import { hashToken, isBcryptHash, normalizeEmail } from '@/lib/auth';
+import { hashToken, isBcryptHash, normalizeEmail, DUMMY_PASSWORD_HASH } from '@/lib/auth';
 import { checkRateLimit, getClientId } from '@/lib/rate-limit';
 import { errorResponse, successResponse, readJsonBody, invalidBodyResponse } from '@/lib/utils';
 
 const VERIFY_TTL_MS = 24 * 60 * 60 * 1000;
-// Used to keep response timing similar when the user does not exist.
-const DUMMY_HASH = '$2b$10$35ISAoEVyvlDq89yCb07D.jDTaStzT5GyHTirLdKnpOVRUKuPGjKO';
 // Same answer whatever the outcome, so this can't be used to look up accounts.
 const DONE = { message: "If that account still needs verifying, a new link is on its way. Check your inbox and spam folder." };
 
@@ -33,9 +31,9 @@ export async function POST(request: NextRequest) {
 
     const db = getSupabaseAdmin();
     const { data: user } = await db.from('users').select('id, name, password, is_verified').eq('email', email).maybeSingle();
-    const hash = user && isBcryptHash(user.password) ? user.password : DUMMY_HASH;
+    const hash = user && isBcryptHash(user.password) ? user.password : DUMMY_PASSWORD_HASH;
     const match = await bcrypt.compare(password, hash);
-    if (!user || hash === DUMMY_HASH || !match || user.is_verified) return successResponse(DONE);
+    if (!user || hash === DUMMY_PASSWORD_HASH || !match || user.is_verified) return successResponse(DONE);
 
     const token = crypto.randomBytes(32).toString('hex');
     await db.from('users').update({ verification_token: hashToken(token), verification_expires: new Date(Date.now() + VERIFY_TTL_MS).toISOString() }).eq('id', user.id);

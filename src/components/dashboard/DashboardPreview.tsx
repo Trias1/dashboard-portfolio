@@ -44,6 +44,7 @@ interface DashboardPreviewProps {
 
 export default function DashboardPreview({ portfolio, previewData, previewLoading, sections, selectedTheme, toggleVersion, setPortfolio, onThemeChange, onRefresh }: DashboardPreviewProps) {
   const [pickerOpen, setPickerOpen] = useState(false);
+  const [templateError, setTemplateError] = useState('');
   const pickerRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
@@ -82,11 +83,13 @@ export default function DashboardPreview({ portfolio, previewData, previewLoadin
   const templateLocked = portfolio.is_published;
 
   const changeTemplate = async (value: string) => {
+    setTemplateError('');
     try {
-      const response = await api.put<DashboardPortfolio>(`/api/portfolios/${portfolio.id}`, { title: portfolio.title, theme: portfolio.theme, sections_order: portfolio.sections_order, is_published: portfolio.is_published, template: value });
+      // Only the template: sending the rest (sections_order in particular) could write back an older copy
+      const response = await api.put<DashboardPortfolio>(`/api/portfolios/${portfolio.id}`, { template: value });
       setPortfolio(response.data);
-    } catch (error) {
-      console.error('Template update failed', error);
+    } catch {
+      setTemplateError("The template couldn't be changed. Try again.");
     }
   };
 
@@ -94,6 +97,7 @@ export default function DashboardPreview({ portfolio, previewData, previewLoadin
     <div className="flex h-full flex-col overflow-hidden bg-paper">
       <div className="flex shrink-0 flex-wrap items-center gap-x-3 gap-y-2 border-b border-rule bg-paper px-4 py-2 text-xs">
         <span className="font-medium text-ink">Preview</span>
+        {templateError && <span role="alert" className="text-red-700">{templateError}</span>}
 
         <div ref={pickerRef} className="relative">
           <button
@@ -104,7 +108,7 @@ export default function DashboardPreview({ portfolio, previewData, previewLoadin
             disabled={templateLocked}
             title={templateLocked ? 'Unpublish first to change the template' : 'Change template'}
             onClick={() => setPickerOpen((open) => !open)}
-            className="inline-flex items-center gap-1.5 rounded-md border border-rule bg-white px-2.5 py-1.5 text-ink transition-colors hover:border-ink-soft focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink/15 disabled:cursor-not-allowed disabled:bg-paper disabled:text-ink-soft disabled:hover:border-rule"
+            className="inline-flex items-center gap-1.5 rounded-md border border-rule bg-white px-2.5 py-1.5 text-ink transition-colors hover:border-ink-soft focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent disabled:cursor-not-allowed disabled:bg-paper disabled:text-ink-soft disabled:hover:border-rule"
           >
             <span className="text-ink-soft">Template</span>
             <span className="font-medium">{templateName(currentTemplate)}</span>
@@ -129,7 +133,7 @@ export default function DashboardPreview({ portfolio, previewData, previewLoadin
                           setPickerOpen(false);
                           if (!selected) await changeTemplate(value);
                         }}
-                        className={`flex w-full items-start gap-2 rounded px-2.5 py-2 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ink/15 ${selected ? 'bg-paper shadow-[inset_2px_0_0_var(--color-accent)]' : 'hover:bg-paper'}`}
+                        className={`flex w-full items-start gap-2 rounded px-2.5 py-2 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-accent ${selected ? 'bg-paper shadow-[inset_2px_0_0_var(--color-accent)]' : 'hover:bg-paper'}`}
                       >
                         <span className="min-w-0 flex-1">
                           <span className={`block text-sm ${selected ? 'font-medium text-ink' : 'text-ink'}`}>{templateName(value)}</span>
@@ -172,7 +176,7 @@ export default function DashboardPreview({ portfolio, previewData, previewLoadin
         <button
           type="button"
           onClick={onRefresh}
-          className="ml-auto inline-flex items-center gap-1.5 rounded-md border border-rule bg-white px-2.5 py-1.5 font-medium text-ink transition-colors hover:border-ink-soft focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink/15"
+          className="ml-auto inline-flex items-center gap-1.5 rounded-md border border-rule bg-white px-2.5 py-1.5 font-medium text-ink transition-colors hover:border-ink-soft focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
         >
           <svg aria-hidden="true" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="h-3 w-3">
             <path d="M13 8a5 5 0 1 1-1.5-3.5 M13 2.5v3h-3" />

@@ -6,17 +6,34 @@ import Link from 'next/link';
 import api, { getApiErrorMessage, setToken, setUser } from '@/lib/api';
 import AuthShell, { Field, GoogleButton, Notice, OrDivider, SubmitButton } from '@/components/AuthShell';
 
+// Messages for the ?error= / ?verified= that the Google sign-in and email-verification links redirect here with.
+const GOOGLE_ERRORS: Record<string, string> = {
+  rate_limited: 'Too many sign-in attempts. Wait a few minutes and try again.',
+  email_not_verified: "Your Google email isn't verified yet. Verify it with Google, then try again.",
+  account_inactive: "This account is inactive. Contact support if you think that's a mistake.",
+};
+const urlNotice = (): { error?: string; info?: string } => {
+  if (typeof window === 'undefined') return {};
+  const params = new URLSearchParams(window.location.search);
+  const verified = params.get('verified');
+  if (verified === 'true') return { info: 'Email verified. You can log in now.' };
+  if (verified === 'failed') return { error: 'That verification link is invalid or has expired. Log in to get a new one.' };
+  const error = params.get('error');
+  if (error) return { error: GOOGLE_ERRORS[error] || "Google sign-in didn't work. Try again, or log in with your email." };
+  return {};
+};
+
 export default function LoginPage() {
   const router = useRouter();
   const [form, setForm] = useState({ email: '', password: '' });
-  const [error, setError] = useState('');
+  const [error, setError] = useState(() => urlNotice().error || '');
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [otpSent, setOtpSent] = useState(false);
   const [otp, setOtp] = useState('');
   const [otpLoading, setOtpLoading] = useState(false);
   const [resending, setResending] = useState(false);
-  const [info, setInfo] = useState('');
+  const [info, setInfo] = useState(() => urlNotice().info || '');
   // Set when the password was right but the email isn't verified yet: offer a new link.
   const [needsVerify, setNeedsVerify] = useState(false);
   const [sendingLink, setSendingLink] = useState(false);

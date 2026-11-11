@@ -3,7 +3,7 @@ import { AI_ENABLED } from '@/lib/features';
 import { getSupabaseAdmin } from '@/lib/supabase/admin';
 import { checkRateLimit, getClientId } from '@/lib/rate-limit';
 import type { Experience, Project } from '@/types';
-import type { ChatHistoryInput, SkillGroupRow } from '@/types/api';
+import type { ChatHistoryInput, SectionOrderEntry, SkillGroupRow } from '@/types/api';
 import { relayCompletionTokens } from '@/lib/sse-relay';
 
 const NINE_ROUTER_API_KEY = process.env.NINE_ROUTER_API_KEY!;
@@ -35,27 +35,35 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     const rl = await checkRateLimit(`chat:${getClientId(request)}`, 'chat');
     if (!rl.allowed) return new Response('Too many requests. Please try again later.', { status: 429 });
 
-    const { data: portfolio } = await getSupabaseAdmin().from('portfolios').select('owner_id, title').eq('slug', slug).eq('is_published', true).maybeSingle();
+    const { data: portfolio } = await getSupabaseAdmin().from('portfolios').select('owner_id, title, sections_order').eq('slug', slug).eq('is_published', true).maybeSingle();
     if (!portfolio) return new Response('Portfolio not found', { status: 404 });
 
     const ownerId = portfolio.owner_id;
-    const [about, hero, experience, projects, services, skills, contact] = await Promise.all([
+    // The assistant only knows what the page shows: sections the owner hid (e.g. contact) stay out of its context
+    const order: SectionOrderEntry[] = (() => {
+      const raw = portfolio.sections_order;
+      if (Array.isArray(raw)) return raw;
+      try { const parsed = typeof raw === 'string' ? JSON.parse(raw) : null; return Array.isArray(parsed) ? parsed : []; } catch { return []; }
+    })();
+    const shown = (type: string) => {
+      const entry = order.find((s) => s.type?.split('-')[0] === type);
+      return entry ? entry.enabled !== false : true;
+    };
+    const [about, hero, experience, projects, skills, contact] = await Promise.all([
       getSupabaseAdmin().from('about').select('*').eq('owner_id', ownerId).maybeSingle(),
       getSupabaseAdmin().from('hero').select('*').eq('owner_id', ownerId).maybeSingle(),
       getSupabaseAdmin().from('experience').select('*').eq('owner_id', ownerId).order('start_date', { ascending: false }),
       getSupabaseAdmin().from('projects').select('*').eq('owner_id', ownerId).order('created_at', { ascending: false }),
-      getSupabaseAdmin().from('services').select('*').eq('owner_id', ownerId),
       getSupabaseAdmin().from('skills').select('*').eq('owner_id', ownerId),
       getSupabaseAdmin().from('contact_info').select('*').eq('owner_id', ownerId).maybeSingle(),
     ]);
 
-    const a = about.data || {};
+    const a = shown('about') ? about.data || {} : { name: about.data?.name };
     const h = hero.data || {};
-    const exp = experience.data || [];
-    const proj = projects.data || [];
-    const svc = services.data || [];
-    const sk = skills.data || [];
-    const ct = contact.data || {};
+    const exp = shown('experience') ? experience.data || [] : [];
+    const proj = shown('projects') ? projects.data || [] : [];
+    const sk = shown('skills') ? skills.data || [] : [];
+    const ct = shown('contact') ? contact.data || {} : {};
 
     const context = `You are an AI assistant for ${a.name || portfolio.title}'s portfolio website.
 Answer questions about this person based on the info below. Be friendly and concise.
@@ -77,6 +85,8 @@ Contact: ${ct.email || '-'}`;
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${NINE_ROUTER_API_KEY}` },
       body: JSON.stringify({ model: NINE_ROUTER_MODEL, messages, stream: true, max_tokens: 512, temperature: 0.7 }),
+      // Covers the whole answer, streaming included: a stuck upstream can't hold the function open
+      signal: AbortSignal.timeout(60000),
     });
 
     if (!groqRes.ok) {

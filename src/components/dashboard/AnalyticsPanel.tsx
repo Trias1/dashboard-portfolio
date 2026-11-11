@@ -40,15 +40,20 @@ interface Props {
   dateTo: string;
   setDateFrom: (v: string) => void;
   setDateTo: (v: string) => void;
+  /** State of the load the dashboard starts when this panel opens. */
+  initialLoading?: boolean;
+  initialError?: string;
 }
 
 const RANGES = [{ label: '7 days', days: 7 }, { label: '30 days', days: 30 }, { label: '90 days', days: 90 }];
 
 const inputCls = 'rounded-md border border-rule bg-white px-3 py-1.5 font-mono text-[13px] text-ink outline-none transition-colors focus:border-ink focus:ring-2 focus:ring-ink/10';
 
-export default function AnalyticsPanel({ visits, setVisits, dateFrom, dateTo, setDateFrom, setDateTo }: Props) {
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
+export default function AnalyticsPanel({ visits, setVisits, dateFrom, dateTo, setDateFrom, setDateTo, initialLoading = false, initialError = '' }: Props) {
+  const [ownLoading, setLoading] = useState(false);
+  const [ownError, setError] = useState('');
+  const loading = ownLoading || initialLoading;
+  const error = ownError || initialError;
 
   const fetchVisits = async (from?: string, to?: string) => {
     const f = from || dateFrom;

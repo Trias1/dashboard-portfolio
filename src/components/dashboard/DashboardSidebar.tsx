@@ -97,7 +97,7 @@ export default function DashboardSidebar({
           type="button"
           aria-label={isAuto ? "Toggle sidebar" : sidebarOpen ? "Collapse sidebar" : "Expand sidebar"}
           onClick={toggleSidebar}
-          className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-ink-soft transition-colors hover:bg-white hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink/15"
+          className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-ink-soft transition-colors hover:bg-white hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
         >
           <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4">
             <path d="M4 5h16v14H4z M9 5v14" />
@@ -114,7 +114,7 @@ export default function DashboardSidebar({
               onClick={() => setActiveMenu(item.key)}
               title={item.label}
               aria-current={active ? "page" : undefined}
-              className={`flex w-full items-center gap-2.5 rounded-md border px-2.5 py-1.5 text-left text-sm transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink/15 ${active ? "border-rule bg-white font-medium text-ink" : "border-transparent text-ink-soft hover:bg-white/60 hover:text-ink"}`}
+              className={`flex w-full items-center gap-2.5 rounded-md border px-2.5 py-2.5 text-left text-sm transition-colors md:py-1.5 duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent ${active ? "border-rule bg-white font-medium text-ink" : "border-transparent text-ink-soft hover:bg-white/60 hover:text-ink"}`}
             >
               <span className={`relative ${active ? "text-accent" : ""}`}>
                 <MenuIcon name={item.icon} />

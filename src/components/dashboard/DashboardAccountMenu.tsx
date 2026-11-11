@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useRef } from "react";
 import type { DashboardUser } from "@/types";
 
 interface Props {
@@ -17,15 +18,37 @@ export default function DashboardAccountMenu({
   onProfile,
   onLogout,
 }: Props) {
+  const rootRef = useRef<HTMLDivElement>(null);
+  const buttonRef = useRef<HTMLButtonElement>(null);
+  // A plain disclosure: Escape (focus back on the button) or a click outside closes it.
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key !== "Escape") return;
+      onToggle();
+      buttonRef.current?.focus();
+    };
+    const onPointer = (event: MouseEvent) => {
+      if (rootRef.current && !rootRef.current.contains(event.target as Node)) onToggle();
+    };
+    document.addEventListener("keydown", onKey);
+    document.addEventListener("mousedown", onPointer);
+    return () => {
+      document.removeEventListener("keydown", onKey);
+      document.removeEventListener("mousedown", onPointer);
+    };
+  }, [open, onToggle]);
+
   return (
-    <div className="relative">
+    <div ref={rootRef} className="relative">
       <button
+        ref={buttonRef}
         type="button"
         onClick={onToggle}
-        aria-haspopup="menu"
         aria-expanded={open}
+        aria-controls="account-menu"
         aria-label="Account menu"
-        className="flex items-center gap-2 rounded-md py-1 pl-1 pr-1.5 transition-colors hover:bg-paper-deep focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink/15"
+        className="flex items-center gap-2 rounded-md py-1 pl-1 pr-1.5 transition-colors hover:bg-paper-deep focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
       >
         <div className="flex h-7 w-7 items-center justify-center overflow-hidden rounded-full border border-rule bg-paper-deep text-xs font-semibold text-ink">
           {user?.photo_url ? (
@@ -56,7 +79,7 @@ export default function DashboardAccountMenu({
       </button>
       {open && (
         <div
-          role="menu"
+          id="account-menu"
           className="absolute right-0 top-full z-50 mt-1.5 w-56 overflow-hidden rounded-md border border-rule bg-white py-1 shadow-[0_8px_24px_rgba(20,20,20,0.08)]"
         >
           <div className="border-b border-rule px-3 pb-2.5 pt-2">
@@ -70,7 +93,6 @@ export default function DashboardAccountMenu({
           </div>
           <button
             type="button"
-            role="menuitem"
             onClick={onProfile}
             className="mt-1 w-full px-3 py-1.5 text-left text-sm text-ink hover:bg-paper"
           >
@@ -78,7 +100,6 @@ export default function DashboardAccountMenu({
           </button>
           <button
             type="button"
-            role="menuitem"
             onClick={onLogout}
             className="w-full px-3 py-1.5 text-left text-sm text-red-700 hover:bg-red-50"
           >

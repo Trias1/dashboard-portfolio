@@ -39,8 +39,9 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
     const { id } = await params;
 
     const { data: item } = await getSupabaseAdmin().from('gallery').select('file_url, image_url').eq('id', id).eq('owner_id', auth.id).maybeSingle();
-    if (item?.file_url) deleteFile(item.file_url, auth.id).catch(() => {});
-    if (item?.image_url && item.image_url !== item.file_url) deleteFile(item.image_url, auth.id).catch(() => {});
+    // Awaited: work left running after the response can be cut off when the function freezes
+    if (item?.file_url) await deleteFile(item.file_url, auth.id).catch(() => {});
+    if (item?.image_url && item.image_url !== item.file_url) await deleteFile(item.image_url, auth.id).catch(() => {});
 
     await getSupabaseAdmin().from('gallery').delete().eq('id', id).eq('owner_id', auth.id);
     return successResponse({ message: 'Deleted' });

@@ -36,7 +36,8 @@ export default function ContactForm({ slug, accentColor, textColor = '#f1f5f9', 
 
   // Neutral fields that inherit the template's text colour; the accent only marks focus and the button.
   const fieldClass = 'w-full rounded-md border bg-transparent px-3 py-2.5 text-[15px] outline-none transition-colors focus-visible:ring-2';
-  const fieldStyle = { borderColor: `${subColor}66`, color: textColor, ['--tw-ring-color' as string]: `${accentColor}55` };
+  // Solid muted border and a full-strength focus ring: at 40%/33% opacity they fell below the 3:1 a field edge needs.
+  const fieldStyle = { borderColor: subColor, color: textColor, ['--tw-ring-color' as string]: accentColor };
   const labelClass = 'mb-1.5 block text-sm font-medium';
 
   return (
