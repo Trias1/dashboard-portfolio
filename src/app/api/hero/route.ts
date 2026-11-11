@@ -1,6 +1,7 @@
 import { NextRequest } from 'next/server';
 import { requireAuth, getAuthUser } from '@/lib/auth';
 import { getSupabaseAdmin } from '@/lib/supabase/admin';
+import { saveOwnerRow } from '@/lib/supabase/owner-row';
 import { errorResponse, successResponse, getErrorMessage } from '@/lib/utils';
 import { checkSectionBody } from '@/lib/validate';
 
@@ -26,13 +27,7 @@ export async function PUT(request: NextRequest) {
     if (invalid) return errorResponse(invalid, 400);
     const { greeting, headline, subheadline, cta_text, cta_url, cta_secondary_text, cta_secondary_url, background_url } = body;
     const payload = { greeting, headline, subheadline, cta_text, cta_url, cta_secondary_text, cta_secondary_url, background_url };
-    const { data: existing } = await getSupabaseAdmin().from('hero').select('id').eq('owner_id', auth.id).maybeSingle();
-    let result;
-    if (existing) {
-      result = await getSupabaseAdmin().from('hero').update({ ...payload, updated_at: new Date().toISOString() }).eq('owner_id', auth.id).select().single();
-    } else {
-      result = await getSupabaseAdmin().from('hero').insert({ ...payload, owner_id: auth.id }).select().single();
-    }
-    return successResponse(result.data);
+    const saved = await saveOwnerRow('hero', auth.id, payload, { touch: true });
+    return successResponse(saved);
   } catch (err) { return errorResponse(getErrorMessage(err)); }
 }

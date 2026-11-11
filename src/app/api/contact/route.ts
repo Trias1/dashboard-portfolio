@@ -1,6 +1,7 @@
 import { NextRequest } from 'next/server';
 import { requireAuth, getAuthUser } from '@/lib/auth';
 import { getSupabaseAdmin } from '@/lib/supabase/admin';
+import { saveOwnerRow } from '@/lib/supabase/owner-row';
 import { errorResponse, successResponse, getErrorMessage } from '@/lib/utils';
 import { checkSectionBody } from '@/lib/validate';
 
@@ -30,13 +31,7 @@ export async function PUT(request: NextRequest) {
       if (value != null && (typeof value !== 'string' || value.length > 500)) return errorResponse(`Invalid ${key}`, 400);
     }
     if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) return errorResponse('Invalid email format', 400);
-    const { data: existing } = await getSupabaseAdmin().from('contact_info').select('id').eq('owner_id', auth.id).maybeSingle();
-    let result;
-    if (existing) {
-      result = await getSupabaseAdmin().from('contact_info').update({ email, phone, location, linkedin_url, github_url }).eq('owner_id', auth.id).select().single();
-    } else {
-      result = await getSupabaseAdmin().from('contact_info').insert({ email, phone, location, linkedin_url, github_url, owner_id: auth.id }).select().single();
-    }
-    return successResponse(result.data);
+    const saved = await saveOwnerRow('contact_info', auth.id, fields);
+    return successResponse(saved);
   } catch (err) { return errorResponse(getErrorMessage(err)); }
 }

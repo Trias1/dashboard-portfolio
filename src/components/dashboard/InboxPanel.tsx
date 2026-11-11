@@ -80,9 +80,9 @@ export default function InboxPanel({ onUnreadChange }: { onUnreadChange?: (unrea
             Messages from the contact form on your portfolio{messages ? ` · ${messages.length} total, ${unread} unread` : ""}.
           </p>
         </div>
-        <div role="radiogroup" aria-label="Show" className="inline-flex overflow-hidden rounded-md border border-rule bg-white text-sm">
+        <div role="group" aria-label="Show" className="inline-flex overflow-hidden rounded-md border border-rule bg-white text-sm">
           {(["all", "unread"] as const).map((f) => (
-            <button key={f} type="button" role="radio" aria-checked={filter === f} onClick={() => setFilter(f)}
+            <button key={f} type="button" aria-pressed={filter === f} onClick={() => setFilter(f)}
               className={`px-3 py-1.5 capitalize transition-colors ${filter === f ? "bg-ink text-paper" : "text-ink-soft hover:text-ink"}`}>
               {f}
             </button>

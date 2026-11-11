@@ -1,6 +1,7 @@
 import { NextRequest } from 'next/server';
 import { requireAuth } from '@/lib/auth';
 import { getSupabaseAdmin } from '@/lib/supabase/admin';
+import { saveOwnerRow, type OwnerRowTable } from '@/lib/supabase/owner-row';
 import { errorResponse, successResponse, getErrorMessage, readJsonBody } from '@/lib/utils';
 import { checkRateLimit } from '@/lib/rate-limit';
 import { checkCustomContent, checkSectionBody } from '@/lib/validate';
@@ -84,6 +85,9 @@ export async function POST(request: NextRequest) {
     const db = getSupabaseAdmin();
     const replace = body.replace === true; // default false (merge)
     const failed: string[] = [];
+    // One-row-per-user tables go through saveOwnerRow (no duplicate rows on double submit); errors come back as { error }
+    const saveRow = (table: OwnerRowTable, fields: Record<string, unknown>, insertDefaults: Record<string, unknown>, touch: boolean) =>
+      saveOwnerRow(table, userId, fields, { insertDefaults, touch }).then(() => ({ error: null }), (error: unknown) => ({ error }));
     const run = async (label: string, op: PromiseLike<{ error: unknown }>) => {
       const { error } = await op;
       if (error) {
@@ -110,31 +114,25 @@ export async function POST(request: NextRequest) {
 
     // -- About --
     if (about.name || about.title || about.bio) {
-      const { data: ex } = await db.from('about').select('id').eq('owner_id', userId).maybeSingle();
-      const updateData: Record<string, unknown> = { updated_at: new Date().toISOString() };
+      const updateData: Record<string, unknown> = {};
       if (about.name) updateData.name = about.name;
       if (about.title) updateData.title = about.title;
       if (about.bio) updateData.bio = about.bio;
-      await run('about', ex
-        ? db.from('about').update(updateData).eq('owner_id', userId)
-        : db.from('about').insert({ name: about.name || '', title: about.title || '', bio: about.bio || '', owner_id: userId }));
+      await run('about', saveRow('about', updateData, { name: '', title: '', bio: '' }, true));
     }
 
     // -- Hero --
     if (hero.headline || hero.subheadline) {
-      const { data: hx } = await db.from('hero').select('id').eq('owner_id', userId).maybeSingle();
       const updateData: Record<string, unknown> = {};
       if (hero.headline) updateData.headline = hero.headline;
       if (hero.subheadline) updateData.subheadline = hero.subheadline;
-      await run('hero', hx
-        ? db.from('hero').update(updateData).eq('owner_id', userId)
-        : db.from('hero').insert({ headline: hero.headline || '', subheadline: hero.subheadline || '', owner_id: userId }));
+      await run('hero', saveRow('hero', updateData, { headline: '', subheadline: '' }, false));
     }
 
     // -- Contact (linkedin/github were parsed but never saved before) --
     const website = clean(contact.website);
     const contactData: Record<string, string> = {};
-    if (contact.email && /^[^s@]+@[^s@]+.[^s@]{2,}$/.test(String(contact.email).trim())) contactData.email = String(contact.email).trim();
+    if (contact.email && /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(String(contact.email).trim())) contactData.email = String(contact.email).trim();
     if (contact.phone) contactData.phone = contact.phone;
     if (contact.location) contactData.location = contact.location;
     const linkedinUrl = contact.linkedin ? safeLinkUrl(contact.linkedin) : '';
@@ -142,10 +140,7 @@ export async function POST(request: NextRequest) {
     const githubUrl = /github\.com/i.test(website) ? safeLinkUrl(website) : '';
     if (githubUrl) contactData.github_url = githubUrl;
     if (Object.keys(contactData).length) {
-      const { data: cx } = await db.from('contact_info').select('id').eq('owner_id', userId).maybeSingle();
-      await run('contact', cx
-        ? db.from('contact_info').update(contactData).eq('owner_id', userId)
-        : db.from('contact_info').insert({ email: '', phone: '', location: '', ...contactData, owner_id: userId }));
+      await run('contact', saveRow('contact_info', contactData, { email: '', phone: '', location: '' }, false));
     }
 
     // -- Experience --

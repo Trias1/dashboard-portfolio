@@ -457,6 +457,17 @@ export default function DashboardPage() {
     if (section) setDeleteSection(section);
   };
 
+  // Services is opt-in (not in the default list): when the Advisor saves services, put the section on the page.
+  // Done here, on the dashboard's own state, so a later layout save can't drop it again.
+  const showServicesSection = () => {
+    const existing = sections.find((s) => s.type === "services");
+    if (existing?.enabled) return;
+    const def = availableSections.find((s) => s.type === "services");
+    applyLayout(existing
+      ? sections.map((s) => (s.id === existing.id ? { ...s, enabled: true } : s))
+      : [...sections, { ...(def ?? { type: "services" as SectionType, label: "Services", icon: "SV", deletable: true }), id: newSectionId("services"), enabled: true }]);
+  };
+
   const handleHideSection = (sectionOrId: string | Section) => {
     const id = typeof sectionOrId === "string" ? sectionOrId : sectionOrId.id;
     applyLayout(sections.map((s) => (s.id === id ? { ...s, enabled: false } : s)));
@@ -847,7 +858,10 @@ export default function DashboardPage() {
         )}
         {AI_ENABLED && activeMenu === "advisor" && (
           <div className="flex-1 flex flex-col overflow-hidden">
-            <AdvisorWidget />
+            <AdvisorWidget
+              servicesInLayout={sections.some((s) => s.type === "services" && s.enabled)}
+              onServicesSaved={showServicesSection}
+            />
           </div>
         )}
 

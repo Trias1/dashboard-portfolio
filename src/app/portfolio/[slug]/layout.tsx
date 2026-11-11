@@ -1,17 +1,26 @@
 import type { Metadata } from 'next';
 import { getSupabaseAdmin } from '@/lib/supabase/admin';
 import { buildPortfolioSeo } from '@/lib/portfolio-seo';
+import { getAuthUser } from '@/lib/auth';
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const { slug } = await params;
   const { data: portfolio } = await getSupabaseAdmin()
     .from('portfolios')
-    .select('owner_id, title, slug')
+    .select('owner_id, title, slug, is_published')
     .eq('slug', slug)
-    .eq('is_published', true)
     .maybeSingle();
 
-  if (!portfolio) return { title: 'Portfolio Not Found', robots: { index: false, follow: false } };
+  const notFound: Metadata = { title: 'Portfolio Not Found', robots: { index: false, follow: false } };
+  if (!portfolio) return notFound;
+  if (!portfolio.is_published) {
+    // Drafts: only the owner (or superadmin) previewing gets a real title; everyone else sees the same 404 title
+    const viewer = await getAuthUser();
+    const canPreview = !!viewer && (String(viewer.id) === String(portfolio.owner_id) || viewer.role === 'superadmin');
+    return canPreview
+      ? { title: `Draft preview · ${portfolio.title || portfolio.slug}`, robots: { index: false, follow: false } }
+      : notFound;
+  }
 
   const [{ data: about }, { data: hero }] = await Promise.all([
     getSupabaseAdmin().from('about').select('name, bio, photo_url').eq('owner_id', portfolio.owner_id).maybeSingle(),

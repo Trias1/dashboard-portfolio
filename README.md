@@ -73,10 +73,11 @@ Put these in `.env.local` locally and in the Vercel project settings for deploym
 - Uploads are validated by their actual file bytes (PNG/JPEG/WebP/GIF images, PDF/DOC/DOCX), size-limited and stored under random names.
 - Rate limits (per IP and per account) protect login, codes, contact form, AI and uploads. They are stored in the `rate_limits` table and checked atomically by `rate_limit_hit()`. Only wrong passwords count toward the per-account login limit.
 - Login sessions are stored server-side (`auth_sessions`). Refresh tokens rotate on every use; replaying an old one revokes the whole session chain. Logout revokes the session, and a password reset or change signs the user out everywhere.
-- Database changes live in `supabase/migrations/` (run them in order in the Supabase SQL editor; 004 = notification emails, 005 = sessions + atomic rate limiter, 006 = text columns for encrypted contact messages).
+- Database changes live in `supabase/migrations/` (run them in order in the Supabase SQL editor; 004 = notification emails, 005 = sessions + atomic rate limiter, 006 = text columns for encrypted contact messages, 007 = one about/hero/contact row per user).
 - Contact messages (name, email, message) are stored AES-256-GCM encrypted; the key lives in the app env.
 - Emails escape all user content; contact messages go to the owner's verified account email.
 - Basic security headers are set in `next.config.ts`.
+- Third-party requests from public pages: projects without an image show a live screenshot from WordPress.com mShots (the project's demo URL is sent to it), skill icons load from jsDelivr (devicon) and the share QR code comes from api.qrserver.com (the portfolio URL is sent to it).
 
 ## Branches and deployment
 

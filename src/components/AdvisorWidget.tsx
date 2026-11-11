@@ -107,7 +107,17 @@ function apiErrorMessage(err: unknown): string | null {
 
 const pickSuggestions =() => [...ALL_SUGGESTED].sort(() => Math.random() - 0.5).slice(0, 4);
 
-export default function AdvisorWidget({ inline = false }: { inline?: boolean }) {
+const SERVICES_HIDDEN_HINT = 'Services is not on your portfolio yet. In the Builder, use **Add section → Services** to show it.';
+
+interface AdvisorWidgetProps {
+  inline?: boolean;
+  /** Dashboard only: whether the Services section is in the layout and turned on. */
+  servicesInLayout?: boolean;
+  /** Dashboard only: puts the Services section on the page after services were saved. */
+  onServicesSaved?: () => void;
+}
+
+export default function AdvisorWidget({ inline = false, servicesInLayout, onServicesSaved }: AdvisorWidgetProps) {
   const [messages, setMessages] = useState<Message[]>([
     { role: 'assistant', content: 'I can check how complete your portfolio is, suggest what to add, and help fill in some sections.\n\nUse the button below to check your portfolio, or ask a question.', preview: { section: 'boom', data: null } }
   ]);
@@ -194,6 +204,15 @@ export default function AdvisorWidget({ inline = false }: { inline?: boolean }) 
     }
   };
 
+  // Services is opt-in: on the dashboard the section is added for the user, elsewhere they're told how.
+  const servicesFollowUp = () => {
+    if (onServicesSaved) {
+      onServicesSaved();
+      return '\n\nThe **Services** section was added to your portfolio layout.';
+    }
+    return `\n\n${SERVICES_HIDDEN_HINT}`;
+  };
+
   const applySection = async (section: string, data: PreviewData, msgIndex: number) => {
     setApplying(section);
     try {
@@ -205,9 +224,11 @@ export default function AdvisorWidget({ inline = false }: { inline?: boolean }) 
       }
       if (section === 'all' && Array.isArray(data)) {
         let failed = 0;
+        let servicesNote = '';
         for (const item of data as GeneratedResult[]) {
           try {
-            await api.post(`/api/advisor/apply/${item.section}`, { data: item.data });
+            const res = await api.post<{ shown?: boolean }>(`/api/advisor/apply/${item.section}`, { data: item.data });
+            if (item.section === 'services' && res.data?.shown === false) servicesNote = servicesFollowUp();
           } catch { failed++; }
         }
         setMessages(prev => {
@@ -216,7 +237,7 @@ export default function AdvisorWidget({ inline = false }: { inline?: boolean }) 
             ...updated[msgIndex],
             content: updated[msgIndex].content + (failed
               ? `\n\n${failed} section(s) could not be saved. Fill them in by hand in the Builder.`
-              : '\n\n**All sections saved.** Refresh the preview to see them.'),
+              : '\n\n**All sections saved.** Refresh the preview to see them.') + servicesNote,
             preview: undefined
           };
           return updated;
@@ -224,15 +245,16 @@ export default function AdvisorWidget({ inline = false }: { inline?: boolean }) 
         setApplying(null);
         return;
       }
-      const res = await api.post<{ saved?: number }>(`/api/advisor/apply/${section}`, { data });
+      const res = await api.post<{ saved?: number; shown?: boolean }>(`/api/advisor/apply/${section}`, { data });
       const nothingNew = res.data?.saved === 0;
+      const servicesNote = section === 'services' && res.data?.shown === false ? servicesFollowUp() : '';
       setMessages(prev => {
         const updated = [...prev];
         updated[msgIndex] = {
           ...updated[msgIndex],
           content: updated[msgIndex].content + (nothingNew
             ? '\n\nThese are already in your portfolio, so nothing new was added.'
-            : '\n\n**Saved.** Refresh the preview to see the change.'),
+            : '\n\n**Saved.** Refresh the preview to see the change.') + servicesNote,
           preview: undefined
         };
         return updated;
@@ -269,7 +291,9 @@ export default function AdvisorWidget({ inline = false }: { inline?: boolean }) 
     } catch {}
 
     // Drafted from the user's own data; experience and projects have to be real, so they are only listed.
-    const draftable: [string, boolean | undefined][] = [['bio', existingData.hasBio], ['hero', existingData.hasHero], ['skills', existingData.hasSkills], ['services', existingData.hasServices]];
+    // Services is opt-in: "fill all" leaves it out when the owner hasn't added the section (they can ask for it by name).
+    const draftable: [string, boolean | undefined][] = [['bio', existingData.hasBio], ['hero', existingData.hasHero], ['skills', existingData.hasSkills]];
+    if (servicesInLayout !== false) draftable.push(['services', existingData.hasServices]);
     const sectionsToGenerate = draftable.filter(([, has]) => !has).map(([s]) => s);
     const missingReal = [
       !existingData.hasExperience && '**Work experience**',

@@ -1,6 +1,7 @@
 import { NextRequest } from 'next/server';
 import { requireAuth } from '@/lib/auth';
 import { getSupabaseAdmin } from '@/lib/supabase/admin';
+import { saveOwnerRow } from '@/lib/supabase/owner-row';
 import { errorResponse, successResponse, getErrorMessage } from '@/lib/utils';
 import type { GitHubRepo, GitHubUser } from '@/types/api';
 import { checkRateLimit } from '@/lib/rate-limit';
@@ -45,12 +46,7 @@ export async function POST(request: NextRequest) {
     const results: string[] = [];
 
     if (options.bio && user.bio) {
-      const { data: existing } = await getSupabaseAdmin().from('about').select('id').eq('owner_id', userId).maybeSingle();
-      if (existing) {
-        await getSupabaseAdmin().from('about').update({ bio: user.bio, updated_at: new Date().toISOString() }).eq('owner_id', userId);
-      } else {
-        await getSupabaseAdmin().from('about').insert({ bio: user.bio, owner_id: userId });
-      }
+      await saveOwnerRow('about', userId, { bio: user.bio }, { touch: true });
       results.push('bio');
     }
 

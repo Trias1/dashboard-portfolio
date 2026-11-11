@@ -102,7 +102,6 @@ export default function DashboardPreview({ portfolio, previewData, previewLoadin
         <div ref={pickerRef} className="relative">
           <button
             type="button"
-            aria-haspopup="listbox"
             aria-expanded={pickerOpen}
             aria-label="Portfolio template"
             disabled={templateLocked}
@@ -122,13 +121,14 @@ export default function DashboardPreview({ portfolio, previewData, previewLoadin
                 <p className="text-xs font-medium text-ink">Choose a template</p>
                 <p className="font-mono text-[11px] text-ink-soft">{templates.length} layouts</p>
               </div>
-              <ul role="listbox" aria-label="Templates" className="grid max-h-[60vh] overflow-y-auto p-1 sm:grid-cols-2">
+              <ul aria-label="Templates" className="grid max-h-[60vh] overflow-y-auto p-1 sm:grid-cols-2">
                 {templates.map((value) => {
                   const selected = value === currentTemplate;
                   return (
-                    <li key={value} role="option" aria-selected={selected}>
+                    <li key={value}>
                       <button
                         type="button"
+                        aria-pressed={selected}
                         onClick={async () => {
                           setPickerOpen(false);
                           if (!selected) await changeTemplate(value);

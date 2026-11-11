@@ -350,6 +350,10 @@ export function ProjectEditor({
           className={`${inputClass} mt-2`}
           placeholder="Or paste an image URL"
         />
+        <p className="mt-1.5 text-xs text-ink-soft">
+          No image? The portfolio shows a live screenshot of the Demo URL, made by WordPress.com&rsquo;s
+          screenshot service (the link is sent to it).
+        </p>
       </div>
     </div>
   );

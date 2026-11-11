@@ -1,6 +1,7 @@
 import { NextRequest } from 'next/server';
 import { requireAuth } from '@/lib/auth';
 import { getSupabaseAdmin } from '@/lib/supabase/admin';
+import { saveOwnerRow } from '@/lib/supabase/owner-row';
 import { uploadFile } from '@/lib/supabase/storage';
 import { validateUpload } from '@/lib/upload-validation';
 import { errorResponse, successResponse, getErrorMessage } from '@/lib/utils';
@@ -18,16 +19,7 @@ export async function POST(request: NextRequest) {
     const fileName = `cv-${auth.id}.${checked.type.ext}`;
     const cv_url = await uploadFile(checked.buffer, fileName, checked.type.mime, 'cv');
 
-    const { data: existing } = await getSupabaseAdmin().from('about').select('id').eq('owner_id', auth.id).maybeSingle();
-
-    if (existing) {
-      await getSupabaseAdmin()
-        .from('about')
-        .update({ cv_url, updated_at: new Date().toISOString() })
-        .eq('owner_id', auth.id);
-    } else {
-      await getSupabaseAdmin().from('about').insert({ owner_id: auth.id, cv_url });
-    }
+    await saveOwnerRow('about', auth.id, { cv_url }, { touch: true });
 
     return successResponse({ cv_url });
   } catch (err) { return errorResponse(getErrorMessage(err)); }

@@ -41,8 +41,9 @@ export function Field({ id, label, hint, ...props }: InputHTMLAttributes<HTMLInp
     <div>
       <label htmlFor={id} className="mb-1.5 block text-sm font-medium">{label}</label>
       <input id={id} {...props}
+        aria-describedby={[props['aria-describedby'], hint ? `${id}-hint` : ''].filter(Boolean).join(' ') || undefined}
         className={`w-full rounded-md border border-rule bg-white px-3 py-2.5 text-[15px] text-ink placeholder:text-[#9a9aa0] outline-none transition-colors focus:border-ink focus:ring-2 focus:ring-ink/10 ${props.className || ''}`} />
-      {hint && <p className="mt-1.5 text-xs text-ink-soft">{hint}</p>}
+      {hint && <p id={`${id}-hint`} className="mt-1.5 text-xs text-ink-soft">{hint}</p>}
     </div>
   );
 }

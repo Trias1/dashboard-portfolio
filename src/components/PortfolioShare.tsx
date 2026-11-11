@@ -9,10 +9,17 @@ export default function PortfolioShare({ title, accentColor }: { title: string; 
 
   const share = async () => {
     const url = window.location.href.split('?')[0];
-    if (navigator.share) return navigator.share({ title, url });
-    await navigator.clipboard.writeText(url);
-    setCopied(true);
-    window.setTimeout(() => setCopied(false), 1500);
+    try {
+      if (navigator.share) {
+        await navigator.share({ title, url });
+        return;
+      }
+      await navigator.clipboard.writeText(url);
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 1500);
+    } catch {
+      // Share sheet closed, or clipboard blocked: nothing to do
+    }
   };
 
   const url = typeof window === 'undefined' ? '' : window.location.href.split('?')[0];
@@ -29,6 +36,7 @@ export default function PortfolioShare({ title, accentColor }: { title: string; 
       <button type="button" onClick={() => void share()} className="rounded-full px-4 py-3 font-medium shadow-xl" style={{ backgroundColor: accentColor, color: readableOn(accentColor) }} aria-label="Share portfolio">
         {copied ? 'Copied' : 'Share'}
       </button>
+      <span role="status" className="sr-only">{copied ? 'Link copied' : ''}</span>
       <button type="button" onClick={() => setShowQr((visible) => !visible)} className="rounded-full bg-white px-4 py-3 font-medium text-gray-900 shadow-xl" aria-expanded={showQr} aria-label="Show portfolio QR code">
         QR
       </button>

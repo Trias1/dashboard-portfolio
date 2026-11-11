@@ -171,10 +171,11 @@ export default function SortableSection({
 
       <span
         className={`flex-1 truncate text-sm ${
-          section.enabled ? "text-ink" : "text-[#8a8a90]"
+          section.enabled ? "text-ink" : "text-ink-soft"
         } ${isActive ? "font-medium" : ""}`}
       >
         {section.label}
+        {!section.enabled && <span className="ml-1.5 text-xs text-ink-soft">(hidden)</span>}
       </span>
 
       <button

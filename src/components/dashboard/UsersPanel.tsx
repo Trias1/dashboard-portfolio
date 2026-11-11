@@ -43,7 +43,12 @@ export default function UsersPanel({ users, fetchUsers }: Props) {
                   <td className="px-4 py-2.5 text-ink">{u.name}</td>
                   <td className="px-4 py-2.5 text-ink-soft">{u.email}</td>
                   <td className="px-4 py-2.5">
-                    <select aria-label={`Role for ${u.name || u.email}`} value={u.role} onChange={e => { const role = e.target.value; run(() => api.patch(`/api/users/${u.id}`, { role })); }}
+                    <select aria-label={`Role for ${u.name || u.email}`} value={u.role} onChange={e => {
+                      const role = e.target.value;
+                      // Role changes grant or remove admin rights: confirm first (the select snaps back if cancelled)
+                      if (!window.confirm(`Change ${u.name || u.email} from ${u.role} to ${role}?`)) return;
+                      run(() => api.patch(`/api/users/${u.id}`, { role }));
+                    }}
                       className="rounded-md border border-rule bg-white px-2 py-1 font-mono text-xs text-ink outline-none focus:border-ink focus:ring-2 focus:ring-ink/10">
                       <option value="user">user</option>
                       <option value="admin">admin</option>
@@ -51,7 +56,10 @@ export default function UsersPanel({ users, fetchUsers }: Props) {
                     </select>
                   </td>
                   <td className="px-4 py-2.5">
-                    <button type="button" title="Click to switch" aria-label={`Toggle status for ${u.name || u.email}`} onClick={() => run(() => api.patch(`/api/users/${u.id}`, { is_active: !u.is_active }))}
+                    <button type="button" title={u.is_active ? 'Click to deactivate' : 'Click to activate'} aria-label={`${u.is_active ? 'Deactivate' : 'Activate'} ${u.name || u.email}`} onClick={() => {
+                      if (u.is_active && !window.confirm(`Deactivate ${u.name || u.email}? They can't log in until reactivated.`)) return;
+                      run(() => api.patch(`/api/users/${u.id}`, { is_active: !u.is_active }));
+                    }}
                       className="inline-flex items-center gap-1.5 rounded px-1.5 py-0.5 text-xs text-ink hover:bg-paper-deep">
                       <span aria-hidden="true" className={`h-1.5 w-1.5 rounded-full ${u.is_active ? 'bg-emerald-600' : 'bg-red-600'}`} />
                       {u.is_active ? 'Active' : 'Inactive'}

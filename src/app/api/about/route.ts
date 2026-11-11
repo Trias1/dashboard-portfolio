@@ -1,6 +1,7 @@
 import { NextRequest } from 'next/server';
 import { requireAuth, getAuthUser } from '@/lib/auth';
 import { getSupabaseAdmin } from '@/lib/supabase/admin';
+import { saveOwnerRow } from '@/lib/supabase/owner-row';
 import { errorResponse, successResponse, getErrorMessage } from '@/lib/utils';
 import { uploadFile } from '@/lib/supabase/storage';
 import { checkSectionBody } from '@/lib/validate';
@@ -26,13 +27,7 @@ export async function PUT(request: NextRequest) {
     const invalid = checkSectionBody(body, { links: ['photo_url', 'cv_url'] });
     if (invalid) return errorResponse(invalid, 400);
     const { name, title, bio, photo_url, cv_url } = body;
-    const { data: existing } = await getSupabaseAdmin().from('about').select('id').eq('owner_id', auth.id).maybeSingle();
-    let result;
-    if (existing) {
-      result = await getSupabaseAdmin().from('about').update({ name, title, bio, photo_url, cv_url, updated_at: new Date().toISOString() }).eq('owner_id', auth.id).select().single();
-    } else {
-      result = await getSupabaseAdmin().from('about').insert({ name, title, bio, photo_url, cv_url, owner_id: auth.id }).select().single();
-    }
-    return successResponse(result.data);
+    const saved = await saveOwnerRow('about', auth.id, { name, title, bio, photo_url, cv_url }, { touch: true });
+    return successResponse(saved);
   } catch (err) { return errorResponse(getErrorMessage(err)); }
 }
