@@ -20,5 +20,5 @@ Read README.md first (env vars, auth flow, branches: feature → staging (demo) 
 - Registered in src/app/portfolio/[slug]/page.tsx, the dashboard template picker (DashboardPreview) and src/app/demo/page.tsx.
 
 ## Checks before pushing
-- `npx tsc --noEmit -p .`, `npm run lint` (0 errors), `npm run build` — the pre-push hook enforces lint + build.
+- `npm run typecheck`, `npm run lint` (0 errors), `npm test`, `npm run build` — the pre-push hook enforces lint + build; GitHub Actions CI runs all four.
 - No credentials in commits.

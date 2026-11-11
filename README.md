@@ -25,7 +25,7 @@ Next.js 16 (App Router), React 19, TypeScript, Tailwind CSS v4, Supabase (Postgr
 
 ## Getting started
 
-Requirements: Node.js 20+, npm, a Supabase project, and a Gmail account with an app password for outgoing mail.
+Requirements: Node.js 24 (see `engines` in package.json), npm, a Supabase project, and a Gmail account with an app password for outgoing mail.
 
 ```bash
 git clone https://github.com/Trias1/dashboard-portfolio.git
@@ -38,9 +38,11 @@ npm run dev                  # http://localhost:3000 (use -p 3001 if 3000 is tak
 Other scripts:
 
 ```bash
-npm run lint    # ESLint (must report 0 errors — see "Git hooks" below)
-npm run build   # production build
-npm start       # serve the production build
+npm run lint       # ESLint (must report 0 errors — see "Git hooks" below)
+npm run typecheck  # TypeScript, no output files
+npm test           # unit tests (node:test, files named *.test.ts next to the code)
+npm run build      # production build
+npm start          # serve the production build
 ```
 
 ## Environment variables
@@ -96,6 +98,8 @@ Uptime monitors should use `GET /api/health`: it returns `200 {"ok":true}` witho
 ## Git hooks
 
 A global pre-push hook runs `npm run lint` and `npm run build`; a push is rejected if either fails. Don't bypass it. Before pushing, also make sure no credentials are in the diff.
+
+GitHub Actions (`.github/workflows/ci.yml`) runs lint, type check, unit tests and build on every push to `main`/`staging` and on pull requests. It uses no secrets.
 
 ## Templates
 
