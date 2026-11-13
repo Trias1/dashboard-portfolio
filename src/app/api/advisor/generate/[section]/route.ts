@@ -3,6 +3,7 @@ import { requireAuth } from '@/lib/auth';
 import { getSupabaseAdmin } from '@/lib/supabase/admin';
 import { checkRateLimit } from '@/lib/rate-limit';
 import { AI_ENABLED } from '@/lib/features';
+import { aiAvailable } from '@/lib/app-settings';
 import { errorResponse, getErrorMessage, successResponse } from '@/lib/utils';
 import { DRAFT_PROMPTS, DRAFT_RULES, NOT_DRAFTED, isDraftSection, normalizeDraft, parseModelJson } from '@/lib/advisor-drafts';
 
@@ -14,6 +15,7 @@ const MAX_CONTEXT_CHARS = 6000;
 export async function POST(request: NextRequest, { params }: { params: Promise<{ section: string }> }) {
   try {
     if (!AI_ENABLED) return new Response('Not found', { status: 404 });
+    if (!(await aiAvailable())) return new Response('The AI assistant is switched off for now.', { status: 503 });
     const auth = await requireAuth(request);
     const { section } = await params;
     if (!isDraftSection(section)) {

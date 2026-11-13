@@ -3,6 +3,15 @@ import { requireAuth } from '@/lib/auth';
 import { getSupabaseAdmin } from '@/lib/supabase/admin';
 import { errorResponse, successResponse } from '@/lib/utils';
 import { checkSlug } from '@/lib/slug';
+import { isAdminReserved } from '@/lib/app-settings';
+
+const TAKEN_DOWN = "An admin took this portfolio down, so it can't be published. See the note in your dashboard.";
+
+/** Whether a superadmin has taken this portfolio down (migration 008; `*` so it works before the column exists). */
+async function isTakenDown(id: string, ownerId: number) {
+  const { data } = await getSupabaseAdmin().from('portfolios').select('*').eq('id', id).eq('owner_id', ownerId).maybeSingle();
+  return !!data?.taken_down_at;
+}
 
 const authStatus = (err: unknown) => {
   const message = err instanceof Error ? err.message : '';
@@ -21,6 +30,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     if (sections_order !== undefined) updates.sections_order = sections_order;
     if (is_published !== undefined) updates.is_published = is_published;
     if (template !== undefined) updates.template = template;
+    if (updates.is_published === true && await isTakenDown(id, auth.id)) return errorResponse(TAKEN_DOWN, 403);
     const { data, error } = await getSupabaseAdmin().from('portfolios').update(updates).eq('id', id).eq('owner_id', auth.id).select().maybeSingle();
     if (error) return errorResponse(error.message, 500);
     if (!data) return errorResponse('Portfolio not found', 404);
@@ -41,6 +51,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
       const checked = checkSlug(body.slug);
       if ('error' in checked) return errorResponse(checked.error, 400);
       const cleanSlug = checked.slug;
+      if (await isAdminReserved(cleanSlug)) return errorResponse(`"${cleanSlug}" is reserved. Pick another slug.`, 400);
       const { data: existing } = await getSupabaseAdmin().from('portfolios').select('id').eq('slug', cleanSlug).neq('id', id).maybeSingle();
       if (existing) return errorResponse('That slug is already taken', 400);
       updates.slug = cleanSlug;
@@ -49,6 +60,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     if (body.publish !== undefined) {
       if (typeof body.publish !== 'boolean') return errorResponse('Invalid publish value', 400);
       updates.is_published = body.publish;
+      if (body.publish && await isTakenDown(id, auth.id)) return errorResponse(TAKEN_DOWN, 403);
     }
 
     const { data, error } = await getSupabaseAdmin().from('portfolios').update(updates).eq('id', id).eq('owner_id', auth.id).select().maybeSingle();

@@ -11,6 +11,7 @@ const GOOGLE_ERRORS: Record<string, string> = {
   rate_limited: 'Too many sign-in attempts. Wait a few minutes and try again.',
   email_not_verified: "Your Google email isn't verified yet. Verify it with Google, then try again.",
   account_inactive: "This account is inactive. Contact support if you think that's a mistake.",
+  signups_closed: "New accounts can't be created right now. If you already have one, log in with your email.",
 };
 const urlNotice = (): { error?: string; info?: string } => {
   if (typeof window === 'undefined') return {};
@@ -44,7 +45,7 @@ export default function LoginPage() {
         const res = await axios.post('/api/auth/refresh', {}, { withCredentials: true });
         setToken(res.data.accessToken);
         const user = res.data.user || JSON.parse(localStorage.getItem('user') || '{}');
-        router.replace(user.role === 'admin' || user.role === 'superadmin' ? '/dashboard' : '/portfolio');
+        router.replace(user.role === 'admin' || user.role === 'superadmin' ? '/dashboard' : '/');
       } catch {
         setLoading(false);
       }
@@ -94,7 +95,7 @@ export default function LoginPage() {
         setToken(res.data.accessToken);
         setUser(res.data.user);
         const u = res.data.user;
-        window.location.assign(u.role === 'superadmin' || u.role === 'admin' ? '/dashboard' : '/portfolio');
+        window.location.assign(u.role === 'superadmin' || u.role === 'admin' ? '/dashboard' : '/');
       }
     } catch (err: unknown) {
       setError(getApiErrorMessage(err, 'Invalid OTP'));

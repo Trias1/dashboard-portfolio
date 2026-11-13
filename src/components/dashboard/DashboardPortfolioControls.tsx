@@ -29,7 +29,8 @@ export default function DashboardPortfolioControls({
   const [editingSlug, setEditingSlug] = useState(false);
   const [slug, setSlug] = useState("");
   const [slugError, setSlugError] = useState("");
-  const isAdmin = activeMenu !== "superadmin" && activeMenu !== "users";
+  // The superadmin panels have no builder, so no portfolio controls either.
+  const isAdmin = !["overview", "superadmin", "users", "reports", "activity", "settings"].includes(activeMenu);
   const saveSlug = async () => {
     if (!portfolio) return;
     try {
@@ -58,9 +59,9 @@ export default function DashboardPortfolioControls({
               <span className="inline-flex items-center gap-1.5 text-xs text-ink-soft">
                 <span
                   aria-hidden="true"
-                  className={`h-1.5 w-1.5 rounded-full ${portfolio.is_published ? "bg-emerald-600" : "bg-[#b0b0a8]"}`}
+                  className={`h-1.5 w-1.5 rounded-full ${portfolio.taken_down_at ? "bg-red-600" : portfolio.is_published ? "bg-emerald-600" : "bg-[#b0b0a8]"}`}
                 />
-                {portfolio.is_published ? "Live" : "Draft"}
+                {portfolio.taken_down_at ? "Taken down" : portfolio.is_published ? "Live" : "Draft"}
               </span>
             )}
             {portfolio && !editingSlug && (
@@ -112,7 +113,7 @@ export default function DashboardPortfolioControls({
         )}
       </div>
       <div className="flex items-center gap-2">
-        {portfolio?.is_published && (
+        {isAdmin && portfolio?.is_published && !portfolio.taken_down_at && (
           <a
             href={`/portfolio/${portfolio.slug}`}
             target="_blank"
@@ -125,7 +126,7 @@ export default function DashboardPortfolioControls({
             </svg>
           </a>
         )}
-        {portfolio && isAdmin && (
+        {portfolio && isAdmin && !portfolio.taken_down_at && (
           <button
             type="button"
             onClick={onTogglePublish}

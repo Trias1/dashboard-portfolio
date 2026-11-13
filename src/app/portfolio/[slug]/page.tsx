@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation';
 import PublicPortfolioView from '@/components/PublicPortfolioView';
 import { loadPublicPortfolioCached } from '@/lib/public-portfolio';
 import { buildPersonJsonLd, buildPortfolioSeo, jsonLdScript } from '@/lib/portfolio-seo';
+import { aiAvailable } from '@/lib/app-settings';
 
 // Drafts depend on the viewer's session, and edits should show up right away.
 export const dynamic = 'force-dynamic';
@@ -24,9 +25,11 @@ export async function generateMetadata(props: Props): Promise<Metadata> {
   if (!data) return { title: 'Portfolio Not Found', robots: { index: false, follow: false } };
 
   const { portfolio } = data;
-  if (!portfolio.is_published || portfolio.slug === 'demo') {
-    // The owner's draft preview, and the sample data: a real title, but kept out of search results
-    return { title: `${portfolio.slug === 'demo' ? 'Demo' : 'Draft preview'} · ${portfolio.title || portfolio.slug}`, robots: { index: false, follow: false } };
+  const takenDown = !!portfolio.taken_down_at;
+  if (!portfolio.is_published || takenDown || portfolio.slug === 'demo') {
+    // The owner's draft or taken-down preview, and the sample data: a real title, but kept out of search results
+    const label = portfolio.slug === 'demo' ? 'Demo' : takenDown ? 'Taken down' : 'Draft preview';
+    return { title: `${label} · ${portfolio.title || portfolio.slug}`, robots: { index: false, follow: false } };
   }
 
   const about = data.about as { name?: string; bio?: string } | null;
@@ -43,7 +46,7 @@ export async function generateMetadata(props: Props): Promise<Metadata> {
 }
 
 export default async function PublicPortfolioPage(props: Props) {
-  const data = await load(props);
+  const [data, aiEnabled] = await Promise.all([load(props), aiAvailable()]);
   if (!data) notFound();
 
   const indexable = data.portfolio.is_published && data.portfolio.slug !== 'demo' && !data.preview;
@@ -65,7 +68,7 @@ export default async function PublicPortfolioPage(props: Props) {
       )}
       {/* Shown as-is when scripts don't run; otherwise OrderSections reveals it once the sections are ordered */}
       <noscript><style>{'[data-order-pending]{visibility:visible!important}'}</style></noscript>
-      <PublicPortfolioView initial={data} />
+      <PublicPortfolioView initial={data} aiEnabled={aiEnabled} />
     </>
   );
 }

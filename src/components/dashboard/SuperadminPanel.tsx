@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import type { AdminStats, VercelLogEntry } from '@/types';
+import AdminHealthSection from '@/components/dashboard/AdminHealthSection';
 
 interface Props {
   adminStats: AdminStats | null;
@@ -10,6 +11,7 @@ interface Props {
   vercelLogsError: string;
   fetchAdminStats: () => void;
   fetchVercelLogs: () => void;
+  onOpenReports?: () => void;
 }
 
 const levelStyles: Record<string, string> = {
@@ -24,7 +26,7 @@ const levelDots: Record<string, string> = {
   info: 'bg-[#b0b0a8]',
 };
 
-export default function SuperadminPanel({ adminStats, vercelLogs, vercelLogsLoading, vercelLogsError, fetchAdminStats, fetchVercelLogs }: Props) {
+export default function SuperadminPanel({ adminStats, vercelLogs, vercelLogsLoading, vercelLogsError, fetchAdminStats, fetchVercelLogs, onOpenReports }: Props) {
   const [levelFilter, setLevelFilter] = useState('all');
   const visibleLogs = useMemo(
     () => levelFilter === 'all' ? vercelLogs : vercelLogs.filter((log) => log.level === levelFilter),
@@ -36,8 +38,8 @@ export default function SuperadminPanel({ adminStats, vercelLogs, vercelLogsLoad
       <div className="mx-auto max-w-6xl space-y-6">
         <div className="flex flex-wrap items-end justify-between gap-3">
           <div>
-            <h2 className="font-display text-2xl font-semibold tracking-tight">Server logs</h2>
-            <p className="mt-1 text-sm text-ink-soft">Latest runtime events from the production deployment on Vercel.</p>
+            <h2 className="font-display text-2xl font-semibold tracking-tight">Server</h2>
+            <p className="mt-1 text-sm text-ink-soft">Health of the services the app depends on, and the latest runtime events on Vercel.</p>
           </div>
           <button type="button" onClick={() => { fetchAdminStats(); fetchVercelLogs(); }} className="rounded-md border border-rule bg-white px-3 py-1.5 text-xs font-medium text-ink transition-colors hover:border-ink-soft">
             Refresh
@@ -58,9 +60,10 @@ export default function SuperadminPanel({ adminStats, vercelLogs, vercelLogsLoad
             ))}
           </dl>
         )}
+        <AdminHealthSection onOpenReports={onOpenReports} />
         <section className="overflow-hidden rounded-lg border border-rule bg-white">
           <div className="flex flex-wrap items-center justify-between gap-3 border-b border-rule px-4 py-3">
-            <h3 className="text-sm font-medium">Events</h3>
+            <h3 className="text-sm font-medium">Server log events</h3>
             <div role="group" aria-label="Filter by level" className="flex overflow-hidden rounded-md border border-rule text-xs">
               {['all', 'error', 'warning', 'info'].map((level) => (
                 <button key={level} type="button" aria-pressed={levelFilter === level} onClick={() => setLevelFilter(level)} className={`px-2.5 py-1 transition-colors ${levelFilter === level ? 'bg-paper-deep font-medium text-ink' : 'text-ink-soft hover:text-ink'}`}>

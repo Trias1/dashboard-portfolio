@@ -3,6 +3,7 @@ import { cache } from 'react';
 import { getSupabaseAdmin } from '@/lib/supabase/admin';
 import { getAuthUser } from '@/lib/auth';
 import { projectImage } from '@/lib/project-screenshot';
+import { findPublicPortfolio, isRowPublic } from '@/lib/public-access';
 import type { CustomSectionContent, CustomSectionOutput, CustomSectionRow, SectionOrderEntry } from '@/types/api';
 
 /** What the public page and its API get: one portfolio with only the sections its owner has switched on. */
@@ -12,6 +13,8 @@ export interface PublicPortfolio {
   portfolio: {
     id: number; slug: string; title?: string; template?: string;
     sections_order: SectionOrderEntry[]; theme?: string; is_published?: boolean;
+    /** Set when a superadmin took it down (migration 008); only the owner and superadmins get it, as a preview. */
+    taken_down_at?: string | null;
   };
   hero: Record<string, unknown> | null;
   about: Record<string, unknown> | null;
@@ -152,7 +155,8 @@ export async function loadPublicPortfolio(
     const viewer = await getAuthUser(options.request);
     isPreview = !!viewer && (String(viewer.id) === String(portfolio.owner_id) || viewer.role === 'superadmin');
   }
-  if (!portfolio.is_published && !isPreview) return null;
+  // The public needs it published, not taken down, and its owner active; the owner and superadmins may still preview.
+  if (!isPreview && !(await isRowPublic(portfolio))) return null;
 
   const ownerId = portfolio.owner_id;
   const [hero, about, experience, projects, services, contact, skills, testimonials, gallery, custom] = await Promise.all([
@@ -189,6 +193,7 @@ export async function loadPublicPortfolio(
     portfolio: {
       id: portfolio.id, slug: portfolio.slug, title: portfolio.title, template: portfolio.template,
       sections_order: sectionsConfig, theme: portfolio.theme, is_published: portfolio.is_published,
+      taken_down_at: portfolio.taken_down_at ?? null,
     },
     hero: isEnabled('hero') ? (hero.data || null) : null,
     about: isEnabled('about') ? (about.data || null) : null,
@@ -213,12 +218,11 @@ export const loadPublicPortfolioCached = cache(
 /** The few fields the share card needs, for published portfolios only (crawlers never send a session). */
 export async function loadShareCard(slug: string) {
   const db = getSupabaseAdmin();
-  const { data: portfolio } = await db.from('portfolios')
-    .select('owner_id, slug, title, theme, is_published').eq('slug', slug).maybeSingle();
-  if (!portfolio?.is_published) return null;
+  const portfolio = await findPublicPortfolio(slug);
+  if (!portfolio) return null;
   const [{ data: about }, { data: hero }] = await Promise.all([
     db.from('about').select('name, title, bio, photo_url').eq('owner_id', portfolio.owner_id).maybeSingle(),
     db.from('hero').select('headline, subheadline').eq('owner_id', portfolio.owner_id).maybeSingle(),
   ]);
-  return { slug: portfolio.slug as string, title: portfolio.title as string | null, theme: portfolio.theme as string | null, about, hero };
+  return { slug: portfolio.slug, title: portfolio.title as string | null, theme: portfolio.theme as string | null, about, hero };
 }

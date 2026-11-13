@@ -3,6 +3,7 @@ import { requireAuth } from '@/lib/auth';
 import { getSupabaseAdmin } from '@/lib/supabase/admin';
 import { generateSlug, errorResponse, successResponse, getErrorMessage } from '@/lib/utils';
 import { checkSlug } from '@/lib/slug';
+import { isAdminReserved } from '@/lib/app-settings';
 
 export async function POST(request: NextRequest) {
   try {
@@ -13,6 +14,7 @@ export async function POST(request: NextRequest) {
     const checked = checkSlug(slug);
     if ('error' in checked) return errorResponse(checked.error, 400);
     const cleanSlug = checked.slug;
+    if (await isAdminReserved(cleanSlug)) return errorResponse(`"${cleanSlug}" is reserved. Pick another slug.`, 400);
     const { data, error } = await getSupabaseAdmin().from('portfolios').insert({ owner_id: auth.id, title, slug: cleanSlug }).select().single();
     if (error?.code === '23505') return errorResponse('Slug already taken', 400);
     return successResponse(data, 201);

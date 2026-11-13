@@ -2,8 +2,9 @@
 
 import { useState } from 'react';
 import { readableOn } from '@/lib/contrast';
+import ReportPortfolio from '@/components/ReportPortfolio';
 
-export default function PortfolioShare({ title, accentColor }: { title: string; accentColor: string }) {
+export default function PortfolioShare({ title, accentColor, slug }: { title: string; accentColor: string; slug?: string }) {
   const [showQr, setShowQr] = useState(false);
   const [copied, setCopied] = useState(false);
 
@@ -40,6 +41,8 @@ export default function PortfolioShare({ title, accentColor }: { title: string; 
       <button type="button" onClick={() => setShowQr((visible) => !visible)} className="rounded-full bg-white px-4 py-3 font-medium text-gray-900 shadow-xl" aria-expanded={showQr} aria-label="Show portfolio QR code">
         QR
       </button>
+      {/* Not on the built-in demo: there is nobody to report */}
+      {slug && slug !== 'demo' && <ReportPortfolio slug={slug} />}
     </div>
   );
 }

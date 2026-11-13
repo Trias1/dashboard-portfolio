@@ -2,6 +2,7 @@
 import { cookies } from 'next/headers';
 import crypto from 'crypto';
 import { getSupabaseAdmin } from '@/lib/supabase/admin';
+import { getAppSettings } from '@/lib/app-settings';
 import { signAccessToken, setAuthCookies, GOOGLE_STATE_COOKIE, safeRedirectPath } from '@/lib/auth';
 import { startSession, revokeAllSessions } from '@/lib/sessions';
 import { checkRateLimit, getClientId } from '@/lib/rate-limit';
@@ -90,6 +91,7 @@ export async function GET(request: NextRequest) {
     }
 
     let user = existingUser;
+    if (!user && !(await getAppSettings()).signupsOpen) return redirectToLogin('signups_closed');
     if (!user) {
       const { data: newUser, error: insertError } = await supabase
         .from('users')

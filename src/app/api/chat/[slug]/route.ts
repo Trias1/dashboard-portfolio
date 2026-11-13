@@ -1,6 +1,8 @@
 import { NextRequest } from 'next/server';
 import { AI_ENABLED } from '@/lib/features';
+import { aiAvailable } from '@/lib/app-settings';
 import { getSupabaseAdmin } from '@/lib/supabase/admin';
+import { findPublicPortfolio } from '@/lib/public-access';
 import { checkRateLimit, getClientId } from '@/lib/rate-limit';
 import type { Experience, Project } from '@/types';
 import type { ChatHistoryInput, SectionOrderEntry, SkillGroupRow } from '@/types/api';
@@ -26,6 +28,7 @@ const sanitizeHistory = (history: unknown) => {
 
 export async function POST(request: NextRequest, { params }: { params: Promise<{ slug: string }> }) {
   if (!AI_ENABLED) return new Response("Not found", { status: 404 });
+  if (!(await aiAvailable())) return new Response('The AI assistant is switched off for now.', { status: 503 });
   try {
     const { slug } = await params;
     const { message, history = [] } = await request.json();
@@ -35,7 +38,8 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     const rl = await checkRateLimit(`chat:${getClientId(request)}`, 'chat');
     if (!rl.allowed) return new Response('Too many requests. Please try again later.', { status: 429 });
 
-    const { data: portfolio } = await getSupabaseAdmin().from('portfolios').select('owner_id, title, sections_order').eq('slug', slug).eq('is_published', true).maybeSingle();
+    // Same rule as the page: drafts, taken-down portfolios and deactivated owners don't chat.
+    const portfolio = await findPublicPortfolio(slug);
     if (!portfolio) return new Response('Portfolio not found', { status: 404 });
 
     const ownerId = portfolio.owner_id;

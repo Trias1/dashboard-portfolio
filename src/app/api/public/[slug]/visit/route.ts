@@ -1,5 +1,6 @@
 import { NextRequest } from 'next/server';
 import { getSupabaseAdmin } from '@/lib/supabase/admin';
+import { findPublicPortfolio } from '@/lib/public-access';
 import { checkRateLimit, getClientId } from '@/lib/rate-limit';
 
 export const dynamic = 'force-dynamic';
@@ -19,8 +20,8 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     if (slug === 'demo' || !ua || BOT_UA.test(ua)) return new Response(null, { status: 204 });
 
     const db = getSupabaseAdmin();
-    const { data: portfolio } = await db.from('portfolios').select('id, is_published').eq('slug', slug).maybeSingle();
-    if (!portfolio?.is_published) return new Response(null, { status: 204 });
+    const portfolio = await findPublicPortfolio(slug);
+    if (!portfolio) return new Response(null, { status: 204 });
 
     const ip = getClientId(request);
     // At most a few visits per visitor and portfolio per 15 minutes, so refreshing or scripting can't inflate stats.

@@ -3,6 +3,7 @@ import { requireAuth } from '@/lib/auth';
 import { getSupabaseAdmin } from '@/lib/supabase/admin';
 import { saveOwnerRow } from '@/lib/supabase/owner-row';
 import { AI_ENABLED } from '@/lib/features';
+import { aiAvailable } from '@/lib/app-settings';
 import { errorResponse, getErrorMessage, readJsonBody, successResponse } from '@/lib/utils';
 import { isDraftSection, normalizeDraft, splitSkills, type BioDraft, type HeroDraft, type ServicesDraft, type SkillsDraft } from '@/lib/advisor-drafts';
 
@@ -21,6 +22,7 @@ function servicesShown(raw: unknown): boolean {
 export async function POST(request: NextRequest, { params }: { params: Promise<{ section: string }> }) {
   try {
     if (!AI_ENABLED) return new Response('Not found', { status: 404 });
+    if (!(await aiAvailable())) return new Response('The AI assistant is switched off for now.', { status: 503 });
     const auth = await requireAuth(request);
     const { section } = await params;
     if (!isDraftSection(section)) return errorResponse('This section cannot be saved from the Advisor.', 422);

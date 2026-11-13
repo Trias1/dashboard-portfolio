@@ -247,3 +247,53 @@ export async function requireSuperAdmin(request?: Request): Promise<JWTPayload> 
   if (!data || data.role !== 'superadmin' || data.is_active === false) throw new Error('Forbidden');
   return user;
 }
+
+// --- Admin step-up ("confirm it's you") before destructive superadmin actions ---
+// The superadmin signs in with Google, so a password can't be asked again: a 6-digit code goes to their own
+// email instead. Only an HMAC of the code is kept, in a signed cookie valid 5 minutes; a right code gives a
+// 10-minute sudo cookie tied to that admin's id.
+const SUDO_CHALLENGE_COOKIE = 'adminSudoChallenge';
+const SUDO_COOKIE = 'adminSudo';
+export const SUDO_MINUTES = 10;
+
+export async function issueSudoChallenge(adminId: number, email: string, code: string) {
+  const token = await new SignJWT({ id: adminId, h: otpHash(`sudo:${email}`, code) })
+    .setProtectedHeader({ alg: 'HS256' }).setAudience('sudo-otp').setIssuedAt().setExpirationTime('5m')
+    .sign(getSecret());
+  await setChallengeCookie(SUDO_CHALLENGE_COOKIE, token, 5 * 60);
+}
+
+/** Checks the code against the challenge cookie; on success swaps it for the sudo cookie. */
+export async function verifySudoChallenge(adminId: number, email: string, code: string): Promise<boolean> {
+  if (!/^\d{6}$/.test(code)) return false;
+  const cookieStore = await cookies();
+  const token = cookieStore.get(SUDO_CHALLENGE_COOKIE)?.value;
+  if (!token) return false;
+  try {
+    const { payload } = await jwtVerify(token, getSecret(), { audience: 'sudo-otp', algorithms: ['HS256'] });
+    if (payload.id !== adminId || typeof payload.h !== 'string') return false;
+    const expected = Buffer.from(payload.h, 'hex');
+    const actual = Buffer.from(otpHash(`sudo:${email}`, code), 'hex');
+    if (expected.length !== actual.length || !crypto.timingSafeEqual(expected, actual)) return false;
+  } catch { return false; }
+  cookieStore.delete(SUDO_CHALLENGE_COOKIE);
+  const sudo = await new SignJWT({ id: adminId })
+    .setProtectedHeader({ alg: 'HS256' }).setAudience('sudo').setIssuedAt().setExpirationTime(`${SUDO_MINUTES}m`)
+    .sign(getSecret());
+  await setChallengeCookie(SUDO_COOKIE, sudo, SUDO_MINUTES * 60);
+  return true;
+}
+
+/** True while this admin has confirmed with a code in the last SUDO_MINUTES minutes. */
+export async function hasSudo(adminId: number): Promise<boolean> {
+  const token = (await cookies()).get(SUDO_COOKIE)?.value;
+  if (!token) return false;
+  try {
+    const { payload } = await jwtVerify(token, getSecret(), { audience: 'sudo', algorithms: ['HS256'] });
+    return payload.id === adminId;
+  } catch { return false; }
+}
+
+/** The answer a route gives when a step-up is needed; the panel shows the code prompt and retries. */
+export const sudoRequired = () =>
+  Response.json({ message: "Confirm it's you first: we'll email you a code.", needsSudo: true }, { status: 403 });

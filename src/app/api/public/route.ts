@@ -1,11 +1,11 @@
-import { getSupabaseAdmin } from '@/lib/supabase/admin';
+import { listPublicPortfolios } from '@/lib/public-access';
 import { successResponse } from '@/lib/utils';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET() {
   try {
-    const { count } = await getSupabaseAdmin().from('portfolios').select('*', { count: 'exact', head: true }).eq('is_published', true);
+    const count = (await listPublicPortfolios()).length;
     return successResponse({ portfolios: count || 0 });
   } catch { return successResponse({ portfolios: 0 }); }
 }

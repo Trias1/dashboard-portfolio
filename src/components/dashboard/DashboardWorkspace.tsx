@@ -24,6 +24,9 @@ import GitHubPanel from "@/components/dashboard/GitHubPanel";
 import SuperadminPanel from "@/components/dashboard/SuperadminPanel";
 import AdminOverviewPanel from "@/components/dashboard/AdminOverviewPanel";
 import UsersPanel from "@/components/dashboard/UsersPanel";
+import ReportsPanel from "@/components/dashboard/ReportsPanel";
+import ActivityPanel from "@/components/dashboard/ActivityPanel";
+import SettingsPanel, { AnnouncementBanner } from "@/components/dashboard/SettingsPanel";
 import CVPanel from "@/components/dashboard/CVPanel";
 import AdvisorWidget from "@/components/AdvisorWidget";
 import InboxPanel from "@/components/dashboard/InboxPanel";
@@ -342,6 +345,33 @@ export default function DashboardPage() {
       .catch(() => {});
     return () => { alive = false; };
   }, [userIdForInbox, userRoleForInbox]);
+
+  // Open visitor reports, for the badge on the superadmin's Reports menu (refreshed when switching panels).
+  const [openReports, setOpenReports] = useState(0);
+  const refreshOpenReports = useCallback(() => {
+    api.get<{ open: number }>("/api/admin/reports", { params: { count: 1 } })
+      .then((res) => setOpenReports(res.data.open))
+      .catch(() => {});
+  }, []);
+  useEffect(() => {
+    if (userRoleForInbox !== "superadmin") return;
+    let alive = true;
+    api.get<{ open: number }>("/api/admin/reports", { params: { count: 1 } })
+      .then((res) => { if (alive) setOpenReports(res.data.open); })
+      .catch(() => {});
+    return () => { alive = false; };
+  }, [userRoleForInbox, activeMenu]);
+
+  // Settings switches that change what members see: the announcement banner and whether the Advisor shows.
+  const [siteSettings, setSiteSettings] = useState<{ aiEnabled: boolean; announcement: { text: string; level: "info" | "warning" } | null }>({ aiEnabled: AI_ENABLED, announcement: null });
+  useEffect(() => {
+    if (!userIdForInbox) return;
+    let alive = true;
+    api.get<{ aiEnabled: boolean; announcement: { text: string; level: "info" | "warning" } | null }>("/api/settings")
+      .then((res) => { if (alive) setSiteSettings(res.data); })
+      .catch(() => {});
+    return () => { alive = false; };
+  }, [userIdForInbox]);
 
   useEffect(() => {
     if (!user) return;
@@ -821,7 +851,8 @@ export default function DashboardPage() {
         setActiveMenu={setActiveMenu}
         setSidebarOpen={setSidebarOpen}
         usersLabel="Users"
-        badges={{ inbox: inboxUnread }}
+        badges={{ inbox: inboxUnread, reports: openReports }}
+        aiEnabled={siteSettings.aiEnabled}
       />
       {/* Main area */}
       <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
@@ -835,6 +866,16 @@ export default function DashboardPage() {
             account={<DashboardAccountMenu user={user} open={showUserMenu} onToggle={() => setShowUserMenu(!showUserMenu)} onProfile={() => { setShowProfile(true); setShowUserMenu(false); }} onLogout={() => { handleLogout(); setShowUserMenu(false); }} />}
           />
         </DashboardHeader>
+        {user?.role !== "superadmin" && siteSettings.announcement && (
+          <div className="mx-4 mt-3 md:mx-8"><AnnouncementBanner announcement={siteSettings.announcement} /></div>
+        )}
+        {portfolio?.taken_down_at && (
+          <div role="status" className="mx-4 mt-3 rounded-md border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-900 md:mx-8">
+            <p className="font-medium">An admin took your portfolio down, so visitors can&apos;t see it right now.</p>
+            {portfolio.takedown_reason && <p className="mt-0.5">Reason: {portfolio.takedown_reason}</p>}
+            <p className="mt-0.5 text-red-800">You can keep editing. Once it&apos;s fixed, ask the admin to restore it.</p>
+          </div>
+        )}
         {layoutError && (
           <div role="alert" className="mx-4 mt-3 flex items-start justify-between gap-3 rounded-md border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-800 md:mx-8">
             <span>{layoutError}</span>
@@ -857,7 +898,7 @@ export default function DashboardPage() {
             preview={renderPreview()}
           />
         )}
-        {AI_ENABLED && activeMenu === "advisor" && (
+        {AI_ENABLED && siteSettings.aiEnabled && activeMenu === "advisor" && (
           <div className="flex-1 flex flex-col overflow-hidden">
             <AdvisorWidget
               userId={user?.id}
@@ -953,11 +994,15 @@ export default function DashboardPage() {
             vercelLogsError={vercelLogsError}
             fetchAdminStats={fetchAdminStats}
             fetchVercelLogs={fetchVercelLogs}
+            onOpenReports={() => setActiveMenu("reports")}
           />
         )}
         {activeMenu === "users" && (
-          <UsersPanel users={users} fetchUsers={fetchUsers} />
+          <UsersPanel users={users} fetchUsers={fetchUsers} currentUserId={user?.id} />
         )}
+        {activeMenu === "reports" && <ReportsPanel onChanged={refreshOpenReports} />}
+        {activeMenu === "activity" && <ActivityPanel />}
+        {activeMenu === "settings" && <SettingsPanel />}
 
         {/* Delete Section Modal */}
         <DeleteSectionModal

@@ -2,7 +2,7 @@ import { getSupabaseAdmin } from './supabase/admin';
 
 const WINDOW_MS = 15 * 60 * 1000;
 const MAX_REQUESTS: Record<string, number> = {
-  global: 200, auth: 30, otp: 5, message: 3, chat: 30, ai: 20, upload: 30, ogimage: 30, loginfail: 20, visit: 3,
+  global: 200, auth: 30, otp: 5, message: 3, chat: 30, ai: 20, upload: 30, ogimage: 30, loginfail: 20, visit: 3, report: 5,
 };
 
 export type RateLimitType = keyof typeof MAX_REQUESTS;

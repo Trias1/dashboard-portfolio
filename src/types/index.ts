@@ -32,6 +32,9 @@ export interface Portfolio {
   theme?: JsonValue;
   sections_order?: JsonValue;
   is_published: boolean;
+  /** Set when a superadmin took the portfolio down (migration 008); the owner can't publish until it's restored. */
+  taken_down_at?: string | null;
+  takedown_reason?: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -271,6 +274,9 @@ export interface DashboardPortfolio {
   /** Stored as JSON; older rows may hold a serialized string. */
   sections_order?: DashboardSectionEntry[] | string | null;
   is_published: boolean;
+  /** Set when a superadmin took it down (migration 008): the dashboard shows the reason and hides Publish. */
+  taken_down_at?: string | null;
+  takedown_reason?: string | null;
   created_at?: string;
   updated_at?: string;
 }
@@ -431,6 +437,39 @@ export interface AdminStats {
   recentPortfolios: AdminPortfolioSummary[];
   onlineUsers: PresenceUser[];
   offlineUsers: PresenceUser[];
+  signupsByWeek?: { week: string; count: number }[];
+  visitsByDay?: { date: string; count: number }[];
+  visits30?: number;
+  topPortfolios?: { slug: string; title: string | null; visits: number }[];
+  statusShare?: { live: number; draft: number; 'taken-down': number; 'owner-inactive': number };
+  /** Count only: superadmins don't read other people's messages. */
+  messages30?: number;
+}
+
+/** GET /api/admin/health */
+export interface AdminHealth {
+  checkedAt: string;
+  usage: { db: { used: number; limit: number }; storage: { used: number; limit: number; files: number } } | null;
+  usageMissing: boolean;
+  ai: { ok: boolean; ms: number; error: string | null; enabled: boolean } | null;
+  mail: { ok: boolean; ms: number; error: string | null } | null;
+  lastCleanup: { at: string; report: Record<string, unknown> | null } | null;
+  openReports: number | null;
+}
+
+/** Row of GET /api/admin/reports */
+export interface AdminReport {
+  id: number;
+  portfolio_id: number;
+  slug: string | null;
+  owner_id: number | null;
+  reason: 'spam' | 'impersonation' | 'offensive' | 'other' | string;
+  details: string | null;
+  status: 'open' | 'dismissed' | 'actioned';
+  created_at: string;
+  resolved_at: string | null;
+  taken_down: boolean;
+  from_same_reporter: number;
 }
 
 /** Row of GET /api/admin/vercel-logs. */
@@ -452,6 +491,25 @@ export interface ManagedUser {
   role: UserRole;
   is_active: boolean;
   is_verified: boolean;
+  created_at?: string | null;
+  last_seen_at?: string | null;
+  portfolio?: {
+    id: number;
+    slug: string;
+    is_published: boolean;
+    taken_down_at: string | null;
+    takedown_reason: string | null;
+  } | null;
+}
+
+export interface AdminActionEntry {
+  id: number;
+  actor: string;
+  action: string;
+  target_user_id: number | null;
+  target_label: string | null;
+  details: Record<string, unknown> | null;
+  created_at: string;
 }
 
 export interface VisitChartPoint {

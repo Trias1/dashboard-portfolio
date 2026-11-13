@@ -1,5 +1,6 @@
 import { NextRequest } from 'next/server';
 import { AI_ENABLED } from '@/lib/features';
+import { aiAvailable } from '@/lib/app-settings';
 import { requireAuth } from '@/lib/auth';
 import { getSupabaseAdmin } from '@/lib/supabase/admin';
 import { checkRateLimit } from '@/lib/rate-limit';
@@ -13,6 +14,7 @@ const NINE_ROUTER_MODEL = process.env.NINE_ROUTER_MODEL || 'Projects';
 
 export async function POST(request: NextRequest) {
   if (!AI_ENABLED) return new Response("Not found", { status: 404 });
+  if (!(await aiAvailable())) return new Response('The AI assistant is switched off for now.', { status: 503 });
   try {
     const auth = await requireAuth(request);
     const { message, history = [] } = await request.json();

@@ -5,9 +5,9 @@ import { errorResponse, getErrorMessage } from '@/lib/utils';
 import { buildCvHtml, resolveTemplate } from '@/lib/cv-document';
 import { MAIN_URL } from '@/lib/portfolio-seo';
 
-// Public link to the owner's portfolio for the CV header — only when it is published, so the link works.
-function portfolioLink(p: { slug?: string | null; is_published?: boolean | null } | null) {
-  return p?.is_published && p.slug ? `${MAIN_URL}/portfolio/${p.slug}` : '';
+// Public link to the owner's portfolio for the CV header — only when the public can open it, so the link works.
+function portfolioLink(p: { slug?: string | null; is_published?: boolean | null; taken_down_at?: string | null } | null) {
+  return p?.is_published && !p.taken_down_at && p.slug ? `${MAIN_URL}/portfolio/${p.slug}` : '';
 }
 
 export async function GET(request: NextRequest) {
@@ -27,7 +27,7 @@ export async function GET(request: NextRequest) {
       db.from('contact_info').select('*').eq('owner_id', userId).maybeSingle(),
       db.from('gallery').select('*').eq('owner_id', userId).order('issued_date', { ascending: false, nullsFirst: false }),
       db.from('custom_sections').select('*').eq('owner_id', userId).order('sort_order', { ascending: true }),
-      db.from('portfolios').select('slug, is_published').eq('owner_id', userId).order('created_at', { ascending: true }).limit(1).maybeSingle(),
+      db.from('portfolios').select('*').eq('owner_id', userId).order('created_at', { ascending: true }).limit(1).maybeSingle(),
     ]);
 
     const failed = [about, hero, experience, skills, projects, contact, certificates, customSections, portfolio].find((r) => r.error);

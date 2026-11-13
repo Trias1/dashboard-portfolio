@@ -124,3 +124,20 @@ export async function sendContactNotification(ownerEmail: string, name: string, 
     html: `<div style="font-family:-apple-system,Segoe UI,Helvetica,Arial,sans-serif;max-width:480px;margin:0 auto;padding:32px 24px;background:#ffffff;color:#141414;line-height:1.55"><p style="margin:0 0 24px;font-weight:600;font-size:16px">PortfolioKit</p><h1 style="margin:0 0 16px;font-size:22px">New message from your portfolio</h1><p style="margin:0">${escapeHtml(name)} &lt;${escapeHtml(email)}&gt;</p><p style="margin:12px 0 0;padding:12px 14px;border-left:3px solid #1f45c9;background:#fafaf7;white-space:pre-wrap">${escapeHtml(message)}</p><p style="margin:32px 0 0;padding-top:16px;border-top:1px solid #dcdcd5;color:#55555a;font-size:12px">Reply to this email to answer the sender directly.</p></div>`,
   });
 }
+
+/** The code a superadmin types to confirm a destructive action (see issueSudoChallenge). */
+export async function sendAdminConfirmCode(email: string, code: string) {
+  const sender = getSender();
+  await transporter.sendMail({
+    from: sender.from,
+    to: email,
+    // The code in the subject: each mail looks different, so Gmail doesn't fold a newer code under an older one.
+    subject: `${code} is your PortfolioKit admin code`,
+    html: `<div style="font-family:-apple-system,Segoe UI,Helvetica,Arial,sans-serif;max-width:480px;margin:0 auto;padding:32px 24px;background:#ffffff;color:#141414;line-height:1.55"><p style="margin:0 0 24px;font-weight:600;font-size:16px">PortfolioKit</p><h1 style="margin:0 0 8px;font-size:22px">Confirm it's you</h1><p style="margin:0 0 16px">Someone signed in as a PortfolioKit superadmin asked to delete an account or change a role. Enter this code in the admin panel to continue:</p><p style="margin:0;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:32px;font-weight:700;letter-spacing:6px">${escapeHtml(code)}</p><p style="margin:32px 0 0;padding-top:16px;border-top:1px solid #dcdcd5;color:#55555a;font-size:12px">This code expires in 5 minutes. If this wasn't you, change your password and sign out everywhere.</p></div>`,
+  });
+}
+
+/** Logs in to the SMTP server without sending anything; for the admin health panel. */
+export async function verifyMailer(): Promise<void> {
+  await transporter.verify();
+}

@@ -5,6 +5,7 @@ import { checkRateLimit, getClientId } from '@/lib/rate-limit';
 import { sendContactNotification } from '@/lib/mailer';
 import { notifyRecipient } from '@/lib/notify-email';
 import { encryptField } from '@/lib/field-crypto';
+import { findPublicPortfolio } from '@/lib/public-access';
 
 const MAX_NAME_LENGTH = 100;
 const MAX_EMAIL_LENGTH = 254;
@@ -26,12 +27,8 @@ export async function POST(request: NextRequest) {
     if (email.length > MAX_EMAIL_LENGTH || !EMAIL_RE.test(email)) return errorResponse("That email address doesn't look right", 400);
     if (message.length > MAX_MESSAGE_LENGTH) return errorResponse(`Message can be at most ${MAX_MESSAGE_LENGTH} characters`, 400);
 
-    const { data: portfolio } = await getSupabaseAdmin()
-      .from('portfolios')
-      .select('owner_id')
-      .eq('slug', slug)
-      .eq('is_published', true)
-      .maybeSingle();
+    // Only portfolios the public can see take messages (not drafts, taken-down pages or deactivated owners).
+    const portfolio = await findPublicPortfolio(slug);
 
     if (!portfolio) return errorResponse('Portfolio not found', 404);
     const owner_id = portfolio.owner_id;

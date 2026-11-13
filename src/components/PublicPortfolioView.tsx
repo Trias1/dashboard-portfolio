@@ -48,7 +48,8 @@ const TEMPLATES: Record<string, ComponentType<TemplateProps>> = {
 const countedVisits = new Set<string>();
 
 /** The public portfolio page body. The server loads `initial`; this applies preview-only overrides and widgets. */
-export default function PublicPortfolioView({ initial }: { initial: PublicPortfolio }) {
+/** `aiEnabled`: the Settings switch, read on the server (NEXT_PUBLIC_AI_ENABLED must be true as well). */
+export default function PublicPortfolioView({ initial, aiEnabled = true }: { initial: PublicPortfolio; aiEnabled?: boolean }) {
   const searchParams = useSearchParams();
   const rawData = initial as unknown as PortfolioPageData & { preview?: boolean };
   // ?template=, ?theme= and ?order= only apply when the server confirmed a real preview (the owner or a
@@ -104,11 +105,11 @@ export default function PublicPortfolioView({ initial }: { initial: PublicPortfo
 
   const accentColor = theme.accent;
   const widget = isShowcase ? null : previewAllowed ? (
-    AI_ENABLED ? <AdvisorFloating accentColor={accentColor} /> : null
+    AI_ENABLED && aiEnabled ? <AdvisorFloating accentColor={accentColor} /> : null
   ) : (
     <>
-      <PortfolioShare title={data.about?.name || data.portfolio.title || data.portfolio.slug} accentColor={accentColor} />
-      {AI_ENABLED && <ChatWidget slug={data.portfolio.slug} accentColor={accentColor} ownerName={data.about?.name} />}
+      <PortfolioShare title={data.about?.name || data.portfolio.title || data.portfolio.slug} accentColor={accentColor} slug={data.portfolio.slug} />
+      {AI_ENABLED && aiEnabled && <ChatWidget slug={data.portfolio.slug} accentColor={accentColor} ownerName={data.about?.name} />}
     </>
   );
   const Template = TEMPLATES[templateName] || TEMPLATES.modern;

@@ -6,6 +6,7 @@ import { sendAccountExistsNotice, sendVerificationEmail } from '@/lib/mailer';
 import { generateSlug, errorResponse, successResponse, readJsonBody, invalidBodyResponse } from '@/lib/utils';
 import { checkRateLimit, getClientId } from '@/lib/rate-limit';
 import { BCRYPT_COST, MIN_PASSWORD_LENGTH, hashToken, normalizeEmail } from '@/lib/auth';
+import { getAppSettings } from '@/lib/app-settings';
 
 // Same answer whether or not the email already has an account, so the form can't be used to look up users.
 const DONE = { message: 'Registration received! Check your email to verify your account.' };
@@ -15,6 +16,8 @@ export async function POST(request: NextRequest) {
   try {
     const rl = await checkRateLimit(getClientId(request), 'auth');
     if (!rl.allowed) return errorResponse('Too many requests', 429);
+    // Closed by a superadmin (Settings). Checked before the email so the answer is the same for everyone.
+    if (!(await getAppSettings()).signupsOpen) return errorResponse('Sign-ups are closed for now. Please try again later.', 403);
 
     const body = await readJsonBody(request);
     if (!body) return invalidBodyResponse();

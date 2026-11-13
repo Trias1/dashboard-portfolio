@@ -2,6 +2,7 @@
 
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import type { AdminStats, PresenceUser } from '@/types';
+import AdminGrowthSection from '@/components/dashboard/AdminGrowthSection';
 
 const card = 'rounded-lg border border-rule bg-white';
 const cardTitle = 'text-sm font-medium text-ink';
@@ -40,6 +41,8 @@ export default function AdminOverviewPanel({ stats, onRefresh }: { stats: AdminS
             </div>
           ))}
         </dl>
+
+        <AdminGrowthSection stats={stats} />
 
         <div className="grid gap-6 lg:grid-cols-2">
           <section className={`${card} p-5`}>

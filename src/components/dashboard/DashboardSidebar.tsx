@@ -11,7 +11,12 @@ interface DashboardSidebarProps {
   usersLabel: string;
   /** Small counters next to menu items, e.g. unread messages: { inbox: 3 }. */
   badges?: Record<string, number>;
+  /** Runtime AI switch (Settings); the Advisor menu shows only when the deploy and the switch both allow it. */
+  aiEnabled?: boolean;
 }
+
+/** What a badge counts, for screen readers. */
+const BADGE_WORD: Record<string, string> = { inbox: "unread", reports: "open" };
 
 const paths: Record<string, string> = {
   builder: "M4 4h16v16H4z M8 8h8 M8 12h8 M8 16h5",
@@ -25,6 +30,9 @@ const paths: Record<string, string> = {
   overview: "M4 19V5 M4 19h16 M8 16v-4 M12 16V8 M16 16v-7",
   users:
     "M16 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2 M10 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8z M20 21v-2a4 4 0 0 0-3-3.9 M16 3.1a4 4 0 0 1 0 7.8",
+  reports: "M5 21V4 M5 4h11l-2 4 2 4H5",
+  activity: "M12 7v5l3 2 M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18z",
+  settings: "M4 6h9 M17 6h3 M4 12h3 M11 12h9 M4 18h11 M19 18h1 M15 4v4 M9 10v4 M17 16v4",
 };
 
 function MenuIcon({ name }: { name: string }) {
@@ -52,6 +60,7 @@ export default function DashboardSidebar({
   setSidebarOpen,
   usersLabel,
   badges = {},
+  aiEnabled = AI_ENABLED,
 }: DashboardSidebarProps) {
   const items =
     role === "superadmin"
@@ -59,10 +68,13 @@ export default function DashboardSidebar({
           { key: "overview", label: "Overview", icon: "overview" },
           { key: "superadmin", label: "Server", icon: "server" },
           { key: "users", label: usersLabel, icon: "users" },
+          { key: "reports", label: "Reports", icon: "reports" },
+          { key: "activity", label: "Activity", icon: "activity" },
+          { key: "settings", label: "Settings", icon: "settings" },
         ]
       : [
           { key: "builder", label: "Builder", icon: "builder" },
-          ...(AI_ENABLED ? [{ key: "advisor", label: "Advisor", icon: "advisor" }] : []),
+          ...(AI_ENABLED && aiEnabled ? [{ key: "advisor", label: "Advisor", icon: "advisor" }] : []),
           {
             key: "analytics",
             label: "Analytics",
@@ -128,7 +140,7 @@ export default function DashboardSidebar({
                   {badges[item.key] > 99 ? "99+" : badges[item.key]}
                 </span>
               )}
-              {!!badges[item.key] && <span className="sr-only">, {badges[item.key]} unread</span>}
+              {!!badges[item.key] && <span className="sr-only">, {badges[item.key]} {BADGE_WORD[item.key] || "new"}</span>}
             </button>
           );
         })}
