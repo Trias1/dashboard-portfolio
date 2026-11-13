@@ -2,6 +2,7 @@
 import { useState, useRef, useEffect } from 'react';
 import api, { initAuth, getToken } from '@/lib/api';
 import MessageText, { ElapsedSeconds } from '@/components/MessageText';
+import { clearAdvisorChats, loadAdvisorChat, saveAdvisorChat } from '@/lib/advisor-chat-store';
 
 interface GeneratedSkillCategory {
   title?: string;
@@ -65,6 +66,8 @@ interface Message {
   /** "notice" = a plain system message (AI unavailable, errors), rendered differently from an answer. */
   tone?: 'notice';
   preview?: { section: string; data: PreviewData };
+  /** Still being written (streaming answer, "Drafting…" notice): never stored, so leaving mid-answer keeps no half reply. */
+  pending?: true;
 }
 
 function asObject(payload: GeneratedPayload): GeneratedObject {
@@ -109,31 +112,56 @@ const pickSuggestions =() => [...ALL_SUGGESTED].sort(() => Math.random() - 0.5).
 
 const SERVICES_HIDDEN_HINT = 'Services is not on your portfolio yet. In the Builder, use **Add section → Services** to show it.';
 
+const GREETING: Message = { role: 'assistant', content: 'I can check how complete your portfolio is, suggest what to add, and help fill in some sections.\n\nUse the button below to check your portfolio, or ask a question.', preview: { section: 'boom', data: null } };
+
 interface AdvisorWidgetProps {
   inline?: boolean;
+  /** Dashboard only: keeps this account's conversation for the browser tab (see advisor-chat-store). */
+  userId?: number;
   /** Dashboard only: whether the Services section is in the layout and turned on. */
   servicesInLayout?: boolean;
   /** Dashboard only: puts the Services section on the page after services were saved. */
   onServicesSaved?: () => void;
 }
 
-export default function AdvisorWidget({ inline = false, servicesInLayout, onServicesSaved }: AdvisorWidgetProps) {
-  const [messages, setMessages] = useState<Message[]>([
-    { role: 'assistant', content: 'I can check how complete your portfolio is, suggest what to add, and help fill in some sections.\n\nUse the button below to check your portfolio, or ask a question.', preview: { section: 'boom', data: null } }
-  ]);
+export default function AdvisorWidget({ inline = false, userId, servicesInLayout, onServicesSaved }: AdvisorWidgetProps) {
+  // Read once on mount: the conversation from earlier in this browser tab, if any.
+  const [restored] = useState(() => loadAdvisorChat<Message>(userId));
+  const [messages, setMessages] = useState<Message[]>(() => restored?.messages ?? [GREETING]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [applying, setApplying] = useState<string | null>(null);
-  const [score, setScore] = useState<{score: number, total: number} | null>(null);
+  const [score, setScore] = useState<{score: number, total: number} | null>(() => restored?.score ?? null);
   // Shuffle and take 4; reshuffled whenever a new reply starts.
   const [suggested, setSuggested] = useState(pickSuggestions);
   const reshuffleSuggestions = () => setSuggested(pickSuggestions());
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const firstScroll = useRef(true);
+  const streamAbort = useRef<AbortController | null>(null);
 
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
+    // Jump straight to the end of a restored conversation; animate only for new messages.
+    messagesEndRef.current?.scrollIntoView({ behavior: firstScroll.current ? 'auto' : 'smooth', block: 'end' });
+    firstScroll.current = false;
   }, [messages]);
+
+  useEffect(() => {
+    if (userId === undefined) return;
+    const done = messages.filter((m) => !m.pending);
+    if (done.length === 1 && done[0] === GREETING && !score) clearAdvisorChats(userId);
+    else saveAdvisorChat(userId, { messages: done, score });
+  }, [messages, score, userId]);
+
+  // Leaving the Advisor mid-answer stops reading the stream; the half answer isn't kept (see `pending`).
+  useEffect(() => () => streamAbort.current?.abort(), []);
+
+  const clearChat = () => {
+    setMessages([GREETING]);
+    setScore(null);
+    clearAdvisorChats(userId);
+    inputRef.current?.focus();
+  };
 
   useEffect(() => {
     const t = setTimeout(() => inputRef.current?.focus(), 300);
@@ -181,7 +209,7 @@ export default function AdvisorWidget({ inline = false, servicesInLayout, onServ
   const generateSection = async (section: string) => {
     reshuffleSuggestions();
     setLoading(true);
-    setMessages(prev => [...prev, { role: 'assistant', content: `Drafting the ${section} section…`, tone: 'notice' }]);
+    setMessages(prev => [...prev, { role: 'assistant', content: `Drafting the ${section} section…`, tone: 'notice', pending: true }]);
     try {
       if (!getToken()) await initAuth();
       const res = await api.post<{ generated?: unknown }>(`/api/advisor/generate/${section}`);
@@ -321,6 +349,7 @@ export default function AdvisorWidget({ inline = false, servicesInLayout, onServ
     setMessages(prev => [...prev, {
       role: 'assistant',
       tone: 'notice',
+      pending: true,
       content: `Drafting ${sectionsToGenerate.join(', ')} from your portfolio…`
     }]);
 
@@ -382,9 +411,11 @@ export default function AdvisorWidget({ inline = false, servicesInLayout, onServ
 
     reshuffleSuggestions();
     setLoading(true);
-    setMessages(prev => [...prev, { role: 'assistant', content: '' }]);
+    setMessages(prev => [...prev, { role: 'assistant', content: '', pending: true }]);
 
     let fullContent = '';
+    const controller = new AbortController();
+    streamAbort.current = controller;
     try {
       if (!getToken()) await initAuth();
       const token = getToken();
@@ -394,7 +425,8 @@ export default function AdvisorWidget({ inline = false, servicesInLayout, onServ
           'Content-Type': 'application/json',
           'Authorization': token ? `Bearer ${token}` : ''
         },
-        body: JSON.stringify({ message: userMsg, history: messages.filter(m => m.tone !== 'notice').slice(-6).map(({ role, content }) => ({ role, content })) })
+        body: JSON.stringify({ message: userMsg, history: messages.filter(m => m.tone !== 'notice' && !m.pending).slice(-6).map(({ role, content }) => ({ role, content })) }),
+        signal: controller.signal,
       });
 
       if (!res.body) throw new Error('No response body');
@@ -415,7 +447,7 @@ export default function AdvisorWidget({ inline = false, servicesInLayout, onServ
             if (json.token) {
               fullContent += json.token;
               const snapshot = fullContent;
-              replaceLast({ role: 'assistant', content: snapshot });
+              replaceLast({ role: 'assistant', content: snapshot, pending: true });
             }
             if (json.done) setLoading(false);
           } catch {}
@@ -423,9 +455,11 @@ export default function AdvisorWidget({ inline = false, servicesInLayout, onServ
       }
       // The route streams nothing when the AI key is missing, and a canned "Sorry…" token when the upstream call throws.
       if (!fullContent.trim() || SERVER_FAILURE.test(fullContent.trim())) replaceLast({ role: 'assistant', content: AI_UNAVAILABLE, tone: 'notice' });
+      else replaceLast({ role: 'assistant', content: fullContent });
     } catch {
       replaceLast({ role: 'assistant', content: fullContent ? `${fullContent}\n\n(The answer was cut off.)` : AI_UNAVAILABLE, tone: fullContent ? undefined : 'notice' });
     } finally {
+      if (streamAbort.current === controller) streamAbort.current = null;
       setLoading(false);
     }
   };
@@ -441,15 +475,23 @@ export default function AdvisorWidget({ inline = false, servicesInLayout, onServ
           <h2 className="font-display text-2xl font-semibold tracking-tight">Advisor</h2>
           <p className="mt-0.5 text-sm text-ink-soft">Suggestions for completing your portfolio. Answers are AI-generated; check them before saving.</p>
         </div>
-        {scorePercent !== null && (
-          <div className="flex items-center gap-3" aria-label={`Portfolio ${scorePercent} percent complete`}>
-            <span className="text-xs text-ink-soft">Completeness</span>
-            <div className="h-1 w-28 overflow-hidden rounded-full bg-paper-deep">
-              <div className="h-full bg-accent transition-[width] duration-300 motion-reduce:transition-none" style={{ width: `${scorePercent}%` }} />
+        <div className="flex items-center gap-5">
+          {scorePercent !== null && (
+            <div className="flex items-center gap-3" aria-label={`Portfolio ${scorePercent} percent complete`}>
+              <span className="text-xs text-ink-soft">Completeness</span>
+              <div className="h-1 w-28 overflow-hidden rounded-full bg-paper-deep">
+                <div className="h-full bg-accent transition-[width] duration-300 motion-reduce:transition-none" style={{ width: `${scorePercent}%` }} />
+              </div>
+              <span className="font-mono text-sm tabular-nums">{scorePercent}%</span>
             </div>
-            <span className="font-mono text-sm tabular-nums">{scorePercent}%</span>
-          </div>
-        )}
+          )}
+          {messages.length > 1 && (
+            <button type="button" onClick={clearChat} disabled={loading || applying !== null}
+              className="rounded-md px-1.5 py-1 text-xs text-ink-soft underline-offset-4 transition-colors hover:text-ink hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent disabled:cursor-not-allowed disabled:opacity-50">
+              Clear chat
+            </button>
+          )}
+        </div>
       </header>
 
       {/* Messages */}

@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { motion } from "framer-motion";
 import api, { getApiErrorMessage } from "@/lib/api";
 import type { ProfileFormData } from "@/types";
@@ -15,6 +16,8 @@ interface DashboardProfileModalProps {
     value: ProfileForm | ((previous: ProfileForm) => ProfileForm),
   ) => void;
   setProfileError: (message: string) => void;
+  /** The account's current login email, where a reset link goes. */
+  accountEmail: string;
   onClose: () => void;
   onSubmit: (event: React.FormEvent) => void;
 }
@@ -23,6 +26,45 @@ const inputClass =
   "w-full rounded-md border border-rule bg-white px-3 py-2 text-sm text-ink placeholder:text-[#9a9aa0] outline-none transition-colors focus:border-ink focus:ring-2 focus:ring-ink/10";
 const labelClass = "mb-1.5 block text-sm font-medium text-ink";
 
+/** For a forgotten password (common for people who sign in with Google): mails the normal reset link to the login email. */
+function ResetByEmail({ email }: { email: string }) {
+  const [state, setState] = useState<"idle" | "sending" | "sent" | "error">("idle");
+  if (!email) return null;
+  if (state === "sent") {
+    return (
+      <p role="status" className="mt-1.5 text-xs leading-relaxed text-ink-soft">
+        Sent. Open the link we emailed to <span className="font-medium text-ink">{email}</span> to set a new
+        password (valid for 1 hour). Setting it signs you out on every device.
+      </p>
+    );
+  }
+  const send = async () => {
+    setState("sending");
+    try {
+      await api.post("/api/auth/forgot-password", { email });
+      setState("sent");
+    } catch {
+      setState("error");
+    }
+  };
+  return (
+    <p className="mt-1.5 text-xs text-ink-soft">
+      Forgot it?{" "}
+      <button
+        type="button"
+        onClick={send}
+        disabled={state === "sending"}
+        className="rounded-sm font-medium text-accent underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent disabled:opacity-60"
+      >
+        {state === "sending" ? "Sending…" : "Email me a reset link"}
+      </button>
+      {state === "error" && (
+        <span role="alert" className="ml-1 text-red-700">Couldn&apos;t send it. Try again in a few minutes.</span>
+      )}
+    </p>
+  );
+}
+
 export default function DashboardProfileModal({
   open,
   profileForm,
@@ -30,6 +72,7 @@ export default function DashboardProfileModal({
   profileError,
   setProfileForm,
   setProfileError,
+  accountEmail,
   onClose,
   onSubmit,
 }: DashboardProfileModalProps) {
@@ -166,6 +209,7 @@ export default function DashboardProfileModal({
               className={inputClass}
               placeholder="Required to change email/password"
             />
+            <ResetByEmail email={accountEmail} />
           </div>
           <div>
             <p className={labelClass}>

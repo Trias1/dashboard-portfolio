@@ -806,6 +806,7 @@ export default function DashboardPage() {
         profileError={profileError}
         setProfileForm={setProfileForm}
         setProfileError={setProfileError}
+        accountEmail={user?.email || ""}
         onSubmit={handleUpdateProfile}
         onClose={() => {
           setShowProfile(false);
@@ -859,6 +860,7 @@ export default function DashboardPage() {
         {AI_ENABLED && activeMenu === "advisor" && (
           <div className="flex-1 flex flex-col overflow-hidden">
             <AdvisorWidget
+              userId={user?.id}
               servicesInLayout={sections.some((s) => s.type === "services" && s.enabled)}
               onServicesSaved={showServicesSection}
             />

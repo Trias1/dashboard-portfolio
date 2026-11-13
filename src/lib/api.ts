@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { clearAdvisorChats } from './advisor-chat-store';
 
 let memoryToken: string | null = null;
 /** Minimal user shape cached client-side; only `role` is persisted to localStorage. */
@@ -14,7 +15,10 @@ export const getApiErrorMessage = (error: unknown, fallback: string) => axios.is
 export const setUser = (user: ApiUser | null) => {
   memoryUser = user;
   if (user) localStorage.setItem('user', JSON.stringify({ role: user.role }));
-  else localStorage.removeItem('user');
+  else {
+    localStorage.removeItem('user');
+    clearAdvisorChats(); // signed out: the Advisor conversation goes too
+  }
 };
 export const getUser = (): ApiUser | null => {
   if (memoryUser) return memoryUser;

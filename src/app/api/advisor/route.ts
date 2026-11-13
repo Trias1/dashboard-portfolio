@@ -49,7 +49,8 @@ export async function POST(request: NextRequest) {
     const total = sections.length;
 
     const systemPrompt = `You are a Portfolio Advisor AI helping ${about.name || 'a user'} improve their portfolio.
-Portfolio completeness: ${score}/${total}. Be helpful and concise.`;
+Portfolio completeness: ${score}/${total}. Be helpful and concise.
+Formatting: the chat shows short paragraphs, "- " bullets, **bold** and links. No tables, HTML or headings; use a code block only for code.`;
 
     const groqRes = await fetch(`${NINE_ROUTER_BASE_URL}/chat/completions`, {
       method: 'POST',
