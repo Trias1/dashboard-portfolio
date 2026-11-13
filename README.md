@@ -64,6 +64,7 @@ Put these in `.env.local` locally and in the Vercel project settings for deploym
 | `NINE_ROUTER_API_KEY`, `NINE_ROUTER_BASE_URL`, `NINE_ROUTER_MODEL` | no | AI provider for the Advisor, visitor chat and AI CV parsing. Without them CV import falls back to the keyword parser. |
 | `NEXT_PUBLIC_AI_ENABLED` | no | `true` shows the Advisor and the visitor chat. Leave unset to keep them hidden. |
 | `VERCEL_TOKEN`, `VERCEL_TOKEN_PROD`, `VERCEL_PROJECT_ID`, `VERCEL_TEAM_ID` | no | Superadmin "Server" panel (Vercel runtime logs). Team ID only for team projects. |
+| `CRON_SECRET` | for the daily cleanup | Random string, at least 16 characters (`node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"`). Vercel Cron sends it to `/api/cron/cleanup` (02:00 WIB, see `vercel.json`), which removes old rate-limit rows, expired sessions and reset links, and uploads no row has used for a week. Visits and messages are kept. Set it on the production project only: the demo shares the database, so one run a day is enough. Without it the route answers 401 and nothing is cleaned. |
 
 ## Authentication and security
 
