@@ -394,7 +394,7 @@ export default function ImmersiveTemplate({ data, theme, isPreview }: { data: Te
                     <p className="font-display text-2xl font-bold tracking-tight" style={{ color: ink }}>{cert.title}</p>
                     {cert.description && <p className="mt-2 leading-relaxed" style={{ color: p.muted }}>{cert.description}</p>}
                     <div className="mt-3 flex flex-wrap items-center gap-6">
-                      {cert.issued_date && <span className="font-mono text-sm" style={{ color: p.muted }}>{new Date(cert.issued_date).toLocaleDateString()}</span>}
+                      {cert.issued_date && <span className="font-mono text-sm" style={{ color: p.muted }}>{new Date(cert.issued_date).toLocaleDateString('en-US', { timeZone: 'UTC', year: 'numeric', month: 'short', day: 'numeric' })}</span>}
                       {cert.file_url && <BigLink href={cert.file_url} color={p.acText}>View certificate</BigLink>}
                     </div>
                   </figcaption>

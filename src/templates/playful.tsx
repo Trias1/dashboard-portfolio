@@ -429,7 +429,7 @@ export default function PlayfulTemplate({ data, theme, isPreview }: { data: Temp
                   <p className="mt-3 text-lg font-extrabold" style={{ color: ink, fontFamily: ROUNDED }}>{cert.title}</p>
                   {cert.description && <p className="mt-1 text-sm" style={{ color: p.muted }}>{cert.description}</p>}
                   <div className="mt-3 flex flex-wrap items-center gap-3 text-sm">
-                    {cert.issued_date && <span style={{ color: p.muted }}>{new Date(cert.issued_date).toLocaleDateString()}</span>}
+                    {cert.issued_date && <span style={{ color: p.muted }}>{new Date(cert.issued_date).toLocaleDateString('en-US', { timeZone: 'UTC', year: 'numeric', month: 'short', day: 'numeric' })}</span>}
                     {cert.file_url && <a href={cert.file_url} target="_blank" rel="noopener noreferrer" className="font-bold underline decoration-2 underline-offset-4" style={{ color: p.acText }}>View</a>}
                   </div>
                 </Card>

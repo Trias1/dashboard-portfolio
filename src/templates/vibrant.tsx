@@ -423,7 +423,7 @@ export default function VibrantTemplate({ data, theme, isPreview }: { data: Temp
                   <figcaption className="p-4">
                     <p className="font-display text-lg font-extrabold" style={{ color: ink }}>{cert.title}</p>
                     {cert.description && <p className="mt-1 text-sm" style={{ color: p.muted }}>{cert.description}</p>}
-                    {cert.issued_date && <p className="mt-2 font-mono text-xs" style={{ color: p.muted }}>{new Date(cert.issued_date).toLocaleDateString()}</p>}
+                    {cert.issued_date && <p className="mt-2 font-mono text-xs" style={{ color: p.muted }}>{new Date(cert.issued_date).toLocaleDateString('en-US', { timeZone: 'UTC', year: 'numeric', month: 'short', day: 'numeric' })}</p>}
                     {cert.file_url && <a href={cert.file_url} target="_blank" rel="noopener noreferrer" className="mt-3 inline-block text-sm font-bold underline underline-offset-4" style={{ color: p.acText }}>View certificate</a>}
                   </figcaption>
                 </figure>

@@ -393,7 +393,7 @@ export default function NatureTemplate({ data, theme, isPreview }: { data: Templ
                     </div>
                   )}
                   <figcaption>
-                    <p className="font-mono text-[11px]" style={{ color: p.moss }}>Pl. {i + 1}{cert.issued_date ? ` · ${new Date(cert.issued_date).toLocaleDateString()}` : ''}</p>
+                    <p className="font-mono text-[11px]" style={{ color: p.moss }}>Pl. {i + 1}{cert.issued_date ? ` · ${new Date(cert.issued_date).toLocaleDateString('en-US', { timeZone: 'UTC', year: 'numeric', month: 'short', day: 'numeric' })}` : ''}</p>
                     <p className="mt-1 font-serif text-lg" style={{ color: ink }}>{cert.title}</p>
                     {cert.description && <p className="mt-1 text-sm leading-relaxed" style={{ color: p.muted }}>{cert.description}</p>}
                     {cert.file_url && <p className="mt-2"><Link href={cert.file_url} p={p}>View certificate</Link></p>}

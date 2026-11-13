@@ -369,7 +369,7 @@ export default function RetroTemplate({ data, theme, isPreview }: { data: Templa
                     <figcaption>
                       <p className="font-bold uppercase tracking-wide" style={{ color: ink }}>{cert.title}</p>
                       {cert.description && <p className="mt-1 leading-6" style={{ color: p.muted }}>{cert.description}</p>}
-                      {cert.issued_date && <p className="mt-1 text-xs" style={{ color: p.muted }}>{new Date(cert.issued_date).toLocaleDateString()}</p>}
+                      {cert.issued_date && <p className="mt-1 text-xs" style={{ color: p.muted }}>{new Date(cert.issued_date).toLocaleDateString('en-US', { timeZone: 'UTC', year: 'numeric', month: 'short', day: 'numeric' })}</p>}
                       {cert.file_url && <p className="mt-1"><Bracket href={cert.file_url} p={p}>view</Bracket></p>}
                     </figcaption>
                   </figure>

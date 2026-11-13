@@ -72,14 +72,19 @@ export default function OrderSections({ sections_order, children }: { sections_o
       return moved;
     };
 
-    if (doOrder()) { ordered.current = true; return; }
+    // The server-rendered page is kept invisible until its sections are in the owner's order (see below)
+    const reveal = () => root.removeAttribute('data-order-pending');
+    if (doOrder()) { ordered.current = true; reveal(); return; }
 
     const raf = requestAnimationFrame(() => {
       if (doOrder()) ordered.current = true;
+      reveal();
     });
 
-    return () => cancelAnimationFrame(raf);
+    return () => { cancelAnimationFrame(raf); reveal(); };
   }, [sections_order]);
 
-  return <div ref={ref} style={{ display: 'contents' }}>{children}</div>;
+  // With a custom order the server HTML comes in the template's default order and is sorted once the page
+  // loads; data-order-pending (visibility: hidden in globals.css) stops visitors seeing sections jump.
+  return <div ref={ref} style={{ display: 'contents' }} data-order-pending={sections_order?.length ? '' : undefined}>{children}</div>;
 }

@@ -44,6 +44,12 @@ body {
   text-rendering: optimizeLegibility;
 }
 
+/* Public portfolio: hidden until OrderSections has put the sections in the owner's order (a <noscript> rule
+   on the page shows it when scripts don't run). */
+[data-order-pending] {
+  visibility: hidden;
+}
+
 ::selection {
   background: var(--color-accent);
   color: #fff;

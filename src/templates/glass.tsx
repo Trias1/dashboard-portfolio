@@ -396,7 +396,7 @@ export default function GlassTemplate({ data, theme, isPreview }: { data: Templa
                     <p className="text-sm" style={{ color: ink }}>{cert.title}</p>
                     {cert.description && <p className="mt-1 text-xs leading-relaxed" style={{ color: p.muted }}>{cert.description}</p>}
                     <p className="mt-2 flex items-center gap-4 font-mono text-xs" style={{ color: p.muted }}>
-                      {cert.issued_date && <span>{new Date(cert.issued_date).toLocaleDateString()}</span>}
+                      {cert.issued_date && <span>{new Date(cert.issued_date).toLocaleDateString('en-US', { timeZone: 'UTC', year: 'numeric', month: 'short', day: 'numeric' })}</span>}
                       {cert.file_url && <TextLink href={cert.file_url} p={p}>View<Arrow /></TextLink>}
                     </p>
                   </figcaption>

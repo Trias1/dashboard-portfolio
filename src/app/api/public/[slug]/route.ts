@@ -1,216 +1,23 @@
 ﻿import { NextRequest } from 'next/server';
-import { getSupabaseAdmin } from '@/lib/supabase/admin';
-import { getAuthUser } from '@/lib/auth';
-import { checkRateLimit, getClientId } from '@/lib/rate-limit';
+import { loadPublicPortfolio } from '@/lib/public-portfolio';
 import { errorResponse, successResponse, getErrorMessage } from '@/lib/utils';
-import type { CustomSectionContent, CustomSectionOutput, CustomSectionRow, SectionOrderEntry } from '@/types/api';
-import { projectImage } from '@/lib/project-screenshot';
 
 export const dynamic = 'force-dynamic';
 
+/**
+ * Portfolio data as JSON. The public page renders on the server and no longer calls this; the dashboard uses it
+ * (with ?preview=true and its Bearer token) to load the owner's draft. Visits are counted by POST .../visit.
+ */
 export async function GET(request: NextRequest, { params }: { params: Promise<{ slug: string }> }) {
   try {
     const { slug } = await params;
-    const previewRequested = request.nextUrl.searchParams.get('preview') === 'true';
-
-    if (slug === 'demo') {
-      const template = request.nextUrl.searchParams.get('template') || 'modern';
-      return successResponse({
-        // Sample data: previews may restyle it freely
-        preview: true,
-        portfolio: {
-          id: 0,
-          slug: 'demo',
-          title: 'Demo Portfolio',
-          template,
-          sections_order: [],
-          theme: request.nextUrl.searchParams.get('theme') || 'dark-space',
-          is_published: true,
-        },
-        hero: {
-          headline: "Hi, I'm Alex Rivera",
-          subheadline: 'Full-stack developer building polished web products',
-          cta_text: 'View My Work',
-        },
-        about: {
-          name: 'Alex Rivera',
-          title: 'Full-stack Developer',
-          bio: 'I build fast, accessible, and scalable web applications with React, Next.js, Node.js, and PostgreSQL. I enjoy turning complex problems into clean user experiences.',
-          photo_url: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=400&q=80',
-        },
-        experience: [
-          { id: 1, company: 'Nova Labs', position: 'Senior Frontend Engineer', start_date: '2023-01-01', end_date: null, description: 'Led design system adoption and shipped customer-facing dashboards.' },
-          { id: 2, company: 'Orbit Studio', position: 'Full-stack Developer', start_date: '2020-06-01', end_date: '2022-12-01', description: 'Built APIs, admin panels, and deployment workflows for SaaS clients.' },
-        ],
-        projects: [
-          { id: 1, title: 'Analytics Dashboard', description: 'Realtime dashboard with charts, filters, and team reports.', tech_stack: 'Next.js, PostgreSQL, Recharts', demo_url: '#', github_url: '#' },
-          { id: 2, title: 'Portfolio Builder', description: 'No-code portfolio generator with multiple templates.', tech_stack: 'React, Node.js, Supabase', demo_url: '#', github_url: '#' },
-        ],
-        services: [
-          { id: 1, title: 'Web App Development', description: 'Custom full-stack applications from idea to launch.', icon: '✦' },
-          { id: 2, title: 'UI Engineering', description: 'Responsive, accessible, and delightful interfaces.', icon: '✦' },
-        ],
-        contact: { email: 'alex@example.com', phone: '+1 555 0100', location: 'Remote' },
-        skills: [
-          { id: 1, title: 'Frontend', skills: 'React, Next.js, TypeScript, Tailwind CSS' },
-          { id: 2, title: 'Backend', skills: 'Node.js, PostgreSQL, Supabase, REST API' },
-        ],
-        testimonials: [
-          { id: 1, name: 'Maya Chen', position: 'Product Manager', message: 'Alex ships quickly and keeps quality high.' },
-        ],
-        gallery: [],
-        custom: [],
-      });
-    }
-
-    const { data: portfolio } = await getSupabaseAdmin().from('portfolios').select('*').eq('slug', slug).maybeSingle();
-    if (!portfolio) return errorResponse('Portfolio not found or not published', 404);
-
-    // Preview of unpublished portfolios is only allowed for the owner (or superadmin)
-    let isPreview = false;
-    if (previewRequested) {
-      const viewer = await getAuthUser(request);
-      isPreview = !!viewer && (String(viewer.id) === String(portfolio.owner_id) || viewer.role === 'superadmin');
-    }
-    if (!portfolio.is_published && !isPreview) return errorResponse('Portfolio not found or not published', 404);
-
-    const ownerId = portfolio.owner_id;
-
-    const [hero, about, experience, projects, services, contact, skills, testimonials, gallery, custom] = await Promise.all([
-      getSupabaseAdmin().from('hero').select('*').eq('owner_id', ownerId).maybeSingle(),
-      getSupabaseAdmin().from('about').select('*').eq('owner_id', ownerId).maybeSingle(),
-      getSupabaseAdmin().from('experience').select('*').eq('owner_id', ownerId).order('start_date', { ascending: false }),
-      getSupabaseAdmin().from('projects').select('*').eq('owner_id', ownerId).order('created_at', { ascending: false }),
-      getSupabaseAdmin().from('services').select('*').eq('owner_id', ownerId),
-      getSupabaseAdmin().from('contact_info').select('*').eq('owner_id', ownerId).maybeSingle(),
-      getSupabaseAdmin().from('skills').select('*').eq('owner_id', ownerId),
-      getSupabaseAdmin().from('testimonials').select('*').eq('owner_id', ownerId),
-      getSupabaseAdmin().from('gallery').select('*').eq('owner_id', ownerId).order('created_at', { ascending: false }),
-      getSupabaseAdmin().from('custom_sections').select('*').eq('owner_id', ownerId).order('sort_order', { ascending: true }),
-    ]);
-
-    // Track visit
-    if (!isPreview) {
-      const ip = getClientId(request);
-      const ua = (request.headers.get('user-agent') || '').slice(0, 300);
-      // Count at most a few visits per visitor and portfolio per 15 minutes, so refreshing or scripting can't inflate stats.
-      try {
-        const rl = await checkRateLimit(`visit:${portfolio.id}:${ip}`, 'visit');
-        if (rl.allowed) await getSupabaseAdmin().from('portfolio_visits').insert({ portfolio_id: portfolio.id, ip_address: ip, user_agent: ua });
-      } catch { /* stats are best-effort */ }
-    }
-
-    const parseSectionsOrder = (value: unknown): SectionOrderEntry[] => {
-      if (Array.isArray(value)) return value;
-      if (typeof value !== 'string') return [];
-      if (value === 'undefined' || value === 'null') return [];
-      try {
-        const parsed = JSON.parse(value);
-        return Array.isArray(parsed) ? parsed : [];
-      } catch {
-        return [];
-      }
-    };
-    const sectionsConfig = parseSectionsOrder(portfolio.sections_order);
-    // Optional sections the owner has to add themselves: not in their saved list means not shown
-    const OPT_IN = new Set(['services', 'gallery', 'testimonials']);
-    const isEnabled = (type: string) => {
-      if (!Array.isArray(sectionsConfig) || !sectionsConfig.length) return !OPT_IN.has(type);
-      const section = sectionsConfig.find((s) => s.type?.split('-')[0] === type);
-      return section ? section.enabled !== false : !OPT_IN.has(type);
-    };
-    // Custom sections are toggled one by one: each entry's label matches the title of its rows. Checking
-    // the type alone found the first custom entry (Education by default), so hiding it hid them all.
-    const customEnabled = (title: string | undefined) => {
-      const key = (title || '').trim().toLowerCase();
-      const entry = sectionsConfig.find((s) => s.type?.split('-')[0] === 'custom' && String(s.label ?? '').trim().toLowerCase() === key);
-      return entry ? entry.enabled !== false : true;
-    };
-
-    const rawCustomData = (custom.data || []).map((section: CustomSectionRow): CustomSectionOutput => {
-      let content = section.content;
-      if (typeof content === 'string') {
-        if (content === 'undefined' || content === 'null') {
-          content = {};
-        } else {
-          try {
-            const parsedContent: CustomSectionContent = JSON.parse(content);
-            content = parsedContent;
-          } catch {
-            content = { body: content };
-          }
-        }
-      }
-      return { ...section, content: content || {} };
+    const search = request.nextUrl.searchParams;
+    const data = await loadPublicPortfolio(slug, {
+      preview: search.get('preview') === 'true',
+      request,
+      demo: { template: search.get('template'), theme: search.get('theme') },
     });
-    const typedCustomTypes = new Set(['education', 'certification', 'specialization', 'language', 'award', 'organization']);
-    const formatCustomItem = (section: CustomSectionOutput): unknown => {
-      const c = section.content || {};
-      if (section.type === 'education') {
-        const title = [c.institution, c.degree, c.field].filter(Boolean).join(' - ');
-        const meta = [c.start_date, c.end_date].filter(Boolean).join(' - ');
-        return [title, meta, c.gpa ? `GPA: ${c.gpa}` : ''].filter(Boolean).join(' | ');
-      }
-      if (section.type === 'certification') {
-        return c;
-      }
-      if (section.type === 'specialization') {
-        return c.body || [c.area, c.description].filter(Boolean).join(': ');
-      }
-      if (section.type === 'language') {
-        return [c.language, c.proficiency].filter(Boolean).join(' | ');
-      }
-      if (section.type === 'award') {
-        return [c.title, c.issuer, c.date].filter(Boolean).join(' | ');
-      }
-      if (section.type === 'organization') {
-        return [c.name, c.role, c.description].filter(Boolean).join(' | ');
-      }
-      return c.body || c.title || section.title;
-    };
-    const groupedCustomData = rawCustomData.reduce((items: CustomSectionOutput[], section: CustomSectionOutput) => {
-      if (!typedCustomTypes.has(section.type!)) {
-        items.push(section);
-        return items;
-      }
-      const existing = items.find((item) => item.title === section.title && item.original_type === section.type);
-      const isCert = section.type === 'certification';
-      const listItem = formatCustomItem(section);
-      const sectionType = isCert ? 'certification' : 'list';
-      if (existing) {
-        if (listItem) existing.content.items!.push(listItem);
-      } else {
-        items.push({
-          id: `custom-${section.title}-${section.type}`,
-          title: section.title,
-          type: sectionType,
-          original_type: section.type,
-          content: { items: listItem ? [listItem] : [] },
-        });
-      }
-      return items;
-    }, []);
-
-    return successResponse({
-      // Tells the page whether ?template=/?theme=/?order= may apply (owner or superadmin previewing)
-      preview: isPreview,
-      portfolio: {
-        id: portfolio.id, slug: portfolio.slug, title: portfolio.title,
-         template: portfolio.template, sections_order: sectionsConfig,
-        theme: portfolio.theme, is_published: portfolio.is_published,
-      },
-      hero: isEnabled('hero') ? (hero.data || null) : null,
-      about: isEnabled('about') ? (about.data || null) : null,
-      experience: isEnabled('experience') ? (experience.data || []) : [],
-      // A project without its own image shows a live screenshot of its demo site
-      projects: isEnabled('projects') ? (projects.data || []).map((project) => ({ ...project, image_url: projectImage(project) })) : [],
-      services: isEnabled('services') ? (services.data || []) : [],
-      contact: isEnabled('contact') ? (contact.data || null) : null,
-      skills: isEnabled('skills') ? (skills.data || []) : [],
-      testimonials: isEnabled('testimonials') ? (testimonials.data || []) : [],
-      gallery: isEnabled('gallery') ? (gallery.data || []) : [],
-      custom: groupedCustomData.filter((section: CustomSectionOutput) => customEnabled(section.title)),
-    });
+    if (!data) return errorResponse('Portfolio not found or not published', 404);
+    return successResponse(data);
   } catch (err) { return errorResponse(getErrorMessage(err)); }
 }
-
