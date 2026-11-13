@@ -3,6 +3,7 @@ import { requireAuth } from '@/lib/auth';
 import { getSupabaseAdmin } from '@/lib/supabase/admin';
 import { errorResponse, successResponse, getErrorMessage } from '@/lib/utils';
 import { checkSectionBody } from '@/lib/validate';
+import { dropInlineImages, putInlineImages, takeInlineImages } from '@/lib/supabase/inline-images';
 
 const authStatus = (err: unknown) => {
   const message = err instanceof Error ? err.message : '';
@@ -14,13 +15,21 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     const auth = await requireAuth(request);
     const { id } = await params;
     const body = await request.json();
+    // Old rows hold base64 photos: check them now, store them once the rest of the body is valid
+    const inline = takeInlineImages(body, ['image_url']);
+    if ('error' in inline) return errorResponse(inline.error, 400);
     const invalid = checkSectionBody(body, { links: ['image_url', 'demo_url', 'github_url'] });
     if (invalid) return errorResponse(invalid, 400);
+    const stored = await putInlineImages(body, inline.images, auth.id, 'projects');
+    if ('error' in stored) return errorResponse(stored.error, 429);
     const { title, description, image_url, tech_stack, demo_url, github_url } = body;
     const updates = { title, description, image_url, tech_stack, demo_url, github_url };
     const { data, error } = await getSupabaseAdmin().from('projects').update(updates).eq('id', id).eq('owner_id', auth.id).select().maybeSingle();
     if (error) return errorResponse(error.message, 500);
-    if (!data) return errorResponse('Not found', 404);
+    if (!data) {
+      await dropInlineImages(stored.urls, auth.id);
+      return errorResponse('Not found', 404);
+    }
     return successResponse(data);
   } catch (err) { return errorResponse(err instanceof Error ? err.message : 'Request failed', authStatus(err)); }
 }

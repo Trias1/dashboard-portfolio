@@ -57,6 +57,27 @@ export async function validateUpload(file: unknown, allowedKinds: DetectedFileTy
   return { ok: true, buffer, type };
 }
 
+/** True for a base64 image data URL (`data:image/...;base64,...`), the way old rows stored photos. */
+export function isImageDataUrl(value: unknown): value is string {
+  return typeof value === 'string' && /^data:image\/[a-z0-9.+-]+;base64,/i.test(value.trim());
+}
+
+/**
+ * Decode a base64 image data URL. The bytes must be a real PNG/JPEG/GIF/WebP (the declared MIME is ignored)
+ * and at most MAX_IMAGE_BYTES. Returns null for anything else.
+ */
+export function parseImageDataUrl(value: unknown): { buffer: Buffer; type: DetectedFileType } | null {
+  if (!isImageDataUrl(value)) return null;
+  const payload = value.trim().slice(value.trim().indexOf(',') + 1).replace(/\s+/g, '');
+  if (!payload || !/^[A-Za-z0-9+/]+={0,2}$/.test(payload)) return null;
+  // Reject before decoding: base64 is 4 chars per 3 bytes
+  if (Math.floor((payload.length * 3) / 4) > MAX_IMAGE_BYTES + 2) return null;
+  const buffer = Buffer.from(payload, 'base64');
+  const type = detectFileType(buffer);
+  if (!type || type.kind !== 'image' || buffer.length > MAX_IMAGE_BYTES) return null;
+  return { buffer, type };
+}
+
 /** Accept only absolute http(s) URLs (blocks javascript:, data:, etc.). */
 /**
  * A link a user typed (demo, GitHub, LinkedIn, CTA…). Returns:
